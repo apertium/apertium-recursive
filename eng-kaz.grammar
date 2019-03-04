@@ -1,88 +1,96 @@
-Squot → cm S1 { $1 #деп(xquot) $2 }
+!!!!!
+! NODE TYPES
+!!!!!
+
+Squot → cm S1 { 1 #деп(xquot) 2 }
 	;
 
-Ssub → 	cnjsub S1 { $2 $1 } 
+Ssub → 	cnjsub S1 { 2 1 } 
 	;
 
-S → 	S1 Ssub X  { $2 $1 $3 }
-	| S1 X { $1 $2 }
-	| S1 Squot X { $1 $2 $3 }
+S → 	S1 Ssub X  { 2 1 3 }
+	| S1 X { 1 2 }
+	| S1 Squot X { 1 2 3 }
 	;
 
-S1 → 	PRNS SV { $1 $2 } 
-	| PRNS SAdv SV { $1 $2 $3 } 
-	| SN1 SV { $1 $2 } 
-	| SVpass SP { $2 $1 } 
-	| SVexist { $1 } 
+S1 → 	PRNS SV { 1 2 } 
+	| PRNS SAdv SV { 1 2 3 } 
+	| SN1 SV { 1 2 } 
+	| SVpass SP { 2 1 } 
+	| SVexist { 1 } 
 	;
 
-SAdv →	adv { $1 }
+SAdv →	#(adv) { 1 }
 	;
 
-X → 	sent { $1 }
+X → 	sent { 1 }
 	;
 
-SVpass → SN1 Vpass { $1 $2 }
+SVpass → SN1 Vpass { 1 2 }
 	;
 
-SVexist → Vexist SN1 { $2 $1 }
+SVexist → Vexist SN1 { 2 1 }
 	;
 
-SV → 	V SP { $2 $1 }
-	| V { $1 } 
-	| V SAdv { $2 $1 } 
-	| V SAdv SP { $3 $2 $1 } 
-	| Vexist { $1 } 
+SV → 	V SP { 2 1 }
+	| V { 1 } 
+	| V SAdv { 2 1 } 
+	| V SAdv SP { 3 2 1 } 
+	| Vexist { 1 } 
 	;
 
-V → 	pers_verb { $1 } 
-	| pers_verb_to_be { $1 } 
-	| pers_verb_to_be verb_ing { $2 $1 } 
-	| pers_verb to verb_inf { $3 $1 }
+V → 	pers_verb { 1 } 
+	| pers_verb_to_be { 1 } 
+	| pers_verb_to_be verb_ing { 2 1 } 
+	| pers_verb to verb_inf { 3 1 }
 	;
 
-Vexist → there pers_verb_to_be { $2 }
-	| ITG pers_verb_to_be { $1 $2 }
+Vexist → there pers_verb_to_be { 2 }
+	| ITG pers_verb_to_be { 1 2 }
 	;
 
-Vpass → pers_verb_to_be verb_pp { $2 $1 } 
+Vpass → pers_verb_to_be verb_pp { 2 1 } 
 	;
 
-SP → 	prep SN1 { $2 $1 }
+SP → 	prep SN1 { 2 1 }
 	;
 
-PRNS → 	subj_pron { $1 }
+PRNS → 	subj_pron { 1 }
 	;
 
-SNcnj → CNP SN1 { $1 $2 }
+SNcnj → CNP SN1 { 1 2 }
 	;
 
-SN1 → 	SN SP { $2 $1 } 
-	| SN { $1 }
-	| SN SNcnj { $1 $2 }
+SN1 → 	SN SP { 2 1 } 
+	| SN { 1 }
+	| SN SNcnj { 1 2 }
 	;
 
-CNP → 	cnjcoo_cnp { $1 }
+CNP → 	cnjcoo_cnp { 1 }
 	;
 
-Nmod →	adjec { $1 } 
-	| adjec adjec { $1 $2 }
-	| nom guio verb_pp { $1 $2 $3 }
+Nmod →	adjec { 1 } 
+	| adjec adjec { 1 2 }
+	| nom guio verb_pp { 1 2 3 }
 	;
 
-N → 	nom { $1 }
+N → 	nom { 1 }
 	;
 
-ITG →	adv_itg { $1 }
+ITG →	adv_itg { 1 }
 	;
 
-SN → 	N { $1 } 
-	| nom N { $1 $2 } 
-	| det N { $2 } 
-	| det nom nom N { $2 $3 $4 } 
-	| Nmod N { $1 $2 } 
-	| det Nmod N { $2 $3 } 
+SN → 	N { 1 } 
+	| nom N { 1 2 } 
+	| det N { 2 } 
+	| det nom nom N { 2 3 4 } 
+	| Nmod N { 1 2 } 
+	| det Nmod N { 2 3 } 
 	;
+	
+!!!!!
+! TERMINAL NODES
+!!!!!
 
 #adv_itg -> #(adv.itg);
 #to -> #to(pr.inf);
@@ -96,37 +104,39 @@ SN → 	N { $1 }
 #cnjsub -> #(cnjsub);
 #sent -> #(sent);
 #prep -> #(pr);
-#det -> #(det.def.*) | #(det.ind.*) | #(det.pos.*) | #(det.dem.*);
+!#det -> #(det.def.*) | #(det.ind.*) | #(det.pos.*) | #(det.dem.*);
+#det -> #(det.[def ind pos dem].*);
 #adjec -> #(adj.*);
 #nom -> #(n.*) | #(np.*) | #(vblex.subs) | #(np.ant.*) | #(np.top.*);
 #verb_pp -> #(vblex.pp) | #(vbmod.pp);
 #verb_ing -> #(vblex.ger) | #(vbmod.ger);
-#pers_verb_to_be -> #(vbser.pres.*) | #(vbser.past.*); ! past and present tense
-#pers_verb -> #(vblex.pres.*) | #(vblex.past.*); ! past and present tense
 
-!  <section-def-attrs>
-!    <def-attr n="a_nbr">
-!      <attr-item tags="sg"/>
-!      <attr-item tags="sp"/>
-!      <attr-item tags="pl"/>
-!      <attr-item tags="ND"/>
-!    </def-attr>
-!
-!    <def-attr n="a_pers">
-!      <attr-item tags="p1"/>
-!      <attr-item tags="p2"/>
-!      <attr-item tags="p3"/>
-!      <attr-item tags="PD"/>
-!    </def-attr>
-!
-!    <def-attr n="a_trans">
-!      <attr-item tags="iv"/>
-!      <attr-item tags="tv"/>
-!    </def-attr>
-!
-!    <def-attr n="a_prn">
-!      <attr-item tags="prn.itg"/>
-!      <attr-item tags="prn.dem"/>
-!    </def-attr>
-!
-!  </section-def-attrs>
+
+!!!!!
+! ATTRIBUTE CATEGORIES
+!!!!!
+
+!#pers_verb_to_be -> #(vbser.pres.*) | #(vbser.past.*); ! past and present tense
+!#pers_verb -> #(vblex.pres.*) | #(vblex.past.*); ! past and present tense
+
+tense = past pres;
+#pers_verb_to_be -> #(vbser.<tense>.*);
+#pers_verb -> #(vblex.<tense>.*);
+
+a_nbr = sg sp pl ND ;
+a_pers = p1 p2 p3 PD ;
+a_trans = iv tv ;
+
+!a_prn = prn.itg prn.dem ;
+!handling this is possible with this system, but complicated
+!it may require that all options be the same length
+
+
+!!!!!
+! PASSING ATTRIBUTES UP THE TREE (this example does nothing)
+!!!!!
+
+st = a b c;
+#bg $st -> #(x.$st);
+nd $st -> bg { 1 };
+nd2 $st -> bg bg { 2 1 } ;

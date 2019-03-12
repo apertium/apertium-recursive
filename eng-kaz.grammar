@@ -136,7 +136,7 @@ a_trans = iv tv ;
 ! PASSING ATTRIBUTES UP THE TREE (this example does nothing)
 !!!!!
 
-st = a b c;
-#bg $st -> #(x.$st);
-nd $st -> bg { 1 };
-nd2 $st -> bg bg { 2 1 } ;
+!st = a b c;
+!#bg $st -> #(x.$st);
+!nd $st -> bg { 1 };
+!nd2 $st -> nd nd { 2 1 } ;

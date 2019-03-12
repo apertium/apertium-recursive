@@ -1,0 +1,74 @@
+! This file is roughly equivalent to 45 of the first 47 rules
+! of apertium-eng-spa.eng-spa.t1x
+
+! There are probably some inconsistencies
+! particularly with regards to passing variables up and down the tree
+
+@adj: <adj><$mode>/<adj><$gender> ;
+@n: <n><$number>/<n><$gender><$number_tl> ;
+@np: <np><$number>/<np><$gender><$number_tl> ;
+! when encountering elements that match these patterns,
+! attach variables to these positions
+
+NOM: n np ;
+
+! Lines 4989-5328 (dates)
+weekday@n: sunday monday tuesday wednesday thursday friday saturday ;
+month@n: january february march april may june
+         july august september november december ;
+! match <n>s with these lemmas
+
+monthdate -> 1: #the(det.def.sp) #(num.ord) #of(pr) month
+                {2 _2 3 _3 4(gender=m, number=sg)} |
+             3: #the(det.def.sp) #(num.ord) {2} |
+             1: #(num) month {1 _1 #de(pr) 2} ;
+caldate -> 2: monthdate {1} |
+           1: monthdate #(num) {1 _1 #de(pr) 2} ;
+date -> 2: caldate {#el(det.def.m.sg) 1} |
+        1: weekday caldate {#el(det.def.[1.gender].[1.number_tl]) 1 _1 2} |
+        2: weekday {#el(det.def.[1.gender].[1.number_tl]) 1} ;
+! #the(det.def.sp) matches lemma "the" and taglist which includes det,def,sp
+! #(num.ord) matches taglist which includes num,ord
+! _2 is the same as <b pos="2"/> from .t1x
+! _ could be <b/>, but I wrote this as if blanks would be automattically inserted
+! 1: and 3: before the rules are weights
+! #el(det.def.[1.gender].[1.number_tl]) takes some tag values from element 1
+
+PP -> 3: #(pr) n {1 2} |
+      2: #on(pr) date {2} ;
+
+! Lines 5329-8545 (adjectives)
+! the rules beginning on lines 6408 (adj num adj nom) and 6852 (adv pp nom)
+! were skipped because I'm not entirely sure what they're doing
+AP/adj -> 2: %adj {1} |
+          1: #(adv) %adj {1 _1 2} |
+          1: #(preadv) %adj {1 _1 2} |
+          1: AP #(cnjcoo) %AP {1(gender=3.gender, number=3.number) _1 2 _2 3} |
+             ! the details of variable passing in this instance
+             ! may turn out to be a little tricky
+          1: AP #(cm) %AP {1(gender=3.gender, number=3.number) _1 2 _2 3} |
+          1: #(apos) %AP #(apos) {1 _1 2 _2 3} ;
+NA/NOM -> 1: AP %NA {2 _1 1(gender=2.gender, number=2.number)} |
+          2: %NOM {1} |
+          2: #(num) %NA {1 _1 2} |
+          2: #(apos) %NA #(apos) {1 _1 2 _2 3} ;
+! NA/NOM defines NA node which has all the same variables as NOM
+! NOM has variables of @n and @np, which are identical
+! if they weren't identical, I'm not sure whether that should be an error
+! or a warning and then just use only the overlap
+! % specifies which child to share variables with
+
+@predet: <predet><$number_sl>/<predet><$gender><$number_tl> ;
+@det: <det><$def><$number>/<det><$def><$gender><$number> ;
+
+! maybe the variable names in @ patterns automattically get _sl and _tl
+! appended and then variable names are by default interpreted as _sl in
+! patterns and _tl in applications
+
+NP/NOM -> 1: all@predet %NA(number=pl)
+             {1(number_tl=pl, gender=2.gender) #el(det.def.[2.gender].pl) _1 2} |
+          2: det %NP {1(number=2.number, gender=2.gender) _1 2} |
+          2: %NA {1} |
+          1: #such\ a(det.ind.sg) adj %NOM
+             {#un(det.ind.[3.gender].sg) _1 3 _2 #tan(preadv) 2} ;
+

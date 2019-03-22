@@ -18,42 +18,84 @@ month = january february march april may june
 
 monthdate -> 1: the@det.def.sp @num.ord of@pr $month@n
                 {2 _2 3 _3 4(gender=m, number=sg)} |
+                ! "the third of March" -> "tercero de Marzo"
+                
              3: the@det.def.sp @num.ord {2} |
+                ! "the third" -> "tercero"
+                ! higher weighting so we don't conflict with previous line
+                
              1: @num $month@n {1 _1 de@pr 2} ;
+                ! "3 March" -> "3 de Marzo"
+                
 caldate -> 2: monthdate {1} |
            1: monthdate @num {1 _1 de@pr _ 2} ;
+              ! "[3 March] 1999" -> "[3 de Marzo] de 1999"
+              
 date -> 2: caldate {el@det.def.m.sg 1} |
-        1: weekday caldate {el@det.def.[1.gender].[1.number_tl] _ 1 _1 2} |
+           ! "[3 March 1999]" -> "el [3 de Marzo de 1999]"
+           
+        1: $weekday@n caldate {el@det.def.[1.gender].[1.number_tl] _ 1 _1 2} |
+           ! "Monday [3 March 1999]" -> "El Lunes [el 3 de Marzo de 1999]"
+           
         2: weekday {el@det.def.[1.gender].[1.number_tl] _ 1} ;
+           ! "Monday" -> "el Lunes"
 
 PP -> 3: @pr @n {1 2} |
+         ! "in soup" -> "en sopa"
+         
       2: on@pr date {2} ;
+         ! "on [Tuesday]" -> "[el Martes]"
 
 ! Lines 5329-8545 (adjectives)
 ! the rules beginning on lines 6408 (adj num adj nom) and 6852 (adv pp nom)
 ! were skipped because I'm not entirely sure what they're doing
+
 CONJ -> 1: @cnjcoo {1} | 1: @cm {1} ;
+
 AP./gender.mode/ -> 2: @adj.$mode {1(gender=$gender)} |
+                       ! "blue" -> "azul"
+                       
                     1: @adv @adj.$mode {1 _1 2(gender=$gender)} |
                     1: @preadv @adj.$mode {1 _1 2(gender=$gender)} |
+                       ! "very green" -> "muy verde"
+
                     1: AP.$mode CONJ AP.$mode
                        {1(gender=$gender) _1 2 _2 3(gender=$gender)} |
+                       ! "[totally green] and [very tall] ->
+                       ! "[totalmente verde] y [muy alto]
+                       
                     1: @apos AP.$mode @apos {1 _1 2(gender=$gender) _2 3} ;
-NA.number./gender -> 2: NOM.$number {1} |
-                        ! don't bother writing gender back to noun
+                       ! " 'blue' " -> " 'azul' "
+                       
+NA.number./gender -> 2: NOM.$number {1(number=$number, gender=$gender)} |
+                        ! gender probably hasn't changed, but just in case
+                        
                      1: AP NA.$number
                         {2 _1 1(number=$number, gender=2.gender)} |
+                        ! "green socks" -> "calcetines verdes"
+                        
                      2: @num NA.$number {1 _1 2(gender=$gender)} |
+                        ! "3 elephants" -> "tres elephantes"
+                        
                      2: @apos NP.$number @apos {1 _1 2(gender=$gender) _2 3} ;
+                        ! " 'sock' " -> " 'calcetine' "
 
 NP.number./gender -> 1: all@predet NP.$gender(number=pl)
                         {1(number=pl, gender=$gender) _
                          el@det.def.$gender.pl _1 2} |
+                        ! "all tables" -> "todas las mesas"
+                        
                      2: @det NP.$number.$gender
                         {1(number=$number, gender=$gender) _1 2} |
+                        ! "the books" -> "los libros"
+                        
                      2: NP.$number {1} |
+                        ! "book" -> "libro"
+                        
                      1: such\ a@det.ind.sg @adj NOM.$number
                         {un@det.ind.[3.gender].sg _1 3 _2 tan@preadv 2} ;
+                        ! "such a green ceiling" ->
+                        ! "un techo tan verde"
 
 ! we'll probably want to add the NP/NA and % syntax back in later
 ! due to general clutteredness

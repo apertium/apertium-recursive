@@ -93,11 +93,12 @@ NP.number./gender -> 1: all@predet NP.$gender(number=pl)
                         ! "book" -> "libro"
                         
                      1: such\ a@det.ind.sg @adj NOM.$number
-                        {un@det.ind.[3.gender].sg _1 3 _2 tan@preadv 2} ;
+                        {un@det.ind.[3.gender].sg _1 3 _2 tan@preadv _ 2} ;
                         ! "such a green ceiling" ->
                         ! "un techo tan verde"
 
 ! we'll probably want to add the NP/NA and % syntax back in later
+! where NP/NA gives NP all the same variables as NA
 ! due to general clutteredness
 ! also something like >1 in the output meaning
 ! "1(x=$x, y=$y, ...)" for every node variable

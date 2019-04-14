@@ -199,6 +199,8 @@ def parse_file(fname):
     out_regex = re.compile('(_\\d*|\\w*@[\\w.$]*|\\d+(?:\\([\\w=.,\\s]+\\))?)', re.MULTILINE)        
     while s:
         m = rule_regex.match(s)
+        if not m:
+            print(s)
         name = m.group(1)
         mode = m.group(2)
         s = m.group(3)
@@ -209,7 +211,16 @@ def parse_file(fname):
         elif mode == ':':
             pat, s = s.split(';', 1)
             s = s.lstrip()
-            OutRules[name] = pat.strip()
+            pls = name.strip().split('.')
+            sls = pat.strip().split('.')
+            _ = ''.join('<'+x+'>' for x in pls)
+            rl = '^{lemma}'
+            for x in sls:
+                if x == '_':
+                    rl += _
+                else:
+                    rl += '<{vrs['+x+']}>'
+            OutRules[name] = rl + '$'
         else:
             ntype = name.split('.')[0]
             vrs = name.split('.')[1:]

@@ -1,6 +1,12 @@
 gender = m f ;
 number = sg pl ;
-n : {lemma}<n><{vrs['gender']}><{vrs['number']}> ;
-det.ind : {lemma}<det><ind><{vrs['number']}> ;
+n : ^{lemma}<n><{vrs[gender]}><{vrs[number]}>$ ;
+det.ind : ^{lemma}<det><ind><{vrs[gender]}><{vrs[number]}>$ ;
+sent : ^{lemma}<sent>$ ;
 
-NP -> 1: @det @n {1(gender=2.gender) _1 2 _ techo@n.m.sg} ;
+NP -> 1: @det @n {1(gender=2.gender, number=2.number) _1 2 _ techo@n.m.sg} ;
+
+
+! ISSUES
+! output code for Syntax() gives nothing
+! output code for Lexical() sent -> error message

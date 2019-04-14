@@ -13,6 +13,8 @@ class Lexical:
         self.matchvars = matchvars
         self.outform = outform
         self.get_attrs()
+    def __repr__(self):
+        return 'Lexical(%s, %s)' % (self.t_lem, self.t_tags)
     s_regex = re.compile('\\^([^<>]+)((?:<[^<>]+>)+)/([^<>]+)((?:<[^<>]+>)+)\\$')
     f_regex = re.compile('(\\w*)@([\\w.]*)')
     def get_attrs(self):
@@ -25,8 +27,6 @@ class Lexical:
                     self.vrs[k] = t
     def fromstream(s):
         p = Lexical.s_regex.match(s)
-        if not p:
-            print(s)
         sl = p.group(1)
         tl = p.group(3)
         sl_tags = p.group(2)[1:-1].split('><')
@@ -55,14 +55,14 @@ class Lexical:
         else:
             out = '[[[ error: no rule found for %s ]]]' % '.'.join(self.t_tags)
             for i in range(len(self.t_tags)):
-                s = '.'.join(self.t_tags[:-i])
+                s = '.'.join(self.t_tags[:len(self.t_tags)-i])
                 if s in OutRules:
                     out = OutRules[s]
         return out.format(lemma=self.t_lem, vrs=self.vrs)
     def match(self, data, vrs):
         newvars = {}
         lem = self.s_lem
-        if lem[0] == '$':
+        if lem and lem[0] == '$':
             if data.s_lem not in Attrs[lem[1:]]:
                 return (False, {})
         elif lem and data.s_lem != lem:
@@ -89,6 +89,8 @@ class Blank:
         return self.text
     def match(self, data, vrs):
         return (True, {})
+    def __repr__(self):
+        return 'Blank(%s)' % (self.text)
 class Syntax:
     def __init__(self, ntype, vrs, outrule, children, updates):
         self.ntype = ntype
@@ -96,6 +98,8 @@ class Syntax:
         self.outrule = outrule
         self.children = children
         self.updates = updates
+    def __repr__(self):
+        return 'Syntax(%s, %s)' % (self.ntype, self.children)
     def output(self):
         for s_id, s_var, d_id, d_var in self.updates:
             if s_id == None:
@@ -105,7 +109,9 @@ class Syntax:
             else:
                 val = self.children[s_id].vrs[s_var]
             self.children[d_id].vrs[d_var] = val
-        return self.outrule.format(*(x.output() for x in self.children), _=' ')
+
+        ls = [x.output() for x in self.children]
+        return self.outrule.format(*ls, _=' ')
     def match(self, data, vrs):
         if self.ntype != data.ntype:
             return (False, {})
@@ -144,7 +150,7 @@ class Rule:
         ret = tokens[:-len(self.pattern)]
         ret.append(Syntax(self.ntype, self.vrs, self.output,
                           tokens[-len(self.pattern):], self.updates))
-        return (ret, weight)
+        return (ret, self.weight)
     def apply_all(parses):
         todo = parses
         done = []
@@ -190,18 +196,7 @@ def parse_file(fname):
     f.close()
     rule_regex = re.compile('([\\w.]+)\\s*(:|=|->)\\s*(.*)', re.MULTILINE | re.DOTALL)
     line_regex = re.compile('\\s*([0-9.]+):\\s*([^{}]+)\\{([^{}]+)\\}\\s*([;|])(.*)', re.MULTILINE)
-    out_regex = re.compile('_\\d*|\\w*@[\\w.$]*|\\d+(\\((\\w+=[\\w$.]+(,\\s*))+\\))?', re.MULTILINE)
-    def parse_item(x, out=False):
-        if '@' in x:
-            if out:
-                return Lexical.fromstream(re.sub('\\$(\w+)', 'vrs["\\1"]', x))
-            else:
-                return Lexical.fromstream(x)
-        elif x[0] == '_':
-            return '_[' + x[1:] + ']'
-        elif x.isdigit():
-            return 
-        
+    out_regex = re.compile('(_\\d*|\\w*@[\\w.$]*|\\d+(?:\\([\\w=.,\\s]+\\))?)', re.MULTILINE)        
     while s:
         m = rule_regex.match(s)
         name = m.group(1)
@@ -231,7 +226,12 @@ def parse_file(fname):
                         pat.append(Syntax(l[0], l[1:], None, [], None))
                 res = ''
                 updates = []
+                ls = out_regex.findall(m.group(3))
                 for r in out_regex.findall(m.group(3)):
+                    if not isinstance(r, str):
+                        r = r[0]
+                    if not r:
+                        continue
                     if '@' in r:
                         res += Lexical.fromfile(r, False).outform
                     elif r == '_':
@@ -243,7 +243,7 @@ def parse_file(fname):
                     else:
                         loc = (int(r.split('(')[0]) * 2) - 2
                         res += '{%s}' % loc
-                        for up in r.split('(')[1].split(','):
+                        for up in r[:-1].split('(')[1].split(','):
                             var,val = up.split('=')
                             var = var.strip()
                             val = val.strip()
@@ -277,4 +277,3 @@ if __name__ == '__main__':
         parses = [(x[0]+a, x[1]) for x in parses]
     out = min(parses, key=lambda p: p[1] + len(p[0]))[0]
     print(''.join(x.output() for x in out))
-    print(OutRules)

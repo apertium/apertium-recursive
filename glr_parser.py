@@ -1,3 +1,10 @@
+#!/usr/bin/python3 
+# coding=utf-8
+# -*- encoding: utf-8 -*-
+
+# example usage:
+# echo "a word" | apertium -d ../apertium-eng-spa eng-spa-lex | python3 glr_parser.py test_rules.rtx
+
 import sys, re
 
 Attrs = {}

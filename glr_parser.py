@@ -5,6 +5,8 @@
 # example usage:
 # echo "a word" | apertium -d ../apertium-eng-spa eng-spa-lex | python3 glr_parser.py test_rules.rtx
 
+# note: currently will not handle eng-spa.rtx
+
 import sys, re
 
 Attrs = {}

@@ -5,6 +5,8 @@
 ! http://wiki.apertium.org/wiki/User:Popcorndude/Recursive_Transfer/Formalism
 ! as of most recent commit (3/13/19 20:00 UTC if I've forgotten to update this)
 
+! (it's no longer entirely consistent - see test_rules.rtx, this will probably be updated eventually)
+
 number = sg pl ND ;
 gender = m f mf GD ;
 mode = comp sup pos sint ;

@@ -23,9 +23,9 @@ class Lexical:
         self.outform = outform
         self.get_attrs()
     def __repr__(self):
-        return 'Lexical(%s, %s)' % (self.t_lem, self.t_tags)
+        return 'Lexical(%s/%s, %s/%s)' % (self.t_lem, self.t_lem, self.s_tags, self.t_tags)
     s_regex = re.compile('\\^([^<>]+)((?:<[^<>]+>)+)/([^<>]+)((?:<[^<>]+>)+)\\$')
-    f_regex = re.compile('(\\w*)@([\\w.]*)')
+    f_regex = re.compile('(\\w*)@([\\w.$]*)')
     def get_attrs(self):
         for k in Attrs:
             for s in self.s_tags:
@@ -45,8 +45,8 @@ class Lexical:
         return Lexical(sl, tl, sl_tags, tl_tags, vrs, [], None)
     def fromfile(s, ispat):
         m = Lexical.f_regex.match(s)
-        tags = m.group(2).split()
-        vrs = [t[1:] for t in tags if t[0] == '$']
+        tags = m.group(2).split('.')
+        vrs = {t[1:]:None for t in tags if t[0] == '$'}
         if ispat:
             tags = [t for t in tags if t[0] != '$']
             return Lexical(m.group(1), '', tags, [], {}, vrs, None)
@@ -54,11 +54,13 @@ class Lexical:
             out = m.group(1)
             for t in tags:
                 if t[0] == '$':
-                    out += '<{vrs["%s"]}>' % t[1:]
+                    out += '<{vrs[%s]}>' % t[1:]
                 else:
                     out += '<%s>' % t
-            return Lexical('', m.group(1), [], tags, vrs, [], out)
-    def output(self):
+            return Lexical('', m.group(1), [], tags, vrs, [], '^'+out+'$')
+    def output(self, vrs):
+        allvrs = self.vrs.copy()
+        allvrs.update(vrs)
         if self.outform:
             out = self.outform
         else:
@@ -67,8 +69,10 @@ class Lexical:
                 s = '.'.join(self.t_tags[:len(self.t_tags)-i])
                 if s in OutRules:
                     out = OutRules[s]
-        return out.format(lemma=self.t_lem, vrs=self.vrs)
+        return out.format(lemma=self.t_lem, vrs=allvrs)
     def match(self, data, vrs):
+        if not isinstance(data, Lexical):
+            return (False, {})
         newvars = {}
         lem = self.s_lem
         if lem and lem[0] == '$':
@@ -94,7 +98,7 @@ class Lexical:
 class Blank:
     def __init__(self, text):
         self.text = text
-    def output(self):
+    def output(self, vrs):
         return self.text
     def match(self, data, vrs):
         return (True, {})
@@ -109,19 +113,25 @@ class Syntax:
         self.updates = updates
     def __repr__(self):
         return 'Syntax(%s, %s)' % (self.ntype, self.children)
-    def output(self):
+    def output(self, vrs):
+        allvrs = vrs
+        allvrs.update(self.vrs)
         for s_id, s_var, d_id, d_var in self.updates:
             if s_id == None:
-                val = self.vrs[s_var]
+                val = allvrs[s_var]
             elif s_id == 'lit':
                 val = s_var
             else:
                 val = self.children[s_id].vrs[s_var]
-            self.children[d_id].vrs[d_var] = val
-
-        ls = [x.output() for x in self.children]
-        return self.outrule.format(*ls, _=' ')
+            if d_id == 'self':
+                allvrs[d_var] = val
+            else:
+                self.children[d_id].vrs[d_var] = val
+        ls = [x.output(allvrs) for x in self.children]
+        return self.outrule.format(*ls, _=' ', vrs=allvrs)
     def match(self, data, vrs):
+        if not isinstance(data, Syntax):
+            return (False, {})
         if self.ntype != data.ntype:
             return (False, {})
         newvars = {}
@@ -135,7 +145,7 @@ class Syntax:
 
 class Rule:
     all_rules = []
-    def __init__(self, ntype, vrs, weight, pattern, output, updates):
+    def __init__(self, ntype, vrs, weight, pattern, output, updates, grab):
         self.ntype = ntype
         self.vrs = vrs
         self.weight = weight
@@ -145,11 +155,12 @@ class Rule:
             self.pattern.append(p)
         self.output = output
         self.updates = updates
+        self.grab = grab
         Rule.all_rules.append(self)
     def apply(self, tokens):
         if len(self.pattern) > len(tokens):
             return None
-        vrs = {}
+        vrs = {x:None for x in self.vrs}
         for p,d in zip(reversed(self.pattern), reversed(tokens)):
             m = p.match(d, vrs)
             if m[0]:
@@ -157,7 +168,9 @@ class Rule:
             else:
                 return None
         ret = tokens[:-len(self.pattern)]
-        ret.append(Syntax(self.ntype, self.vrs, self.output,
+        for idx, var in self.grab:
+            vrs[var] = tokens[idx-len(self.pattern)].vrs[var]
+        ret.append(Syntax(self.ntype, vrs, self.output,
                           tokens[-len(self.pattern):], self.updates))
         return (ret, self.weight)
     def apply_all(parses):
@@ -184,7 +197,7 @@ def input_stream(stream):
     ret = []
     islex = False
     cur = ''
-    for s in stream.read():
+    for s in stream:#stream.read():
         if not islex and s == '^':
             ret.append(Blank(cur))
             cur = s
@@ -204,7 +217,7 @@ def parse_file(fname):
     s = re.sub('![^\n]*', '', f.read(), flags=re.MULTILINE).strip()
     f.close()
     rule_regex = re.compile('([\\w.]+)\\s*(:|=|->)\\s*(.*)', re.MULTILINE | re.DOTALL)
-    line_regex = re.compile('\\s*([0-9.]+):\\s*([^{}]+)\\{([^{}]+)\\}\\s*([;|])(.*)', re.MULTILINE)
+    line_regex = re.compile('\\s*([0-9.]+):\\s*([^{}]+)\\{([^{}]+)\\}\\s*([;|])(.*)', re.MULTILINE | re.DOTALL)
     out_regex = re.compile('(_\\d*|\\w*@[\\w.$]*|\\d+(?:\\([\\w=.,\\s]+\\))?)', re.MULTILINE)        
     while s:
         m = rule_regex.match(s)
@@ -238,7 +251,12 @@ def parse_file(fname):
                 weight = float(m.group(1))
                 s = m.group(5)
                 pat = []
-                for p in m.group(2).split():
+                grab = []
+                for idx, p in enumerate(m.group(2).split()):
+                    if p[0] == '%':
+                        for v in vrs:
+                            grab.append((idx*2, v))
+                        p = p[1:]
                     if '@' in p:
                         pat.append(Lexical.fromfile(p, True))
                     else:
@@ -274,14 +292,16 @@ def parse_file(fname):
                                 updates.append((None, val[1:], loc, var))
                             else:
                                 updates.append(('lit', val, loc, var))
-                Rule(ntype, vrs, weight, pat, res, updates)
+                Rule(ntype, vrs, weight, pat, res, updates, grab)
                 if m.group(4) == ';':
                     break
             s = s[1:].lstrip()
 
 if __name__ == '__main__':
     parse_file(sys.argv[1])
-    tk = input_stream(sys.stdin)
+    #tk = input_stream(sys.stdin)
+    text = "^a<det><ind><sg>/uno<det><ind><GD><sg>$ ^word<n><sg>/palabra<n><f><sg>$^.<sent>/.<sent>$"
+    tk = input_stream(text)
     add = []
     cur = []
     for t in tk:
@@ -296,4 +316,4 @@ if __name__ == '__main__':
         parses = Rule.apply_all(parses)
         parses = [(x[0]+a, x[1]) for x in parses]
     out = min(parses, key=lambda p: p[1] + len(p[0]))[0]
-    print(''.join(x.output() for x in out))
+    print(''.join(x.output({}) for x in out))

@@ -4,9 +4,9 @@ m4_define([required_libxml_version], [2.6.17])
 m4_define([required_apertium_version], [3.5.2])
 m4_define([required_lttoolbox_version], [3.5.0])
 
-AC_INIT([apertium-separable], [0.3.2], [ftyers@prompsit.com])
-AM_INIT_AUTOMAKE([apertium-separable], [0.3.2], no-define)
-AC_CONFIG_HEADER([lsx_config.h])
+AC_INIT([apertium-recursive], [0.3.2], [ftyers@prompsit.com])
+AM_INIT_AUTOMAKE([apertium-recursive], [0.3.2], no-define)
+AC_CONFIG_HEADER([rtx_config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_PROG_CXX

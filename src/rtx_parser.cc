@@ -17,7 +17,7 @@ wstring const Parser::SPECIAL_CHARS = L"!@$%()={}[]|\\/:;<>,.";
 void
 Parser::eatSpaces()
 {
-  const wchar_t c;
+  wchar_t c;
   bool inComment = false;
   while(!source.eof())
   {
@@ -25,7 +25,7 @@ Parser::eatSpaces()
     if(inComment)
     {
       source.get();
-      if(c == L"\n")
+      if(c == L'\n')
       {
         inComment = false;
       }
@@ -34,7 +34,7 @@ Parser::eatSpaces()
     {
       source.get();
     }
-    else if(c == L"!")
+    else if(c == L'!')
     {
       source.get();
       inComment = true;
@@ -47,12 +47,46 @@ Parser::eatSpaces()
 }
 
 wstring
+Parser::nextToken()
+{
+  eatSpaces();
+  if(source.eof())
+  {
+    return L""; //@TODO: error condition, probably
+  }
+  wchar_t c = source.get();
+  wchar_t next = source.peek();
+  if(SPECIAL_CHARS.find(c))
+  {
+    return wstring(1, c);
+  }
+  else if(c == L'-' && next == L'>')
+  {
+    next = source.get();
+    return wstring(1, c) + wstring(1, next);
+  }
+  else
+  {
+    wstring ret = wstring(1, c);
+    while(!source.eof())
+    {
+      c = source.peek();
+      if(SPECIAL_CHARS.find(c) == string::npos && !isspace(c))
+      {
+        ret += source.get();
+      }
+    }
+    return ret;
+  }
+}
+
+wstring
 Parser::parseIdent()
 {
   eatSpaces();
 
   wstring ret = L"";
-  const wchar_t cur;
+  wchar_t cur;
 
   while(!source.eof())
   {
@@ -72,13 +106,13 @@ Parser::parseIdentGroup()
 
   vector<wstring> ret;
   wstring cur;
-  const wchar_t nextChar;
+  wchar_t nextChar;
   while(!source.eof())
   {
     nextChar = source.peek();
-    if(nextChar == L"$")
+    if(nextChar == L'$')
     {
-      ret.push_back(source.get());
+      ret.push_back(wstring(1, source.get()));
     }
     cur = parseIdent();
     if(cur == L"")
@@ -90,7 +124,7 @@ Parser::parseIdentGroup()
       ret.push_back(cur);
     }
     nextChar = source.peek();
-    if(nextChar == L".")
+    if(nextChar == L'.')
     {
       source.get();
     }
@@ -105,31 +139,35 @@ Parser::parseRule()
 
   vector<wstring> firstLabel = parseIdentGroup();
   eatSpaces();
-  const wchar_t next = source.get();
+  wchar_t next = source.get();
   switch (next) {
-  case L":":
+  case L':':
     parseOutputRule(firstLabel);
     break;
-  case L">":
+  case L'>':
     parseRetagRule(firstLabel);
     break;
-  case L"=":
+  case L'=':
     parseAttrRule(firstLabel);
     break;
-  case L"-":
-    const wchar_t next2 = source.peek();
-    if(next2 == L">")
+  case L'-':
     {
-      source.get();
-      parseReduceRule(firstLabel, false);
-      break;
-    }
-    else
-    {
-      source.putback(next);
+      wchar_t next2 = source.peek();
+      if(next2 == L'>')
+      {
+        source.get();
+        parseReduceRule(firstLabel, false);
+        break;
+      }
+      else
+      {
+        source.putback(next);
+      }
     }
   default:
     parseReduceRule(firstLabel, true);
+    break;
+  }
 }
 
 void
@@ -143,11 +181,16 @@ Parser::parseRetagRule(vector<wstring> source)
 }
 
 void
-Parser::parseAttrRule(vector<string> name)
+Parser::parseAttrRule(vector<wstring> name)
 {
 }
 
 void
-Parser::parseReduceRule(vector<string> output, bool isSingle)
+Parser::parseReduceRule(vector<wstring> output, bool isSingle)
+{
+}
+
+void
+Parser::parse(string fname)
 {
 }

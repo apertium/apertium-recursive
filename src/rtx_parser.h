@@ -2,6 +2,8 @@
 #define _RTXPARSER_
 
 #include <iostream>
+#include <vector>
+#include <fstream>
 
 using namespace std;
 
@@ -11,7 +13,7 @@ private:
     /**
      * Rules file
      */
-    istream source;
+    wifstream source;
 
     /**
      * Consume all space characters and comments at front of stream
@@ -22,7 +24,19 @@ private:
      * Parse an identifier
      * @return identifier
      */
+    wstring nextToken();
+
+    /**
+     * Parse an identifier
+     * @return identifier
+     */
     wstring parseIdent();
+
+    /**
+     * Parse an identifier
+     * @return identifier
+     */
+    vector<wstring> parseIdentGroup();
 
     /**
      * Parse an rule
@@ -42,18 +56,20 @@ private:
     /**
      * Parse an rule
      */
-    void parseAttrRule(vector<string> name);
+    void parseAttrRule(vector<wstring> name);
 
     /**
      * Parse an rule
      */
-    void parseReduceRule(vector<string> output, bool isSingle);
+    void parseReduceRule(vector<wstring> output, bool isSingle);
 
     /**
      * All characters not allowed in identifiers
      */
     static wstring const SPECIAL_CHARS;
 public:
+    Parser();
+    ~Parser();
     void parse(string fname);
 };
 

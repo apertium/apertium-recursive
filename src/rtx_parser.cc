@@ -15,6 +15,17 @@ Parser::~Parser()
 wstring const Parser::SPECIAL_CHARS = L"!@$%()={}[]|\\/:;<>,.";
 
 void
+Parser::die(wstring message)
+{
+  wcerr << L"Syntax error on line " << currentLine << L" of ";
+  wstring fname;
+  fname.assign(sourceFile.begin(), sourceFile.end());
+  wcerr << fname;
+  wcerr <<L": " << message << endl;
+  exit(EXIT_FAILURE);
+}
+
+void
 Parser::eatSpaces()
 {
   wchar_t c;
@@ -22,6 +33,10 @@ Parser::eatSpaces()
   while(!source.eof())
   {
     c = source.peek();
+    if(c == L'\n')
+    {
+      currentLine++;
+    }
     if(inComment)
     {
       source.get();
@@ -47,27 +62,28 @@ Parser::eatSpaces()
 }
 
 wstring
-Parser::nextToken()
+Parser::nextToken(wstring check = L"")
 {
   eatSpaces();
   if(source.eof())
   {
-    return L""; //@TODO: error condition, probably
+    die(L"Unexpected end of file");
   }
   wchar_t c = source.get();
   wchar_t next = source.peek();
-  if(SPECIAL_CHARS.find(c))
+  wstring ret;
+  if(SPECIAL_CHARS.find(c) != string::npos)
   {
-    return wstring(1, c);
+    ret = wstring(1, c);
   }
   else if(c == L'-' && next == L'>')
   {
     next = source.get();
-    return wstring(1, c) + wstring(1, next);
+    ret = wstring(1, c) + wstring(1, next);
   }
   else
   {
-    wstring ret = wstring(1, c);
+    ret = wstring(1, c);
     while(!source.eof())
     {
       c = source.peek();
@@ -75,58 +91,52 @@ Parser::nextToken()
       {
         ret += source.get();
       }
+      else
+      {
+        break;
+      }
     }
+  }
+  if(ret == check || check == L"")
+  {
     return ret;
   }
-}
-
-wstring
-Parser::parseIdent()
-{
-  eatSpaces();
-
-  wstring ret = L"";
-  wchar_t cur;
-
-  while(!source.eof())
+  else
   {
-    cur = source.peek();
-    if(SPECIAL_CHARS.find(cur) == string::npos && !isspace(cur))
-    {
-      ret += source.get();
-    }
+    die(L"Expected '" + check + L"' found '" + ret + L"' instead");
   }
-  return ret; // @TODO: should be a check for empty identifiers somewhere
 }
 
 vector<wstring>
-Parser::parseIdentGroup()
+Parser::parseIdentGroup(wstring first = L"")
 {
-  eatSpaces();
-
   vector<wstring> ret;
-  wstring cur;
-  wchar_t nextChar;
-  while(!source.eof())
+  if(first != L"")
   {
-    nextChar = source.peek();
-    if(nextChar == L'$')
+    ret.push_back(first);
+    if(source.peek() == L'.')
     {
-      ret.push_back(wstring(1, source.get()));
-    }
-    cur = parseIdent();
-    if(cur == L"")
-    {
-      break; // @TODO: this is probably an error
+      nextToken();
     }
     else
     {
-      ret.push_back(cur);
+      return ret;
     }
-    nextChar = source.peek();
-    if(nextChar == L'.')
+  }
+  while(!source.eof())
+  {
+    if(source.peek() == L'$')
     {
-      source.get();
+      ret.push_back(nextToken());
+    }
+    ret.push_back(nextToken());
+    if(source.peek() == L'.')
+    {
+      nextToken();
+    }
+    else
+    {
+      break;
     }
   }
   return ret;
@@ -135,62 +145,124 @@ Parser::parseIdentGroup()
 void
 Parser::parseRule()
 {
-  eatSpaces();
-
   vector<wstring> firstLabel = parseIdentGroup();
-  eatSpaces();
-  wchar_t next = source.get();
-  switch (next) {
-  case L':':
+  wstring next = nextToken();
+  if(next == L":")
+  {
     parseOutputRule(firstLabel);
-    break;
-  case L'>':
+  }
+  else if(next == L">")
+  {
     parseRetagRule(firstLabel);
-    break;
-  case L'=':
+  }
+  else if(next == L"=")
+  {
     parseAttrRule(firstLabel);
-    break;
-  case L'-':
-    {
-      wchar_t next2 = source.peek();
-      if(next2 == L'>')
-      {
-        source.get();
-        parseReduceRule(firstLabel, false);
-        break;
-      }
-      else
-      {
-        source.putback(next);
-      }
-    }
-  default:
-    parseReduceRule(firstLabel, true);
-    break;
+  }
+  else
+  {
+    parseReduceRule(firstLabel, next);
   }
 }
 
 void
 Parser::parseOutputRule(vector<wstring> pattern)
 {
+  vector<wstring> output;
+  wstring cur;
+  while(!source.eof())
+  {
+    cur = nextToken();
+    if(cur == L";")
+    {
+      break;
+    }
+    if(cur == L"<")
+    {
+      cur = cur + nextToken() + nextToken();
+    }
+    output.push_back(cur);
+  }
+  outputRules.push_back(pair<vector<wstring>, vector<wstring>>(pattern, output));
 }
 
 void
-Parser::parseRetagRule(vector<wstring> source)
+Parser::parseRetagRule(vector<wstring> srcTags)
 {
+  vector<wstring> destTags = parseIdentGroup();
+  nextToken(L":");
+  vector<pair<vector<wstring>, vector<wstring>>> rule;
+  rule.push_back(pair<vector<wstring>, vector<wstring>>(srcTags, destTags));
+  wstring next;
+  while(!source.eof())
+  {
+    rule.push_back(pair<vector<wstring>, vector<wstring>>(parseIdentGroup(), parseIdentGroup()));
+    //@TODO: error checking
+    next = nextToken();
+    if(next == L";")
+    {
+      break;
+    }
+    else if(next == L",")
+    {
+    }
+    else
+    {
+      die(L"Unexpected '" + next + L"'");
+    }
+  }
+  retagRules.push_back(rule);
 }
 
 void
 Parser::parseAttrRule(vector<wstring> name)
 {
+  if(name.size() > 1)
+  {
+    die(L"Found multiple symbols in attribute category name");
+  }
+  wstring categoryName = name[0];
+  vector<wstring> members;
+  wstring cur = nextToken();
+  while(cur != L";" && !source.eof())
+  {
+    members.push_back(cur);
+    cur = nextToken();
+  }
+  attributeRules.insert(pair<wstring, vector<wstring>>(categoryName, members));
 }
 
 void
-Parser::parseReduceRule(vector<wstring> output, bool isSingle)
+Parser::parseReduceRule(vector<wstring> output, wstring next)
 {
+  vector<vector<wstring>> outNodes;
+  outNodes.push_back(output);
+  if(next != L"->")
+  {
+    wstring cur = next;
+    while(cur != L"->")
+    {
+      outNodes.push_back(parseIdentGroup(cur));
+      cur = nextToken();
+    }
+  }
+  die(L"see rtx_parser.cc - reduction rules not implemented yet");
 }
 
 void
 Parser::parse(string fname)
 {
+  currentLine = 1;
+  sourceFile = fname;
+  source.open(fname);
+  while(true)
+  {
+    eatSpaces();
+    if(source.eof())
+    {
+      break;
+    }
+    parseRule();
+  }
+  source.close();
 }

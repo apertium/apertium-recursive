@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <map>
 
 using namespace std;
 
@@ -14,6 +15,26 @@ private:
      * Rules file
      */
     wifstream source;
+    string sourceFile;
+
+    /**
+     * Rules file
+     */
+    map<wstring, vector<wstring>> attributeRules;
+    
+    /**
+     * Rules file
+     */
+    vector<vector<pair<vector<wstring>, vector<wstring>>>> retagRules;
+    
+    /**
+     * output rules
+     */
+    vector<pair<vector<wstring>, vector<wstring>>> outputRules;
+    
+    int currentLine;
+    
+    void die(wstring message);
 
     /**
      * Consume all space characters and comments at front of stream
@@ -24,7 +45,7 @@ private:
      * Parse an identifier
      * @return identifier
      */
-    wstring nextToken();
+    wstring nextToken(wstring check);
 
     /**
      * Parse an identifier
@@ -36,7 +57,7 @@ private:
      * Parse an identifier
      * @return identifier
      */
-    vector<wstring> parseIdentGroup();
+    vector<wstring> parseIdentGroup(wstring first);
 
     /**
      * Parse an rule
@@ -51,7 +72,7 @@ private:
     /**
      * Parse an rule
      */
-    void parseRetagRule(vector<wstring> source);
+    void parseRetagRule(vector<wstring> srcTags);
 
     /**
      * Parse an rule
@@ -61,7 +82,7 @@ private:
     /**
      * Parse an rule
      */
-    void parseReduceRule(vector<wstring> output, bool isSingle);
+    void parseReduceRule(vector<wstring> output, wstring next);
 
     /**
      * All characters not allowed in identifiers

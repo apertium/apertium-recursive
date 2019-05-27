@@ -5,6 +5,7 @@
 #include <vector>
 #include <fstream>
 #include <map>
+#include <reduction_rule.h>
 
 using namespace std;
 
@@ -21,6 +22,7 @@ private:
      * Rules file
      */
     map<wstring, vector<wstring>> attributeRules;
+    map<wstring, bool> allAttributes;
     
     /**
      * Rules file
@@ -31,6 +33,8 @@ private:
      * output rules
      */
     vector<pair<vector<wstring>, vector<wstring>>> outputRules;
+    
+    vector<ReductionRule*> reductionRules;
     
     int currentLine;
     
@@ -78,6 +82,16 @@ private:
      * Parse an rule
      */
     void parseAttrRule(vector<wstring> name);
+
+    /**
+     * Parse an rule
+     */
+    void parsePatternElement(ReductionRule* rule);
+
+    /**
+     * Parse an rule
+     */
+    void parseOutputElement(ReductionRule* rule);
 
     /**
      * Parse an rule

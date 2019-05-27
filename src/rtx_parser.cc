@@ -89,7 +89,7 @@ Parser::nextToken(wstring check = L"")
       c = source.peek();
       if(SPECIAL_CHARS.find(c) == string::npos && !isspace(c))
       {
-        ret += source.get();
+        ret += wstring(1, source.get());
       }
       else
       {
@@ -227,26 +227,85 @@ Parser::parseAttrRule(vector<wstring> name)
   while(cur != L";" && !source.eof())
   {
     members.push_back(cur);
+    allAttributes[cur] = true;
     cur = nextToken();
   }
   attributeRules.insert(pair<wstring, vector<wstring>>(categoryName, members));
 }
 
 void
+Parser::parsePatternElement(ReductionRule* rule)
+{
+  nextToken();
+  eatSpaces();
+}
+
+void
+Parser::parseOutputElement(ReductionRule* rule)
+{
+  nextToken();
+  eatSpaces();
+}
+
+void
 Parser::parseReduceRule(vector<wstring> output, wstring next)
 {
-  vector<vector<wstring>> outNodes;
-  outNodes.push_back(output);
+  vector<vector<wstring>> output_stuff;
+  output_stuff.push_back(output);
   if(next != L"->")
   {
     wstring cur = next;
     while(cur != L"->")
     {
-      outNodes.push_back(parseIdentGroup(cur));
+      output_stuff.push_back(parseIdentGroup(cur));
       cur = nextToken();
     }
   }
-  die(L"see rtx_parser.cc - reduction rules not implemented yet");
+  vector<wstring> outNodes;
+  vector<vector<wstring>> outVars;
+  for(int n = 0; n < output_stuff.size(); n++)
+  {
+    outNodes.push_back(output_stuff[n][0]);
+    outVars.push_back(vector<wstring>());
+    for(int i = 1; i < output_stuff[n].size(); i++)
+    {
+      outVars[n].push_back(output_stuff[n][i]);
+    }
+  }
+  ReductionRule* rule;
+  wstring endToken = L"";
+  while(endToken != L";")
+  {
+    rule = new ReductionRule();
+    rule->resultNodes = outNodes;
+    rule->resultVars = outVars;
+    eatSpaces();
+    if(!isdigit(source.peek()))
+    {
+      die(L"Rule is missing weight");
+    }
+    source >> rule->weight;
+    nextToken(L":");
+    while(!source.eof() && source.peek() != L'{')
+    {
+      parsePatternElement(rule);
+    }
+    for(int i = 0; i < outNodes.size(); i++)
+    {
+      nextToken(L"{");
+      while(!source.eof() && source.peek() != L'}')
+      {
+        parseOutputElement(rule);
+      }
+      nextToken(L"}");
+    }
+    reductionRules.push_back(rule);
+    endToken = nextToken();
+    if(endToken != L"|" && endToken != L";")
+    {
+      die(L"unexpected symbol " + endToken);
+    }
+  }
 }
 
 void

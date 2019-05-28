@@ -6,6 +6,16 @@
 
 using namespace std;
 
+// stuff needed to construct the parsing table
+class ProductionRule
+{
+public:
+  vector<wstring> pieces;
+  int dot;
+  wstring result;
+  // it may take some doing to figure out how to work with multiple outputs
+};
+
 class ReductionRule
 {
 public:
@@ -18,6 +28,9 @@ public:
   vector<vector<pair<int, wstring>>> variableGrabs;
   vector<pair<pair<int, wstring>, pair<int, wstring>>> variableUpdates;
   //@TODO: conditions
+  
+  vector<ProductionRule*> prodRules;
+  void process();
 };
 
 #endif

@@ -6,6 +6,6 @@ n: _.gender.number ;
 det: _.definite.gender.number;
 sent: _ ;
 
-N.gender.number -> 1.2: %@n {1} ;
-NP.gender -> 1: @det %N {1(gender=2.gender, number=2.number) _1 2} ;
-
+N.gender.number -> 1.2: @n {1} ;
+NP.gender -> 1: @det N {1(gender=2.gender, number=2.number) _1 2} ;
+START -> NP;

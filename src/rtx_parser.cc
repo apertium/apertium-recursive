@@ -267,7 +267,8 @@ Parser::parsePatternElement(ReductionRule* rule)
   else if(source.peek() == L'@')
   {
     source.get();
-    ret = parseIdentGroup(L"@");
+    ret = parseIdentGroup();
+    ret.insert(ret.begin(), L"@");
     bool inVar = false;
     for(int i = 0; i < ret.size(); i++)
     {
@@ -374,6 +375,17 @@ Parser::parseOutputElement(ReductionRule* rule)
 void
 Parser::parseReduceRule(vector<wstring> output, wstring next)
 {
+  if(output.size() == 1 && output[0] == L"START" && next == L"->")
+  {
+    ReductionRule* rule = new ReductionRule();
+    rule->resultNodes = output;
+    rule->pattern = vector<vector<wstring>>();
+    rule->pattern.push_back(vector<wstring>(1, nextToken()));
+    nextToken(L";");
+    rule->process();
+    reductionRules.push_back(rule);
+    return;
+  }
   vector<vector<wstring>> output_stuff;
   output_stuff.push_back(output);
   if(next != L"->")
@@ -429,6 +441,7 @@ Parser::parseReduceRule(vector<wstring> output, wstring next)
       }
       nextToken(L"}");
     }
+    rule->process();
     reductionRules.push_back(rule);
     endToken = nextToken(L"|", L";");
   }

@@ -17,24 +17,6 @@ private:
      */
     wifstream source;
     string sourceFile;
-
-    /**
-     * Rules file
-     */
-    map<wstring, vector<wstring>> attributeRules;
-    map<wstring, bool> allAttributes;
-    
-    /**
-     * Rules file
-     */
-    vector<vector<pair<vector<wstring>, vector<wstring>>>> retagRules;
-    
-    /**
-     * output rules
-     */
-    vector<pair<vector<wstring>, vector<wstring>>> outputRules;
-    
-    vector<ReductionRule*> reductionRules;
     
     int currentLine;
     
@@ -105,6 +87,24 @@ private:
      */
     static wstring const SPECIAL_CHARS;
 public:
+    /**
+     * Rules file
+     */
+    map<wstring, vector<wstring>> attributeRules;
+    map<wstring, bool> allAttributes;
+    
+    /**
+     * Rules file
+     */
+    vector<vector<pair<vector<wstring>, vector<wstring>>>> retagRules;
+    
+    /**
+     * output rules
+     */
+    vector<pair<vector<wstring>, vector<wstring>>> outputRules;
+    
+    vector<ReductionRule*> reductionRules;
+    
     Parser();
     ~Parser();
     void parse(string fname);

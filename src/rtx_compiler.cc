@@ -6,6 +6,25 @@
 
 using namespace std;
 
+void
+printItem(pair<ProductionRule*, wstring> item)
+{
+  wcout << item.first->result << L"\t->";
+  for(int k = 0; k < item.first->pieces.size(); k++)
+  {
+    if(k == item.first->dot)
+    {
+      wcout << L" .";
+    }
+    wcout << L" " << item.first->pieces[k];
+  }
+  if(item.first->dot == item.first->pieces.size())
+  {
+    wcout << L" .";
+  }
+  wcout << L" | " << item.second << endl;
+}
+
 Compiler::Compiler(string fname)
 {
   Parser p;
@@ -39,6 +58,16 @@ Compiler::Compiler(string fname)
     }
     wcout << endl;
   }
+  getLR1items();
+  for(int i = 0; i < LR1items.size(); i++)
+  {
+    wcout << L"I" << i << L":" << endl;
+    for(int j = 0; j < LR1items[i].size(); j++)
+    {
+      wcout << L"\t";
+      printItem(LR1items[i][j]);
+    }
+  }
 }
 
 Compiler::~Compiler()
@@ -46,7 +75,7 @@ Compiler::~Compiler()
 }
 
 void
-Compiler::gatherSymbols(vector<vector<wstring>> symbols)
+Compiler::gatherSymbols(const vector<vector<wstring>>& symbols)
 {
   map<wstring, bool> added;
   for(int i = 0; i < symbols.size(); i++)
@@ -165,25 +194,46 @@ Compiler::computeFollows()
 }
 
 vector<pair<ProductionRule*, wstring>>
-Compiler::closure(vector<pair<ProductionRule*, wstring>> inset)
+Compiler::closure(const vector<pair<ProductionRule*, wstring>>& inset)
 {
-  vector<pair<ProductionRule*, wstring>> ret = inset;
+  wcout << L"closure() inset.size() == " << inset.size() << endl;
+  vector<pair<ProductionRule*, wstring>> ret;
+  for(int i = 0; i < inset.size(); i++)
+  {
+    wcout << " ";
+    printItem(inset[i]);
+    ret.push_back(inset[i]);
+  }
   bool addedAny = true;
   ProductionRule* cur;
   ProductionRule* comp;
   wstring sym;
   vector<wstring> first;
   bool inThere;
+  wcout << L"line 179" << endl;
   while(addedAny)
   {
+    wcout << L"\tlooping" << endl;
+    addedAny = false;
     for(int i = 0; i < ret.size(); i++)
     {
+      wcout << L"\t\tlooping more" << endl;
       cur = ret[i].first;
+      if(cur->dot == cur->pieces.size())
+      {
+        continue;
+      }
+      wcout << L" rule is: ";
+      printItem(ret[i]);
       for(int p = 0; p < allProductions.size(); p++)
       {
         comp = allProductions[p];
+        wcout << L"  compared with: ";
+        printItem(pair<ProductionRule*, wstring>(comp, L"_"));
         if(comp->result != cur->pieces[cur->dot])
         {
+          wcout << L"   failed" << endl;
+          wcout << L"   comp->result: " << comp->result << L" cur->pieces[cur->dot]: " << cur->pieces[cur->dot] << endl;
           p += comp->pieces.size();
           continue;
         }
@@ -195,6 +245,7 @@ Compiler::closure(vector<pair<ProductionRule*, wstring>> inset)
         {
           first = firsts[ret[i].second];
         }
+        wcout << L"found " << first.size() << L" firsts" << endl;
         for(int s = 0; s < first.size(); s++)
         {
           sym = first[s];
@@ -215,5 +266,104 @@ Compiler::closure(vector<pair<ProductionRule*, wstring>> inset)
       }
     }
   }
+  wcout << "closure() returning " << ret.size() << L" items" << endl;
   return ret;
+}
+
+vector<pair<ProductionRule*, wstring>>
+Compiler::findGoto(const vector<pair<ProductionRule*, wstring>>& I, wstring X)
+{
+  wcout << L"findGoto() I.size() = " << I.size() << endl;
+  vector<pair<ProductionRule*, wstring>> J;
+  ProductionRule* cur;
+  ProductionRule* next;
+  for(int n = 0; n < I.size(); n++)
+  {
+    wcout << I[n].first << endl;
+    cur = I[n].first;
+    if(cur->dot < cur->pieces.size() && cur->pieces[cur->dot] == X)
+    {
+      next = *(find(allProductions.begin(), allProductions.end(), cur)+1);
+      J.push_back(pair<ProductionRule*, wstring>(next, I[n].second));
+    }
+  }
+  wcout << L"findGoto() found " << J.size() << " items" << endl;
+  if(J.size() == 0)
+  {
+    return J;
+  }
+  return closure(J);
+}
+
+bool
+setEQ(const vector<pair<ProductionRule*, wstring>>& a, const vector<pair<ProductionRule*, wstring>>& b)
+{
+  wcout << L"setEQ()" << endl;
+  if(a.size() != b.size())
+  {
+    return false;
+  }
+  bool any;
+  for(int ai = 0; ai < a.size(); ai++)
+  {
+    any = false;
+    for(int bi = 0; bi < b.size(); bi++)
+    {
+      if(a[ai].first == b[bi].first && a[ai].second == b[bi].second)
+      {
+        any = true;
+        break;
+      }
+    }
+    if(!any)
+    {
+      return false;
+    }
+  }
+  // all a are in b and same size
+  // closure() doesn't produce duplicates, so we're done
+  return true;
+}
+
+void
+Compiler::getLR1items()
+{
+  wcout << L"getLR1items()" << endl;
+  vector<pair<ProductionRule*, wstring>> cur;
+  for(int i = 0; i < allProductions.size(); i++)
+  {
+    if(allProductions[i]->result == L"START" && allProductions[i]->dot == 0)
+    {
+      cur.push_back(pair<ProductionRule*, wstring>(allProductions[i], L"$"));
+      LR1items.push_back(closure(cur));
+      break;
+    }
+  }
+  bool found;
+  for(int i = 0; i < LR1items.size(); i++)
+  {
+    wcout << L"LR1items.size() = " << LR1items.size() << endl;
+    for(int s = 0; s < allSymbols.size(); s++)
+    {
+      cur = findGoto(LR1items[i], allSymbols[s]);
+      if(cur.size() == 0)
+      {
+        continue;
+      }
+      found = false;
+      for(int l = 0; l < LR1items.size(); l++)
+      {
+        if(setEQ(cur, LR1items[l]))
+        {
+          found = true;
+          break;
+        }
+      }
+      if(!found)
+      {
+        LR1items.push_back(cur);
+      }
+    }
+  }
+  wcout << L"LR1items.size() [final] = " << LR1items.size() << endl;
 }

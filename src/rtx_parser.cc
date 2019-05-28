@@ -62,9 +62,8 @@ Parser::eatSpaces()
 }
 
 wstring
-Parser::nextToken(wstring check = L"")
+Parser::nextTokenNoSpace()
 {
-  eatSpaces();
   if(source.eof())
   {
     die(L"Unexpected end of file");
@@ -97,13 +96,29 @@ Parser::nextToken(wstring check = L"")
       }
     }
   }
-  if(ret == check || check == L"")
+  return ret;
+}
+
+wstring
+Parser::nextToken(wstring check1 = L"", wstring check2 = L"")
+{
+  eatSpaces();
+  wstring tok = nextTokenNoSpace();
+  if(tok == check1 || tok == check2 || (check1 == L"" && check2 == L""))
   {
-    return ret;
+    return tok;
+  }
+  else if(check1 != L"" && check2 != L"")
+  {
+    die(L"expected '" + check1 + L"' or '" + check2 + L"', found '" + tok + L"'");
+  }
+  else if(check1 != L"")
+  {
+    die(L"expected '" + check1 + L"', found '" + tok + L"'");
   }
   else
   {
-    die(L"Expected '" + check + L"' found '" + ret + L"' instead");
+    die(L"expected '" + check2 + L"', found '" + tok + L"'");
   }
 }
 
@@ -179,7 +194,7 @@ Parser::parseOutputRule(vector<wstring> pattern)
     }
     if(cur == L"<")
     {
-      cur = cur + nextToken() + nextToken();
+      cur = cur + nextToken() + nextToken(L">");
     }
     output.push_back(cur);
   }
@@ -197,18 +212,10 @@ Parser::parseRetagRule(vector<wstring> srcTags)
   while(!source.eof())
   {
     rule.push_back(pair<vector<wstring>, vector<wstring>>(parseIdentGroup(), parseIdentGroup()));
-    //@TODO: error checking
-    next = nextToken();
+    next = nextToken(L";", L",");
     if(next == L";")
     {
       break;
-    }
-    else if(next == L",")
-    {
-    }
-    else
-    {
-      die(L"Unexpected '" + next + L"'");
     }
   }
   retagRules.push_back(rule);
@@ -236,14 +243,131 @@ Parser::parseAttrRule(vector<wstring> name)
 void
 Parser::parsePatternElement(ReductionRule* rule)
 {
-  nextToken();
+  vector<wstring> ret;
+  if(source.peek() == L'_')
+  {
+    if(rule->patternLength == 0)
+    {
+      die(L"cannot match blank at start of pattern");
+    }
+    ret.push_back(L"_");
+    source.get();
+    rule->patternLength--;
+  }
+  else if(source.peek() == L'+')
+  {
+    if(rule->patternLength == 0)
+    {
+      die(L"cannot match conjoin mark at start of pattern");
+    }
+    ret.push_back(L"+");
+    source.get();
+    rule->patternLength--;
+  }
+  else if(source.peek() == L'@')
+  {
+    source.get();
+    ret = parseIdentGroup(L"@");
+    bool inVar = false;
+    for(int i = 0; i < ret.size(); i++)
+    {
+      if(ret[i] == L"$")
+      {
+        inVar = true;
+      }
+      else if(inVar)
+      {
+        for(int n = 0; n < rule->resultVars.size(); n++)
+        {
+          for(int v = 0; v < rule->resultVars[n].size(); v++)
+          {
+            if(ret[i] == rule->resultVars[n][v])
+            {
+              rule->variableGrabs[n].push_back(
+                  pair<int, wstring>(rule->patternLength+1, ret[i]));
+            }
+          }
+        }
+      }
+    }
+    //@TODO: lemmas
+  }
+  else
+  {
+    ret = parseIdentGroup();
+  }
+  rule->pattern.push_back(ret);
+  rule->patternLength++;
   eatSpaces();
 }
 
 void
 Parser::parseOutputElement(ReductionRule* rule)
 {
-  nextToken();
+  vector<wstring> ret;
+  if(source.peek() == L'_')
+  {
+    ret.push_back(L"_");
+    source.get();
+    if(isdigit(source.peek()))
+    {
+      int pos;
+      source >> pos;
+      if(pos < 1 || pos >= rule->patternLength)
+      {
+        die(L"position index of blank out of bounds");
+      }
+      ret.push_back(to_wstring(pos));
+    }
+  }
+  else if(isdigit(source.peek()))
+  {
+    int pos;
+    source >> pos;
+    if(pos < 1 || pos > rule->patternLength)
+    {
+      die(L"output index is out of bounds");
+    }
+    if(source.peek() == L'(')
+    {
+      nextToken();
+      wstring var1;
+      wstring var2;
+      int pos2;
+      while(!source.eof() && source.peek() != L')')
+      {
+        var1 = nextToken();
+        nextToken(L"=");
+        eatSpaces();
+        if(isdigit(source.peek()))
+        {
+          source >> pos2;
+          nextToken(L".");
+        }
+        else
+        {
+          pos2 = 0;
+          nextToken(L"$");
+        }
+        var2 = nextToken();
+        rule->variableUpdates.push_back(
+                pair<pair<int, wstring>, pair<int, wstring>>(
+                    pair<int, wstring>(pos, var1),
+                    pair<int, wstring>(pos2, var2)));
+        eatSpaces();
+        if(source.peek() == L',')
+        {
+          source.get();
+        }
+        else
+        {
+          break;
+        }
+      }
+      nextToken(L")");
+    }
+  }
+  rule->resultContents.push_back(ret);
   eatSpaces();
 }
 
@@ -279,6 +403,11 @@ Parser::parseReduceRule(vector<wstring> output, wstring next)
     rule = new ReductionRule();
     rule->resultNodes = outNodes;
     rule->resultVars = outVars;
+    rule->patternLength = 0;
+    rule->variableGrabs = vector<vector<pair<int, wstring>>>(
+                            outNodes.size(), vector<pair<int, wstring>>());
+    rule->resultContents = vector<vector<wstring>>(
+                            outNodes.size(), vector<wstring>());
     eatSpaces();
     if(!isdigit(source.peek()))
     {
@@ -286,6 +415,7 @@ Parser::parseReduceRule(vector<wstring> output, wstring next)
     }
     source >> rule->weight;
     nextToken(L":");
+    eatSpaces();
     while(!source.eof() && source.peek() != L'{')
     {
       parsePatternElement(rule);
@@ -300,11 +430,7 @@ Parser::parseReduceRule(vector<wstring> output, wstring next)
       nextToken(L"}");
     }
     reductionRules.push_back(rule);
-    endToken = nextToken();
-    if(endToken != L"|" && endToken != L";")
-    {
-      die(L"unexpected symbol " + endToken);
-    }
+    endToken = nextToken(L"|", L";");
   }
 }
 

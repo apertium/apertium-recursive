@@ -49,7 +49,9 @@ private:
      * Parse an identifier
      * @return identifier
      */
-    wstring nextToken(wstring check);
+    wstring nextTokenNoSpace();
+    
+    wstring nextToken(wstring check1, wstring check2);
 
     /**
      * Parse an identifier

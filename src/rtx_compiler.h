@@ -16,6 +16,7 @@ private:
   void gatherSymbols(vector<vector<wstring>> symbols);
   void computeFirsts();
   void computeFollows();
+  vector<pair<ProductionRule*, wstring>> closure(vector<pair<ProductionRule*, wstring>> I);
 public:
   Compiler(string fname);
   ~Compiler();

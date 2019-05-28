@@ -163,3 +163,57 @@ Compiler::computeFollows()
     }
   }
 }
+
+vector<pair<ProductionRule*, wstring>>
+Compiler::closure(vector<pair<ProductionRule*, wstring>> inset)
+{
+  vector<pair<ProductionRule*, wstring>> ret = inset;
+  bool addedAny = true;
+  ProductionRule* cur;
+  ProductionRule* comp;
+  wstring sym;
+  vector<wstring> first;
+  bool inThere;
+  while(addedAny)
+  {
+    for(int i = 0; i < ret.size(); i++)
+    {
+      cur = ret[i].first;
+      for(int p = 0; p < allProductions.size(); p++)
+      {
+        comp = allProductions[p];
+        if(comp->result != cur->pieces[cur->dot])
+        {
+          p += comp->pieces.size();
+          continue;
+        }
+        if(cur->dot+1 < cur->pieces.size())
+        {
+          first = firsts[cur->pieces[cur->dot+1]];
+        }
+        else
+        {
+          first = firsts[ret[i].second];
+        }
+        for(int s = 0; s < first.size(); s++)
+        {
+          sym = first[s];
+          inThere = false;
+          for(int pr = 0; pr < ret.size(); pr++)
+          {
+            if(ret[pr].first == comp && ret[pr].second == sym)
+            {
+              inThere = true;
+            }
+          }
+          if(!inThere)
+          {
+            ret.push_back(pair<ProductionRule*, wstring>(comp, sym));
+            addedAny = true;
+          }
+        }
+      }
+    }
+  }
+  return ret;
+}

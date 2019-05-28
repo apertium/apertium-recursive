@@ -1,5 +1,5 @@
-#ifndef _RTXPARSER_
-#define _RTXPARSER_
+#ifndef _RTXFILEPARSER_
+#define _RTXFILEPARSER_
 
 #include <iostream>
 #include <vector>

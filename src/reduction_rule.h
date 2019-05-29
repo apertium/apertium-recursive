@@ -14,11 +14,13 @@ public:
   int dot;
   wstring result;
   // it may take some doing to figure out how to work with multiple outputs
+  int parentID;
 };
 
 class ReductionRule
 {
 public:
+  int ID;
   float weight;
   int patternLength;
   vector<vector<wstring>> pattern;

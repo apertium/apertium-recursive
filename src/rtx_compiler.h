@@ -8,12 +8,14 @@ using namespace std;
 
 class Compiler
 {
-private:
+public:
   vector<ProductionRule*> allProductions;
   map<wstring, vector<wstring>> firsts;
   map<wstring, vector<wstring>> follows;
   vector<wstring> allSymbols;
   vector<vector<pair<ProductionRule*, wstring>>> LR1items;
+  map<pair<int, wstring>, int> gotoMap;
+private:
   void gatherSymbols(const vector<vector<wstring>>& symbols);
   void computeFirsts();
   void computeFollows();

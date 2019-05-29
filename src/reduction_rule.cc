@@ -31,6 +31,7 @@ ReductionRule::process()
     cur->pieces = pieces;
     cur->dot = i;
     cur->result = resultNodes[0];
+    cur->parentID = ID;
     prodRules.push_back(cur);
   }
 }

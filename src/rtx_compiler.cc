@@ -330,6 +330,7 @@ Compiler::getLR1items()
       cur = findGoto(LR1items[i], allSymbols[s]);
       if(cur.size() == 0)
       {
+        gotoMap[pair<int, wstring>(i, allSymbols[s])] = -1;
         continue;
       }
       found = false;
@@ -337,12 +338,14 @@ Compiler::getLR1items()
       {
         if(setEQ(cur, LR1items[l]))
         {
+          gotoMap[pair<int, wstring>(i, allSymbols[s])] = l;
           found = true;
           break;
         }
       }
       if(!found)
       {
+        gotoMap[pair<int, wstring>(i, allSymbols[s])] = LR1items.size();
         LR1items.push_back(cur);
       }
     }

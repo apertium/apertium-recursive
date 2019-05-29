@@ -378,6 +378,7 @@ Parser::parseReduceRule(vector<wstring> output, wstring next)
   if(output.size() == 1 && output[0] == L"START" && next == L"->")
   {
     ReductionRule* rule = new ReductionRule();
+    rule->ID = reductionRules.size();
     rule->resultNodes = output;
     rule->pattern = vector<vector<wstring>>();
     rule->pattern.push_back(vector<wstring>(1, nextToken()));

@@ -1,0 +1,9 @@
+def = def ind;
+gender = m f;
+number = sg pl;
+
+det: _.def.gender.number;
+n: _.gender.number;
+adj: _.gender.number;
+
+NP -> 2: @adj @n {2 _1 1(gender=2.gender, number=2.number)};

@@ -5,6 +5,7 @@
 #include <apertium/transfer_token.h>
 #include <apertium/interchunk_word.h>
 #include <apertium/apertium_re.h>
+#include <apertium/utf_converter.h>
 #include <lttoolbox/alphabet.h>
 #include <lttoolbox/buffer.h>
 #include <lttoolbox/ltstr.h>
@@ -25,12 +26,32 @@ using namespace std;
 class Chunk
 {
 public:
-  string surface;
+  wstring surface;
+  wstring chunkData;
   vector<Chunk*> contents;
+  Chunk()
+  {
+  }
+  Chunk(wstring blankContent)
+  {
+    surface = blankContent;
+  }
+  Chunk(wstring chunkTags, wstring chunkContent)
+  {
+    surface = chunkTags;
+    chunkData = chunkContent;
+  }
+  Chunk(wstring chunkTags, vector<Chunk*> children)
+  {
+    surface = chunkTags;
+    contents = children;
+  }
   void
   setChunkPart(ApertiumRE const &part, string const &value)
   {
-    part.replace(surface, value);
+    string surf = UtfConverter::toUtf8(surface);
+    part.replace(surf, value);
+    surface = UtfConverter::fromUtf8(surf);
   }
   void
   addPiece(Chunk* piece)
@@ -41,6 +62,124 @@ public:
       contents.push_back(piece->contents[i]);
     }
   }
+  void updateTags(vector<wstring> parentTags)
+  {
+    wstring result;
+    wstring cur;
+    bool indigittag = false;
+    for(int i = 0; i < surface.size(); i++)
+    {
+      if(!indigittag)
+      {
+        result += surface[i];
+        if(surface[i] == L'\\')
+        {
+          result += surface[++i];
+        }
+        else if(surface[i] == L'<')
+        {
+          indigittag = true;
+        }
+      }
+      else if(surface[i] == L'>')
+      {
+        result += parentTags[stoi(cur)-1];
+        result += L'>';
+        cur.clear();
+        indigittag = false;
+      }
+      else if(!isdigit(surface[i]))
+      {
+        result += cur;
+        cur.clear();
+        result += surface[i];
+        indigittag = false;
+      }
+      else
+      {
+        cur += surface[i];
+      }
+    }
+    surface = result;
+  }
+  vector<wstring> getTags()
+  {
+    vector<wstring> result;
+    wstring cur;
+    bool intag = false;
+    for(int i; i < surface.size(); i++)
+    {
+      if(intag)
+      {
+        if(surface[i] == L'\\')
+        {
+          cur += surface[i];
+          cur += surface[++i];
+        }
+        else if(surface[i] == L'>')
+        {
+          if(cur.size() > 0)
+          {
+            result.push_back(cur);
+            cur.clear();
+          }
+        }
+        else
+        {
+          cur += surface[i];
+        }
+      }
+      else if(surface[i] == L'<')
+      {
+        intag = true;
+      }
+      else if(surface[i] == L'\\')
+      {
+        i++;
+      }
+    }
+    return result;
+  }
+  void output(vector<wstring> parentTags, FILE* out = NULL)
+  {
+    updateTags(parentTags);
+    if(contents.size() > 0)
+    {
+      vector<wstring> tags = getTags();
+      for(int i = 0; i < contents.size(); i++)
+      {
+        contents[i]->output(tags, out);
+      }
+    }
+    else if(chunkData.size() == 0)
+    {
+      if(out == NULL)
+      {
+        cout << UtfConverter::toUtf8(surface);
+      }
+      else
+      {
+        fputws_unlocked(surface.c_str(), out);
+      }
+    }
+    else
+    {
+      if(out == NULL)
+      {
+        cout << "^" << UtfConverter::toUtf8(surface);
+        cout << "{" << UtfConverter::toUtf8(chunkData) << "}$";
+      }
+      else
+      {
+        fputwc_unlocked(L'^', out);
+        fputws_unlocked(surface.c_str(), out);
+        fputwc_unlocked(L'{', out);
+        fputws_unlocked(chunkData.c_str(), out);
+        fputwc_unlocked(L'}', out);
+        fputwc_unlocked(L'$', out);
+      }
+    }
+  }
 };
 
 class StackElement
@@ -49,15 +188,15 @@ public:
   int mode;
   bool b;
   int i;
-  string s;
+  wstring s;
   Chunk* c;
-  pair<int, string> clip;
+  pair<int, wstring> clip;
   
   StackElement(bool _b) : mode(0), b(_b) {};
   StackElement(int _i) : mode(1), i(_i) {};
-  StackElement(string _s) : mode(2), s(_s) {};
+  StackElement(wstring _s) : mode(2), s(_s) {};
   StackElement(Chunk* _c) : mode(3), c(_c) {};
-  StackElement(pair<int, string> _clip) : mode(4), clip(_clip) {};
+  StackElement(pair<int, wstring> _clip) : mode(4), clip(_clip) {};
 };
 
 class Interchunk
@@ -67,19 +206,22 @@ private:
   Alphabet alphabet;
   MatchExe *me;
   MatchState ms;
-  map<string, ApertiumRE, Ltstr> attr_items;
-  map<string, string, Ltstr> variables;
-  map<string, int, Ltstr> macros;
-  map<string, set<string, Ltstr>, Ltstr> lists;
-  map<string, set<string, Ltstr>, Ltstr> listslow;
-  vector<string> rules;
+  map<wstring, ApertiumRE, Ltstr> attr_items;
+  map<wstring, wstring, Ltstr> variables;
+  map<wstring, int, Ltstr> macros;
+  map<wstring, set<wstring, Ltstr>, Ltstr> lists;
+  map<wstring, set<wstring, Ltstr>, Ltstr> listslow;
+  vector<wstring> rule_map;
   int longestPattern;
+  bool furtherInput;
+  bool recursing;
   stack<StackElement> theStack;
   vector<Chunk*> currentOutput;
+  vector<vector<Chunk*>> parseTower;
   InterchunkWord **word;
   string **blank;
   int lword, lblank;
-  Buffer<TransferToken> input_buffer;
+  Buffer<Chunk> input_buffer;
   vector<wstring *> tmpword;
   vector<wstring *> tmpblank;
 
@@ -107,21 +249,23 @@ private:
 
   void processAppend(xmlNode *localroot);
   void processModifyCase(xmlNode *localroot);
-  void processInstruction(string rule);
+  void processInstruction(wstring rule);
   string processChunk(xmlNode *localroot);
 
-  bool beginsWith(string const &str1, string const &str2) const;
-  bool endsWith(string const &str1, string const &str2) const;
-  string tolower(string const &str) const;
+  bool beginsWith(wstring const &str1, wstring const &str2) const;
+  bool endsWith(wstring const &str1, wstring const &str2) const;
+  wstring tolower(wstring const &str) const;
   string tags(string const &str) const;
   string readWord(FILE *in);
   string readBlank(FILE *in);
   string readUntil(FILE *in, int const symbol) const;
-  void applyWord(wstring const &word_str);
+  void applyWord(Chunk* chunk);
   void applyRule();
-  TransferToken & readToken(FILE *in);
+  Chunk & readToken(FILE *in);
   bool checkIndex(xmlNode *element, int index, int limit);
   void interchunk_wrapper_null_flush(FILE *in, FILE *out);
+  void interchunk_linear(FILE *in, FILE *out);
+  void interchunk_recursive(FILE *in, FILE *out);
   
   StackElement popStack();
   void pushStack(bool b)
@@ -134,7 +278,7 @@ private:
     StackElement el(i);
     theStack.push(el);
   }
-  void pushStack(string s)
+  void pushStack(wstring s)
   {
     StackElement el(s);
     theStack.push(el);
@@ -144,7 +288,7 @@ private:
     StackElement el(c);
     theStack.push(el);
   }
-  void pushStack(pair<int, string> clip)
+  void pushStack(pair<int, wstring> clip)
   {
     StackElement el(clip);
     theStack.push(el);

@@ -26,10 +26,10 @@ def tostr(blob):
         nonlocal ret
         ret += 's' + chr(len(s)) + s
     if blob.tag == 'interchunk':
-        ret = chr(len(kids)) + chr(maxlen) + ''.join(kids)
+        ret = chr(maxlen) + ''.join(kids)
     elif blob.tag.startswith('section'):
         if blob.tag == 'section-rules':
-            ret = ''.join(kids)
+            ret = chr(len(kids)) + ''.join(kids)
     elif blob.tag in givecount:
         ret = givecount[blob.tag] + chr(len(kids)) + ''.join(kids)
     elif blob.tag == 'def-cat':
@@ -82,7 +82,7 @@ def tostr(blob):
         ret = ''.join(kids) + stack[blob.tag] + chr(len(kids))
     elif blob.tag == 'b':
         if 'pos' in blob.attrib:
-            ret = '_' + blob.attrib['pos']
+            ret = '_' + chr(int(blob.attrib['pos']))
         else:
             ret = ' '
     elif blob.tag == 'with-param':

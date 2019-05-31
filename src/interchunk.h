@@ -31,6 +31,7 @@ public:
   vector<Chunk*> contents;
   Chunk()
   {
+    surface = L"";
   }
   Chunk(wstring blankContent)
   {
@@ -46,15 +47,40 @@ public:
     surface = chunkTags;
     contents = children;
   }
-  void
-  setChunkPart(ApertiumRE const &part, string const &value)
+  string chunkPart(ApertiumRE const &part)
   {
+    string chunk = UtfConverter::toUtf8(surface);
+    string queue = "{" + UtfConverter::toUtf8(chunkData) + "}";
+    string result = part.match(chunk);
+    if(result.size() == 0)
+    {
+      result = part.match(queue);
+      if(result.size() != queue.size())
+      {
+        return "";
+      }
+      else
+      {
+        return result;
+      }
+    }
+    else if(result.size() == chunk.size())
+    {
+      return part.match(chunk+queue);
+    }
+    else
+    {
+      return result;
+    }
+  }
+  void setChunkPart(ApertiumRE const &part, wstring const &value)
+  {
+    string val = UtfConverter::toUtf8(value);
     string surf = UtfConverter::toUtf8(surface);
-    part.replace(surf, value);
+    part.replace(surf, val);
     surface = UtfConverter::fromUtf8(surf);
   }
-  void
-  addPiece(Chunk* piece)
+  void addPiece(Chunk* piece)
   {
     surface += piece->surface;
     for(int i = 0; i < piece->contents.size(); i++)
@@ -159,7 +185,7 @@ public:
       }
       else
       {
-        fputws_unlocked(surface.c_str(), out);
+        fputs_unlocked(UtfConverter::toUtf8(surface).c_str(), out);
       }
     }
     else
@@ -171,14 +197,22 @@ public:
       }
       else
       {
-        fputwc_unlocked(L'^', out);
-        fputws_unlocked(surface.c_str(), out);
-        fputwc_unlocked(L'{', out);
-        fputws_unlocked(chunkData.c_str(), out);
-        fputwc_unlocked(L'}', out);
-        fputwc_unlocked(L'$', out);
+        fputc_unlocked('^', out);
+        fputs_unlocked(UtfConverter::toUtf8(surface).c_str(), out);
+        fputc_unlocked('{', out);
+        fputs_unlocked(UtfConverter::toUtf8(chunkData).c_str(), out);
+        fputc_unlocked('}', out);
+        fputc_unlocked('$', out);
       }
     }
+  }
+  void output(FILE* out)
+  {
+    output(vector<wstring>(), out);
+  }
+  bool isBlank()
+  {
+    return !(chunkData.size() > 0 || contents.size() > 0);
   }
 };
 
@@ -214,36 +248,25 @@ private:
   vector<wstring> rule_map;
   int longestPattern;
   bool furtherInput;
+  bool allDone;
   bool recursing;
   stack<StackElement> theStack;
+  vector<Chunk*> currentInput;
   vector<Chunk*> currentOutput;
   vector<vector<Chunk*>> parseTower;
-  InterchunkWord **word;
-  string **blank;
-  int lword, lblank;
-  Buffer<Chunk> input_buffer;
-  vector<wstring *> tmpword;
-  vector<wstring *> tmpblank;
 
   FILE *output;
   int any_char;
   int any_tag;
 
-  xmlNode *lastrule;
-  unsigned int nwords;
-
-  map<xmlNode *, TransferInstr> evalStringCache;
   bool inword;
   bool null_flush;
   bool internal_null_flush;
   bool trace;
-  string emptyblank;
 
   void destroy();
   void readData(FILE *input);
   void readInterchunk(string const &input);
-  void collectMacros(xmlNode *localroot);
-  void collectRules(xmlNode *localroot);
   string caseOf(string const &str);
   string copycase(string const &source_word, string const &target_word);
 
@@ -259,11 +282,12 @@ private:
   string readWord(FILE *in);
   string readBlank(FILE *in);
   string readUntil(FILE *in, int const symbol) const;
-  void applyWord(Chunk* chunk);
-  void applyRule();
-  Chunk & readToken(FILE *in);
+  void applyWord(Chunk& chunk);
+  void applyRule(wstring rule);
+  Chunk* readToken(FILE *in);
   bool checkIndex(xmlNode *element, int index, int limit);
   void interchunk_wrapper_null_flush(FILE *in, FILE *out);
+  void interchunk_do_pass();
   void interchunk_linear(FILE *in, FILE *out);
   void interchunk_recursive(FILE *in, FILE *out);
   

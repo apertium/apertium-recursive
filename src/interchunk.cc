@@ -17,6 +17,8 @@ using namespace std;
 Interchunk::Interchunk()
 {
   furtherInput = true;
+  allDone = false;
+  recursing = false;
 }
 
 Interchunk::~Interchunk()
@@ -89,19 +91,18 @@ Interchunk::read(string const &transferfile, string const &datafile)
 {
   // rules
   FILE *in = fopen(transferfile.c_str(), "rb");
-  int count = fgetc(in);
-  longestPattern = fgetc(in);
-  rule_map.resize(count);
+  longestPattern = fgetwc(in);
+  int count = fgetwc(in);
   int len;
   wstring cur;
   for(int i = 0; i < count; i++)
   {
     cur.clear();
-    fgetc(in);
-    len = fgetc(in);
+    fgetwc(in);
+    len = fgetwc(in);
     for(int j = 0; j < len; j++)
     {
-      cur.append(1, fgetc(in));
+      cur.append(1, fgetwc(in));
     }
     rule_map.push_back(cur);
   }
@@ -167,7 +168,7 @@ Interchunk::popStack()
 }
 
 void
-Interchunk::processInstruction(wstring rule)
+Interchunk::applyRule(wstring rule)
 {
   for(int i = 0; i < rule.size(); i++)
   {
@@ -175,6 +176,7 @@ Interchunk::processInstruction(wstring rule)
     {
       case L's': // string
       {
+        //cout << "string" << endl;
         int ct = rule[++i];
         wstring blob;
         for(int j = 0; j < ct; j++)
@@ -185,10 +187,12 @@ Interchunk::processInstruction(wstring rule)
       }
         break;
       case L'~': // choose
+        //cout << "choose" << endl;
         pushStack(i + rule[++i]);
         pushStack(false);
         break;
       case L'i': // when
+        //cout << "when" << endl;
         if(popStack().b)
         {
           i = popStack().i;
@@ -199,6 +203,7 @@ Interchunk::processInstruction(wstring rule)
         }
         break;
       case L'e': // otherwise
+        //cout << "otherwise" << endl;
         if(popStack().b)
         {
           i = popStack().i; // jump instruction
@@ -209,6 +214,7 @@ Interchunk::processInstruction(wstring rule)
         }
         break;
       case L'?': // test
+        //cout << "test" << endl;
         if(popStack().b)
         {
           popStack(); // jump instruction
@@ -221,6 +227,7 @@ Interchunk::processInstruction(wstring rule)
         }
         break;
       case L'&': // and
+        //cout << "and" << endl;
       {
         int count = rule[++i];
         bool val = true;
@@ -232,6 +239,7 @@ Interchunk::processInstruction(wstring rule)
       }
         break;
       case L'|': // or
+        //cout << "or" << endl;
       {
         int count = rule[++i];
         bool val = false;
@@ -243,9 +251,11 @@ Interchunk::processInstruction(wstring rule)
       }
         break;
       case L'!': // not
+        //cout << "not" << endl;
         theStack.top().b = !theStack.top().b;
         break;
       case L'=': // equal
+        //cout << "equal" << endl;
       {
         wstring a = popStack().s;
         wstring b = popStack().s;
@@ -259,6 +269,7 @@ Interchunk::processInstruction(wstring rule)
       }
         break;
       case L'(': // begins-with
+        //cout << "begins-with" << endl;
       {
         wstring substr = popStack().s;
         wstring str = popStack().s;
@@ -274,6 +285,7 @@ Interchunk::processInstruction(wstring rule)
       }
         break;
       case L')': // ends-with
+        //cout << "ends-with" << endl;
       {
         wstring substr = popStack().s;
         wstring str = popStack().s;
@@ -289,6 +301,7 @@ Interchunk::processInstruction(wstring rule)
       }
         break;
       case L'[': // begins-with-list
+        //cout << "begins-with-list" << endl;
       {
         wstring list = popStack().s;
         wstring needle = popStack().s;
@@ -320,6 +333,7 @@ Interchunk::processInstruction(wstring rule)
       }
         break;
       case L']': // ends-with-list
+        //cout << "ends-with-list" << endl;
       {
         wstring list = popStack().s;
         wstring needle = popStack().s;
@@ -351,6 +365,7 @@ Interchunk::processInstruction(wstring rule)
       }
         break;
       case L'c': // contains-substring
+        //cout << "contains-substring" << endl;
       {
         wstring needle = popStack().s;
         wstring haystack = popStack().s;
@@ -364,6 +379,7 @@ Interchunk::processInstruction(wstring rule)
       }
         break;
       case L'n': // in
+        //cout << "in" << endl;
       {
         wstring list = popStack().s;
         wstring str = popStack().s;
@@ -382,12 +398,28 @@ Interchunk::processInstruction(wstring rule)
       }
         break;
       case L'>': // let (begin)
+        //cout << "let" << endl;
         pushStack(L" LET ");
         break;
       case L'*': // let (clip, end)
+        //cout << "let clip" << endl;
+      {
+        wstring val = popStack().s;
+        pair<int, wstring> clip = popStack().clip;
+        currentInput[2*(clip.first-1)]->setChunkPart(attr_items[clip.second], val);
+      }
+        break;
       case L'4': // let (var, end)
+        //cout << "let var" << endl;
+      {
+        wstring val = popStack().s;
+        wstring var = popStack().s;
+        variables[var] = val;
+      }
+        break;
       // TODO: append
       case L'<': // out
+        //cout << "out" << endl;
       {
         int count = rule[++i];
         vector<Chunk*> nodes;
@@ -405,21 +437,24 @@ Interchunk::processInstruction(wstring rule)
         break;
       // TODO: modify-case
       case L'.': // clip
+        //cout << "clip" << endl;
       {
         wstring part = popStack().s;
         int pos = rule[++i];
-        if(theStack.top().s == L" LET ")
+        if(!theStack.empty() && theStack.top().s == L" LET ")
         {
           popStack();
           pushStack(pair<int, wstring>(pos, part));
         }
         else
         {
-          // TODO: get value
+          string v = currentInput[2*(pos-1)]->chunkPart(attr_items[part]);
+          pushStack(UtfConverter::fromUtf8(v));
         }
       }
         break;
       case L'$': // var
+        //cout << "var" << endl;
       {
         wstring name = theStack.top().s;
         popStack();
@@ -430,38 +465,48 @@ Interchunk::processInstruction(wstring rule)
         }
         else
         {
-          // TODO: get value
+          pushStack(variables[name]);
         }
       }
         break;
       // TODO: get-case-from
       // TODO: case-of
       // TODO: concat
-      case L'{':
+      case L'{': // chunk
+        //cout << "chunk" << endl;
       {
         Chunk* ch = new Chunk();
         int count = rule[++i];
-        vector<Chunk*> temp;
+        //vector<Chunk*> temp;
+        vector<wstring> temp;
         for(int j = 0; j < count; j++)
         {
-          temp.push_back(popStack().c);
+          //temp.push_back(popStack().c);
+          temp.push_back(popStack().s);
         }
-        for(int j = count-1; j >= 0; j--)
+        for(int j = 0; j < count; j++)
         {
-          ch->addPiece(temp[j]);
+          //ch->addPiece(temp.back());
+          ch->surface += temp.back();
+          temp.pop_back();
         }
         pushStack(ch);
       }
         break;
       // TODO: pseudolemma
       case L' ': // b
+        //cout << "b" << endl;
       {
         Chunk* ch = new Chunk(L" ");
         pushStack(ch);
       }
         break;
       case L'_': // b
-        // TODO: get value
+        //cout << "b pos" << endl;
+      {
+        int loc = 2*(rule[++i]-1) + 1;
+        pushStack(currentInput[loc]);
+      }
         break;
       default:
         cout << "unknown instruction: " << rule[i] << endl;
@@ -469,14 +514,9 @@ Interchunk::processInstruction(wstring rule)
   }
 }
 
-Chunk &
+Chunk *
 Interchunk::readToken(FILE *in)
 {
-  if(!input_buffer.isEmpty())
-  {
-    return input_buffer.next();
-  }
-
   wstring content;
   wstring data;
   while(true)
@@ -485,7 +525,8 @@ Interchunk::readToken(FILE *in)
     if(feof(in) || (internal_null_flush && val == 0))
     {
       furtherInput = false;
-      return input_buffer.add(Chunk(content));
+      Chunk* ret = new Chunk(content);
+      return ret;
     }
     if(val == L'\\')
     {
@@ -536,19 +577,21 @@ Interchunk::readToken(FILE *in)
         }
         else
         {
-          content += wchar_t(val2);
+          data += wchar_t(val2);
         }
       }
     }
     else if(inword && val == L'$')
     {
       inword = false;
-      return input_buffer.add(Chunk(content, data));
+      Chunk* ret = new Chunk(content, data);
+      return ret;
     }
     else if(val == L'^')
     {
       inword = true;
-      return input_buffer.add(Chunk(content));
+      Chunk* ret = new Chunk(content);
+      return ret;
     }
     else
     {
@@ -596,9 +639,14 @@ Interchunk::interchunk_wrapper_null_flush(FILE *in, FILE *out)
 }
 
 void
-Interchunk::applyWord(Chunk* word)
+Interchunk::applyWord(Chunk& word)
 {
-  wstring word_str = word->surface;
+  if(word.isBlank())
+  {
+    ms.step(L' ');
+    return;
+  }
+  wstring word_str = word.surface;
   ms.step(L'^');
   for(unsigned int i = 0, limit = word_str.size(); i < limit; i++)
   {
@@ -644,10 +692,10 @@ Interchunk::applyWord(Chunk* word)
 void
 Interchunk::interchunk(FILE *in, FILE *out)
 {
-  if(getNullFlush())
+  /*if(getNullFlush())
   {
     interchunk_wrapper_null_flush(in, out);
-  }
+  }*/
   if(recursing)
   {
     interchunk_recursive(in, out);
@@ -659,98 +707,98 @@ Interchunk::interchunk(FILE *in, FILE *out)
 }
 
 void
-Interchunk::interchunk_linear(FILE *in, FILE *out)
+Interchunk::interchunk_do_pass()
 {
-/*  int last = 0;
-
-  output = out;
+  int layer = -1;
+  bool shouldshift = false;
+  for(int l = parseTower.size()-1; l >= 0; l--)
+  {
+    if(parseTower[l].size() >= 2*longestPattern - 1)
+    {
+      layer = l;
+      break;
+    }
+  }
+  if(layer == -1)
+  {
+    shouldshift = true;
+    if(furtherInput)
+    {
+      return;
+    }
+    for(int l = 0; l < parseTower.size(); l++)
+    {
+      if(parseTower[l].size() > 0)
+      {
+        layer = l;
+        break;
+      }
+    }
+    if(layer == -1)
+    {
+      allDone = true;
+      return;
+    }
+  }
+  if(layer+1 == parseTower.size())
+  {
+    parseTower.push_back(vector<Chunk*>());
+  }
   ms.init(me->getInitial());
-
-  while(true)
+  int rule = -1;
+  for(int i = 0; i < parseTower[layer].size()+1 && i < 2*longestPattern+1; i++)
   {
     if(ms.size() == 0)
     {
-      if(lastrule != NULL)
+      if(rule != -1)
       {
-        applyRule();
-        input_buffer.setPos(last);
+        currentInput.clear();
+        currentOutput.clear();
+        currentInput.assign(parseTower[layer].begin(), parseTower[layer].begin()+i-1);
+        parseTower[layer].erase(parseTower[layer].begin(), parseTower[layer].begin()+i-1);
+        applyRule(rule_map[rule]);
+        parseTower[layer+1].insert(parseTower[layer+1].end(), currentOutput.begin(), currentOutput.end());
+        currentInput.clear();
+        currentOutput.clear();
       }
-      else
+      else if(shouldshift || parseTower[layer].size() >= 2*(longestPattern)-1)
       {
-        if(tmpword.size() != 0)
-        {
-          fputwc_unlocked(L'^', output);
-          fputws_unlocked(tmpword[0]->c_str(), output);
-          fputwc_unlocked(L'$', output);
-          tmpword.clear();
-          input_buffer.setPos(last);
-          input_buffer.next();
-          last = input_buffer.getPos();
-          ms.init(me->getInitial());
-        }
-        else if(tmpblank.size() != 0)
-        {
-          fputws_unlocked(tmpblank[0]->c_str(), output);
-          tmpblank.clear();
-          last = input_buffer.getPos();
-          ms.init(me->getInitial());
-        }
+        parseTower[layer+1].push_back(parseTower[layer][0]);
+        parseTower[layer].erase(parseTower[layer].begin());
       }
+      return;
     }
     int val = ms.classifyFinals(me->getFinals());
     if(val != -1)
     {
-      lastrule = rule_map[val-1];
-      last = input_buffer.getPos();
-
-      if(trace)
-      {
-        wcerr << endl << L"apertium-interchunk: Rule " << val << L" ";
-        for (unsigned int ind = 0; ind < tmpword.size(); ind++)
-        {
-          if (ind != 0)
-          {
-            wcerr << L" ";
-          }
-          fputws_unlocked(tmpword[ind]->c_str(), stderr);
-        }
-        wcerr << endl;
-      }
+      rule = val-1;
     }
-
-    TransferToken &current = readToken(in);
-
-    switch(current.getType())
+    if(i != parseTower[layer].size())
     {
-      case tt_word:
-        applyWord(current.getContent());
-        tmpword.push_back(&current.getContent());
-        break;
-
-      case tt_blank:
-        ms.step(L' ');
-        tmpblank.push_back(&current.getContent());
-        break;
-
-      case tt_eof:
-        if(tmpword.size() != 0)
-        {
-          tmpblank.push_back(&current.getContent());
-          ms.clear();
-        }
-        else
-        {
-          fputws_unlocked(current.getContent().c_str(), output);
-          tmpblank.clear();
-          return;
-        }
-        break;
-
-      default:
-        wcerr << "Error: Unknown input token." << endl;
-        return;
+      applyWord(*parseTower[layer][i]);
     }
-  }*/
+  }
+}
+
+void
+Interchunk::interchunk_linear(FILE *in, FILE *out)
+{
+  parseTower.push_back(vector<Chunk*>());
+  parseTower.push_back(vector<Chunk*>());
+  while(!allDone)
+  {
+    if(furtherInput)
+    {
+      Chunk* ch = readToken(in);
+      parseTower[0].push_back(ch);
+    }
+    interchunk_do_pass();
+    for(int i = 0; i < parseTower[1].size(); i++)
+    {
+      parseTower[1][i]->output(out);
+    }
+    parseTower[1].clear();
+  }
 }
 
 void

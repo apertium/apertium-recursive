@@ -47,6 +47,13 @@ public:
     surface = chunkTags;
     contents = children;
   }
+  ~Chunk()
+  {
+    for(int i = 0; i < contents.size(); i++)
+    {
+      delete contents[i];
+    }
+  }
   string chunkPart(ApertiumRE const &part)
   {
     string chunk = UtfConverter::toUtf8(surface);
@@ -267,8 +274,8 @@ private:
   void destroy();
   void readData(FILE *input);
   void readInterchunk(string const &input);
-  string caseOf(string const &str);
-  string copycase(string const &source_word, string const &target_word);
+  wstring caseOf(wstring const &str);
+  wstring copycase(wstring const &source_word, wstring const &target_word);
 
   void processAppend(xmlNode *localroot);
   void processModifyCase(xmlNode *localroot);

@@ -1,7 +1,10 @@
 #include <interchunk.h>
+#include <lttoolbox/lt_locale.h>
 
 int main(int argc, char *argv[])
 {
+  //LtLocale::tryToSetLocale();
+
   Interchunk i;
   FILE *input = stdin, *output = stdout;
   string f1 = argv[1];

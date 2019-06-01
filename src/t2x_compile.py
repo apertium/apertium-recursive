@@ -8,8 +8,6 @@ varNames = []
 catNames = []
 macros = {}
 
-TODO = ['modify-case', 'get-case-from', 'case-of', 'pseudolemma', 'append']
-
 maxlen = 0
 
 def tostr(blob):
@@ -20,7 +18,7 @@ def tostr(blob):
         maxlen = max(maxlen, len(kids))
     givecount = {'section-def-cats':'C', 'section-def-attrs': 'A', 'def-attr': 'a', 'section-def-vars':'V', 'section-def-lists':'L', 'section-rules':'R', 'pattern':'P'}
     namequote = {'attr-item': 'tags', 'list-item':'v'}
-    logic = {'not':'!', 'equal':'=', 'begins-with':'(', 'ends-with':')', 'begins-with-list':'[', 'ends-with-list':']', 'contains-substring':'c', 'in':'n', 'test':'?'}
+    logic = {'not':'!', 'equal':'=', 'begins-with':'(', 'ends-with':')', 'begins-with-list':'[', 'ends-with-list':']', 'contains-substring':'c', 'in':'n', 'test':'?', 'get-case-from':'G'}
     stack = {'and':'&', 'or':'|', 'concat':'+', 'out':'<', 'chunk':'{'}
     def litstr(s):
         nonlocal ret
@@ -58,16 +56,26 @@ def tostr(blob):
         ret = chr(catNames.index(blob.attrib['n']))
     elif blob.tag in logic:
         cs = ''
-        if blob.tag not in ['not', 'test']:
+        if blob.tag not in ['not', 'test', 'get-case-from']:
             if 'caseless' in blob.attrib and blob.attrib['caseless'] == 'yes':
                 cs = '#'
         ret = ''.join(kids) + logic[blob.tag] + cs
-    elif blob.tag == 'let':
+    elif blob.tag in ['let', 'modify-case']:
         ret = '>' + ''.join(kids)
         if blob[0].tag == 'clip':
             ret += '*'
         else:
             ret += '4'
+        if blob.tag == 'modify-case':
+            ret += '#'
+    elif blob.tag == 'append': # = let $ concat $ ...
+        ret = '>'
+        litstr(blob.attrib['n'])
+        ret += '$'
+        litstr(blob.attrib['n'])
+        ret += '$'
+        ret += ''.join(kids)
+        ret += chr(len(kids)+1) + '+4'
     elif blob.tag == 'action':
         ret = ''.join(kids)
     elif blob.tag == 'choose':
@@ -104,6 +112,11 @@ def tostr(blob):
     elif blob.tag == 'lit-tag':
         litstr('<' + blob.attrib['v'].replace('.','><') + '>')
         ret += '%'
+    elif blob.tag == 'pseudolemma':
+        ret = kids[0] + 'p'
+    elif blob.tag == 'case-of':
+        litstr(blob.attrib['part'])
+        ret += '.' + chr(int(blob.attrib['pos'])) + 'G'
     return ret
 
 rulefile = xml.parse(sys.argv[1]).getroot()

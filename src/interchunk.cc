@@ -159,6 +159,67 @@ Interchunk::endsWith(wstring const &s1, wstring const &s2) const
   return true;
 }
 
+wstring
+Interchunk::copycase(wstring const &source_word, wstring const &target_word)
+{
+  wstring result;
+
+  bool firstupper = iswupper(source_word[0]);
+  bool uppercase = firstupper && iswupper(source_word[source_word.size()-1]);
+  bool sizeone = source_word.size() == 1;
+
+  if(!uppercase || (sizeone && uppercase))
+  {
+    result = StringUtils::tolower(target_word);
+  }
+  else
+  {
+    result = StringUtils::toupper(target_word);
+  }
+
+  if(firstupper)
+  {
+    result[0] = towupper(result[0]);
+  }
+
+  return result;
+}
+
+wstring
+Interchunk::caseOf(wstring const &s)
+{
+  if(s.size() > 1)
+  {
+    if(!iswupper(s[0]))
+    {
+      return L"aa";
+    }
+    else if(!iswupper(s[s.size()-1]))
+    {
+      return L"Aa";
+    }
+    else
+    {
+      return L"AA";
+    }
+  }
+  else if(s.size() == 1)
+  {
+    if(!iswupper(s[0]))
+    {
+      return L"aa";
+    }
+    else
+    {
+      return L"Aa";
+    }
+  }
+  else
+  {
+    return L"aa";
+  }
+}
+
 StackElement
 Interchunk::popStack()
 {
@@ -406,6 +467,12 @@ Interchunk::applyRule(wstring rule)
       {
         wstring val = popStack().s;
         pair<int, wstring> clip = popStack().clip;
+        if(i+1 < rule.size() && rule[i+1] == L'#')
+        {
+          i++;
+          string temp = currentInput[2*(clip.first-1)]->chunkPart(attr_items[clip.second]);
+          val = copycase(val, UtfConverter::fromUtf8(temp));
+        }
         currentInput[2*(clip.first-1)]->setChunkPart(attr_items[clip.second], val);
       }
         break;
@@ -414,10 +481,14 @@ Interchunk::applyRule(wstring rule)
       {
         wstring val = popStack().s;
         wstring var = popStack().s;
+        if(i+1 < rule.size() && rule[i+1] == L'#')
+        {
+          i++;
+          val = copycase(val, variables[var]);
+        }
         variables[var] = val;
       }
         break;
-      // TODO: append
       case L'<': // out
         //cout << "out" << endl;
       {
@@ -435,7 +506,6 @@ Interchunk::applyRule(wstring rule)
         }
       }
         break;
-      // TODO: modify-case
       case L'.': // clip
         //cout << "clip" << endl;
       {
@@ -469,31 +539,60 @@ Interchunk::applyRule(wstring rule)
         }
       }
         break;
-      // TODO: get-case-from
-      // TODO: case-of
-      // TODO: concat
+      case L'G': // get-case-from, case-of
+        //cout << "get-case-from or case-of" << endl;
+        pushStack(caseOf(popStack().s));
+        break;
+      case L'+': // concat
+        //cout << "concat" << endl;
+      {
+        int count = rule[++i];
+        wstring result;
+        for(int j = 0; j < count; j++)
+        {
+          result.append(popStack().s);
+        }
+        pushStack(result);
+      }
+        break;
       case L'{': // chunk
         //cout << "chunk" << endl;
       {
         Chunk* ch = new Chunk();
         int count = rule[++i];
-        //vector<Chunk*> temp;
-        vector<wstring> temp;
-        for(int j = 0; j < count; j++)
+        if(recursing)
         {
-          //temp.push_back(popStack().c);
-          temp.push_back(popStack().s);
+          vector<Chunk*> temp;
+          for(int j = 0; j < count; j++)
+          {
+            temp.push_back(popStack().c);
+          }
+          for(int j = 0; j < count; j++)
+          {
+            ch->addPiece(temp.back());
+            temp.pop_back();
+          }
         }
-        for(int j = 0; j < count; j++)
+        else
         {
-          //ch->addPiece(temp.back());
-          ch->surface += temp.back();
-          temp.pop_back();
+          vector<wstring> temp;
+          for(int j = 0; j < count; j++)
+          {
+            temp.push_back(popStack().s);
+          }
+          for(int j = 0; j < count; j++)
+          {
+            ch->surface += temp.back();
+            temp.pop_back();
+          }
         }
         pushStack(ch);
       }
         break;
-      // TODO: pseudolemma
+      case L'p': // pseudolemma
+        //cout << "pseudolemma" << endl;
+        pushStack(popStack().c->surface);
+        break;
       case L' ': // b
         //cout << "b" << endl;
       {
@@ -796,6 +895,7 @@ Interchunk::interchunk_linear(FILE *in, FILE *out)
     for(int i = 0; i < parseTower[1].size(); i++)
     {
       parseTower[1][i]->output(out);
+      delete parseTower[1][i];
     }
     parseTower[1].clear();
   }

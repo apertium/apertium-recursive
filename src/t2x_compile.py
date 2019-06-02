@@ -90,7 +90,7 @@ def tostr(blob):
         ret = ''.join(kids) + stack[blob.tag] + chr(len(kids))
     elif blob.tag == 'b':
         if 'pos' in blob.attrib:
-            ret = '_' + chr(int(blob.attrib['pos']))
+            ret = '_' + chr(int(''.join([c for c in blob.attrib['pos'] if c.isdigit()])))
         else:
             ret = ' '
     elif blob.tag == 'with-param':
@@ -98,12 +98,12 @@ def tostr(blob):
     elif blob.tag == 'call-macro':
         ret = macros[blob.attrib['n']]
         for i,n in enumerate(kids):
-            ret = ret.replace('%s.'%chr(i+1), '%s.'%chr(int(n)))
+            ret = ret.replace('%s.'%chr(i+1), '%s.'%chr(int(''.join([c for c in n if c.isdigit()]))))
     elif blob.tag == 'list':
         litstr(blob.attrib['n'])
     elif blob.tag == 'clip':
         litstr(blob.attrib['part'])
-        ret += '.' + chr(int(blob.attrib['pos']))
+        ret += '.' + chr(int(''.join([c for c in blob.attrib['pos'] if c.isdigit()])))
     elif blob.tag == 'var':
         litstr(blob.attrib['n'])
         ret += '$'
@@ -116,7 +116,7 @@ def tostr(blob):
         ret = kids[0] + 'p'
     elif blob.tag == 'case-of':
         litstr(blob.attrib['part'])
-        ret += '.' + chr(int(blob.attrib['pos'])) + 'G'
+        ret += '.' + chr(int(''.join([c for c in blob.attrib['pos'] if c.isdigit()]))) + 'G'
     return ret
 
 rulefile = xml.parse(sys.argv[1]).getroot()

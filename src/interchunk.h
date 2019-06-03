@@ -97,7 +97,6 @@ public:
   }
   void updateTags(vector<wstring> parentTags)
   {
-    //cout << "updateTags() called with " << parentTags.size() << " tags" << endl;
     wstring result;
     wstring cur;
     bool indigittag = false;

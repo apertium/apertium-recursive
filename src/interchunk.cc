@@ -816,6 +816,7 @@ Interchunk::interchunk_do_pass()
   }
   ms.init(me->getInitial());
   int rule = -1;
+  int len = 0;
   for(int i = 0; i < parseTower[layer].size()+1 && i < 2*longestPattern+1; i++)
   {
     if(ms.size() == 0)
@@ -824,8 +825,8 @@ Interchunk::interchunk_do_pass()
       {
         currentInput.clear();
         currentOutput.clear();
-        currentInput.assign(parseTower[layer].begin(), parseTower[layer].begin()+i-1);
-        parseTower[layer].erase(parseTower[layer].begin(), parseTower[layer].begin()+i-1);
+        currentInput.assign(parseTower[layer].begin(), parseTower[layer].begin()+len);
+        parseTower[layer].erase(parseTower[layer].begin(), parseTower[layer].begin()+len);
         applyRule(rule_map[rule]);
         parseTower[layer+1].insert(parseTower[layer+1].end(), currentOutput.begin(), currentOutput.end());
         currentInput.clear();
@@ -842,6 +843,7 @@ Interchunk::interchunk_do_pass()
     if(val != -1)
     {
       rule = val-1;
+      len = i;
     }
     if(i != parseTower[layer].size())
     {

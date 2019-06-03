@@ -197,7 +197,6 @@ public:
   }
   void output(vector<wstring> parentTags, FILE* out = NULL)
   {
-    fflush(out);
     updateTags(parentTags);
     if(contents.size() > 0)
     {
@@ -323,59 +322,28 @@ private:
   void interchunk_recursive(FILE *in, FILE *out);
   
   StackElement popStack();
-  int stackIndent = 0;
   void pushStack(bool b)
   {
-    for(int i = 0; i < stackIndent; i++)
-    {
-      cout << " ";
-    }
-    cout << "pushing bool" << endl;
-    stackIndent++;
     StackElement el(b);
     theStack.push(el);
   }
   void pushStack(int i)
   {
-    for(int i = 0; i < stackIndent; i++)
-    {
-      cout << " ";
-    }
-    cout << "pushing int" << endl;
-    stackIndent++;
     StackElement el(i);
     theStack.push(el);
   }
   void pushStack(wstring s)
   {
-    for(int i = 0; i < stackIndent; i++)
-    {
-      cout << " ";
-    }
-    cout << "pushing string" << endl;
-    stackIndent++;
     StackElement el(s);
     theStack.push(el);
   }
   void pushStack(Chunk* c)
   {
-    for(int i = 0; i < stackIndent; i++)
-    {
-      cout << " ";
-    }
-    cout << "pushing chunk" << endl;
-    stackIndent++;
     StackElement el(c);
     theStack.push(el);
   }
   void pushStack(pair<int, wstring> clip)
   {
-    for(int i = 0; i < stackIndent; i++)
-    {
-      cout << " ";
-    }
-    cout << "pushing pair" << endl;
-    stackIndent++;
     StackElement el(clip);
     theStack.push(el);
   }

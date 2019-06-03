@@ -31,11 +31,13 @@ public:
   vector<Chunk*> contents;
   Chunk()
   {
-    surface = L"";
+    //surface = L"";
+    //chunkData = L"";
   }
   Chunk(wstring blankContent)
   {
     surface = blankContent;
+    //chunkData = L"";
   }
   Chunk(wstring chunkTags, wstring chunkContent)
   {
@@ -45,6 +47,7 @@ public:
   Chunk(wstring chunkTags, vector<Chunk*> children)
   {
     surface = chunkTags;
+    //chunkData = L"";
     contents = children;
   }
   ~Chunk()
@@ -57,14 +60,14 @@ public:
   string chunkPart(ApertiumRE const &part)
   {
     string chunk = UtfConverter::toUtf8(surface);
-    string queue = "{" + UtfConverter::toUtf8(chunkData) + "}";
+    string queue = '{' + UtfConverter::toUtf8(chunkData) + '}';
     string result = part.match(chunk);
     if(result.size() == 0)
     {
       result = part.match(queue);
       if(result.size() != queue.size())
       {
-        return "";
+        return string("");
       }
       else
       {
@@ -100,7 +103,7 @@ public:
     wstring result;
     wstring cur;
     bool indigittag = false;
-    for(int i = 0; i < surface.size(); i++)
+    for(size_t i = 0; i < surface.size(); i++)
     {
       if(!indigittag)
       {
@@ -159,7 +162,7 @@ public:
     vector<wstring> result;
     wstring cur;
     bool intag = false;
-    for(int i; i < surface.size(); i++)
+    for(int i = 0; i < surface.size(); i++)
     {
       if(intag)
       {
@@ -194,6 +197,7 @@ public:
   }
   void output(vector<wstring> parentTags, FILE* out = NULL)
   {
+    fflush(out);
     updateTags(parentTags);
     if(contents.size() > 0)
     {
@@ -234,7 +238,8 @@ public:
   }
   void output(FILE* out)
   {
-    output(vector<wstring>(), out);
+    vector<wstring> tags;
+    output(tags, out);
   }
   bool isBlank()
   {
@@ -318,28 +323,59 @@ private:
   void interchunk_recursive(FILE *in, FILE *out);
   
   StackElement popStack();
+  int stackIndent = 0;
   void pushStack(bool b)
   {
+    for(int i = 0; i < stackIndent; i++)
+    {
+      cout << " ";
+    }
+    cout << "pushing bool" << endl;
+    stackIndent++;
     StackElement el(b);
     theStack.push(el);
   }
   void pushStack(int i)
   {
+    for(int i = 0; i < stackIndent; i++)
+    {
+      cout << " ";
+    }
+    cout << "pushing int" << endl;
+    stackIndent++;
     StackElement el(i);
     theStack.push(el);
   }
   void pushStack(wstring s)
   {
+    for(int i = 0; i < stackIndent; i++)
+    {
+      cout << " ";
+    }
+    cout << "pushing string" << endl;
+    stackIndent++;
     StackElement el(s);
     theStack.push(el);
   }
   void pushStack(Chunk* c)
   {
+    for(int i = 0; i < stackIndent; i++)
+    {
+      cout << " ";
+    }
+    cout << "pushing chunk" << endl;
+    stackIndent++;
     StackElement el(c);
     theStack.push(el);
   }
   void pushStack(pair<int, wstring> clip)
   {
+    for(int i = 0; i < stackIndent; i++)
+    {
+      cout << " ";
+    }
+    cout << "pushing pair" << endl;
+    stackIndent++;
     StackElement el(clip);
     theStack.push(el);
   }

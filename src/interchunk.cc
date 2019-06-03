@@ -188,7 +188,10 @@ Interchunk::copycase(wstring const &source_word, wstring const &target_word)
 wstring
 Interchunk::caseOf(wstring const &s)
 {
-  if(s.size() > 1)
+  //wstring ret (L"aa");
+  //return copycase(s, ret);
+  return copycase(s, wstring(L"aa"));
+  /*if(s.size() > 1)
   {
     if(!iswupper(s[0]))
     {
@@ -217,12 +220,18 @@ Interchunk::caseOf(wstring const &s)
   else
   {
     return L"aa";
-  }
+  }*/
 }
 
 StackElement
 Interchunk::popStack()
 {
+    stackIndent--;
+    for(int i = 0; i < stackIndent; i++)
+    {
+      cout << " ";
+    }
+    cout << "popping" << endl;
   StackElement ret = theStack.top();
   theStack.pop();
   return ret;
@@ -231,6 +240,7 @@ Interchunk::popStack()
 void
 Interchunk::applyRule(wstring rule)
 {
+  cout << "stack size is now: " << theStack.size() << endl;
   bool in_let_setup = false;
   for(int i = 0; i < rule.size(); i++)
   {
@@ -238,7 +248,7 @@ Interchunk::applyRule(wstring rule)
     {
       case L's': // string
       {
-        //cout << "string" << endl;
+        cout << "string" << endl;
         int ct = rule[++i];
         wstring blob;
         for(int j = 0; j < ct; j++)
@@ -249,11 +259,11 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'j': // jump
-        //cout << "jump" << endl;
+        cout << "jump" << endl;
         i += rule[++i];
         break;
       case L'?': // test
-        //cout << "test" << endl;
+        cout << "test" << endl;
         if(popStack().b)
         {
           i++;
@@ -264,35 +274,35 @@ Interchunk::applyRule(wstring rule)
         }
         break;
       case L'&': // and
-        //cout << "and" << endl;
+        cout << "and" << endl;
       {
         int count = rule[++i];
         bool val = true;
         for(int j = 0; j < count; j++)
         {
-          val = val && popStack().b;
+          val = popStack().b && val;
         }
         pushStack(val);
       }
         break;
       case L'|': // or
-        //cout << "or" << endl;
+        cout << "or" << endl;
       {
         int count = rule[++i];
         bool val = false;
         for(int j = 0; j < count; j++)
         {
-          val = val || popStack().b;
+          val = popStack().b || val;
         }
         pushStack(val);
       }
         break;
       case L'!': // not
-        //cout << "not" << endl;
+        cout << "not" << endl;
         theStack.top().b = !theStack.top().b;
         break;
       case L'=': // equal
-        //cout << "equal" << endl;
+        cout << "equal" << endl;
       {
         wstring a = popStack().s;
         wstring b = popStack().s;
@@ -306,7 +316,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'(': // begins-with
-        //cout << "begins-with" << endl;
+        cout << "begins-with" << endl;
       {
         wstring substr = popStack().s;
         wstring str = popStack().s;
@@ -322,7 +332,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L')': // ends-with
-        //cout << "ends-with" << endl;
+        cout << "ends-with" << endl;
       {
         wstring substr = popStack().s;
         wstring str = popStack().s;
@@ -338,7 +348,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'[': // begins-with-list
-        //cout << "begins-with-list" << endl;
+        cout << "begins-with-list" << endl;
       {
         wstring list = popStack().s;
         wstring needle = popStack().s;
@@ -370,7 +380,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L']': // ends-with-list
-        //cout << "ends-with-list" << endl;
+        cout << "ends-with-list" << endl;
       {
         wstring list = popStack().s;
         wstring needle = popStack().s;
@@ -402,7 +412,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'c': // contains-substring
-        //cout << "contains-substring" << endl;
+        cout << "contains-substring" << endl;
       {
         wstring needle = popStack().s;
         wstring haystack = popStack().s;
@@ -416,7 +426,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'n': // in
-        //cout << "in" << endl;
+        cout << "in" << endl;
       {
         wstring list = popStack().s;
         wstring str = popStack().s;
@@ -435,11 +445,11 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'>': // let (begin)
-        //cout << "let" << endl;
+        cout << "let" << endl;
         in_let_setup = true;
         break;
       case L'*': // let (clip, end)
-        //cout << "let clip" << endl;
+        cout << "let clip" << endl;
       {
         wstring val = popStack().s;
         pair<int, wstring> clip = popStack().clip;
@@ -453,7 +463,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'4': // let (var, end)
-        //cout << "let var" << endl;
+        cout << "let var" << endl;
       {
         wstring val = popStack().s;
         wstring var = popStack().s;
@@ -466,24 +476,18 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'<': // out
-        //cout << "out" << endl;
+        cout << "out" << endl;
       {
         int count = rule[++i];
-        vector<Chunk*> nodes;
-        nodes.resize(count);
-        for(int j = 0; j < count; j++)
+        currentOutput.resize(currentOutput.size()+count);
+        for(int j = 1; j <= count; j++)
         {
-          nodes.push_back(popStack().c);
-        }
-        for(int j = 0; j < count; j++)
-        {
-          currentOutput.push_back(nodes.back());
-          nodes.pop_back();
+          currentOutput[currentOutput.size()-j] = popStack().c;
         }
       }
         break;
       case L'.': // clip
-        //cout << "clip" << endl;
+        cout << "clip" << endl;
       {
         wstring part = popStack().s;
         int pos = rule[++i];
@@ -500,7 +504,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'$': // var
-        //cout << "var" << endl;
+        cout << "var" << endl;
         if(in_let_setup)
         {
           in_let_setup = false;
@@ -511,11 +515,11 @@ Interchunk::applyRule(wstring rule)
         }
         break;
       case L'G': // get-case-from, case-of
-        //cout << "get-case-from or case-of" << endl;
+        cout << "get-case-from or case-of" << endl;
         pushStack(caseOf(popStack().s));
         break;
       case L'+': // concat
-        //cout << "concat" << endl;
+        cout << "concat" << endl;
       {
         int count = rule[++i];
         wstring result;
@@ -527,7 +531,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'{': // chunk
-        //cout << "chunk" << endl;
+        cout << "chunk" << endl;
       {
         Chunk* ch = new Chunk();
         int count = rule[++i];
@@ -546,33 +550,24 @@ Interchunk::applyRule(wstring rule)
         }
         else
         {
-          vector<wstring> temp;
           for(int j = 0; j < count; j++)
           {
-            temp.push_back(popStack().s);
-          }
-          for(int j = 0; j < count; j++)
-          {
-            ch->surface += temp.back();
-            temp.pop_back();
+            ch->surface = popStack().s + ch->surface;
           }
         }
         pushStack(ch);
       }
         break;
       case L'p': // pseudolemma
-        //cout << "pseudolemma" << endl;
+        cout << "pseudolemma" << endl;
         pushStack(popStack().c->surface);
         break;
       case L' ': // b
-        //cout << "b" << endl;
-      {
-        Chunk* ch = new Chunk(L" ");
-        pushStack(ch);
-      }
+        cout << "b" << endl;
+        pushStack(new Chunk(wstring(L" ")));
         break;
       case L'_': // b
-        //cout << "b pos" << endl;
+        cout << "b pos" << endl;
       {
         int loc = 2*(rule[++i]-1) + 1;
         pushStack(currentInput[loc]);
@@ -582,6 +577,7 @@ Interchunk::applyRule(wstring rule)
         cout << "unknown instruction: " << rule[i] << endl;
     }
   }
+  cout << "stack size is now: " << theStack.size() << endl;
 }
 
 Chunk *
@@ -823,6 +819,7 @@ Interchunk::interchunk_do_pass()
     {
       if(rule != -1)
       {
+        cout << "applying rule " << rule+1 << endl;
         currentInput.clear();
         currentOutput.clear();
         currentInput.assign(parseTower[layer].begin(), parseTower[layer].begin()+len);

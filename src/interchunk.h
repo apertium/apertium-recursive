@@ -97,6 +97,7 @@ public:
   }
   void updateTags(vector<wstring> parentTags)
   {
+    //cout << "updateTags() called with " << parentTags.size() << " tags" << endl;
     wstring result;
     wstring cur;
     bool indigittag = false;
@@ -116,8 +117,12 @@ public:
       }
       else if(surface[i] == L'>')
       {
-        result += parentTags[stoi(cur)-1];
-        result += L'>';
+        int idx = stoi(cur)-1;
+        if(idx < parentTags.size())
+        {
+          result += parentTags[idx];
+          result += L'>';
+        }
         cur.clear();
         indigittag = false;
       }

@@ -231,6 +231,7 @@ Interchunk::popStack()
 void
 Interchunk::applyRule(wstring rule)
 {
+  bool in_let_setup = false;
   for(int i = 0; i < rule.size(); i++)
   {
     switch(rule[i])
@@ -247,44 +248,19 @@ Interchunk::applyRule(wstring rule)
         pushStack(blob);
       }
         break;
-      case L'~': // choose
-        //cout << "choose" << endl;
-        pushStack(i + rule[++i]);
-        pushStack(false);
-        break;
-      case L'i': // when
-        //cout << "when" << endl;
-        if(popStack().b)
-        {
-          i = popStack().i;
-        }
-        else
-        {
-          pushStack(rule[++i]);
-        }
-        break;
-      case L'e': // otherwise
-        //cout << "otherwise" << endl;
-        if(popStack().b)
-        {
-          i = popStack().i; // jump instruction
-        }
-        else
-        {
-          popStack(); // jump instruction
-        }
+      case L'j': // jump
+        //cout << "jump" << endl;
+        i += rule[++i];
         break;
       case L'?': // test
         //cout << "test" << endl;
         if(popStack().b)
         {
-          popStack(); // jump instruction
-          popStack(); // false
-          pushStack(true);
+          i++;
         }
         else
         {
-          i = popStack().i;
+          i += rule[++i];
         }
         break;
       case L'&': // and
@@ -460,7 +436,7 @@ Interchunk::applyRule(wstring rule)
         break;
       case L'>': // let (begin)
         //cout << "let" << endl;
-        pushStack(L" LET ");
+        in_let_setup = true;
         break;
       case L'*': // let (clip, end)
         //cout << "let clip" << endl;
@@ -511,10 +487,10 @@ Interchunk::applyRule(wstring rule)
       {
         wstring part = popStack().s;
         int pos = rule[++i];
-        if(!theStack.empty() && theStack.top().s == L" LET ")
+        if(in_let_setup)
         {
-          popStack();
           pushStack(pair<int, wstring>(pos, part));
+          in_let_setup = false;
         }
         else
         {
@@ -528,10 +504,10 @@ Interchunk::applyRule(wstring rule)
       {
         wstring name = theStack.top().s;
         popStack();
-        if(theStack.top().s == L" LET ")
+        if(in_let_setup)
         {
-          popStack();
           pushStack(name);
+          in_let_setup = false;
         }
         else
         {

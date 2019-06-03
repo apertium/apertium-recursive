@@ -10,6 +10,16 @@ macros = {}
 
 maxlen = 0
 
+READABLE = False
+
+def sint(num):
+    if READABLE:
+        return '[%s]' % num
+    else:
+        return chr(num)
+def slen(ls):
+    return sint(len(ls))
+
 def tostr(blob):
     global listNames, attrNames, catNames, varNames, macros, maxlen
     ret = ""
@@ -22,14 +32,14 @@ def tostr(blob):
     stack = {'and':'&', 'or':'|', 'concat':'+', 'out':'<', 'chunk':'{'}
     def litstr(s):
         nonlocal ret
-        ret += 's' + chr(len(s)) + s
+        ret += 's' + slen(s) + s
     if blob.tag == 'interchunk':
-        ret = chr(maxlen) + ''.join(kids)
+        ret = sint(maxlen) + ''.join(kids)
     elif blob.tag.startswith('section'):
         if blob.tag == 'section-rules':
-            ret = chr(len(kids)) + ''.join(kids)
+            ret = slen(kids) + ''.join(kids)
     elif blob.tag in givecount:
-        ret = givecount[blob.tag] + chr(len(kids)) + ''.join(kids)
+        ret = givecount[blob.tag] + slen(kids) + ''.join(kids)
     elif blob.tag == 'def-cat':
         catNames.append(blob.attrib['n'])
         litstr(blob.attrib['n'])
@@ -46,14 +56,14 @@ def tostr(blob):
             litstr(blob.attrib['n'])
     elif blob.tag == 'def-list':
         listNames.append(blob.attrib['n'])
-        ret = 'l' + chr(len(kids)) + ''.join(kids)
+        ret = 'l' + slen(kids) + ''.join(kids)
     elif blob.tag == 'def-macro':
         macros[blob.attrib['n']] = ''.join(kids)
     elif blob.tag == 'rule':
         ret = kids[1]
-        ret = 'R' + chr(len(ret)) + ret
+        ret = 'R' + slen(ret) + ret
     elif blob.tag == 'pattern-item':
-        ret = chr(catNames.index(blob.attrib['n']))
+        ret = sint(catNames.index(blob.attrib['n']))
     elif blob.tag in logic:
         cs = ''
         if blob.tag not in ['not', 'test', 'get-case-from']:
@@ -75,22 +85,22 @@ def tostr(blob):
         litstr(blob.attrib['n'])
         ret += '$'
         ret += ''.join(kids)
-        ret += chr(len(kids)+1) + '+4'
+        ret += sint(len(kids)+1) + '+4'
     elif blob.tag == 'action':
         ret = ''.join(kids)
     elif blob.tag == 'choose':
-        ret = ''.join(kids)
-        ret = '~' + chr(len(ret)) + ret
+        for cl in reversed(kids):
+            ret = cl + 'j' + slen(ret) + ret
     elif blob.tag == 'when':
         ret = ''.join(kids[1:])
-        ret = 'i' + chr(len(ret)) + kids[0] + ret
+        ret = kids[0] + slen(ret) + ret
     elif blob.tag == 'otherwise':
-        ret = 'e' + ''.join(kids)
+        ret = ''.join(kids)
     elif blob.tag in stack:
-        ret = ''.join(kids) + stack[blob.tag] + chr(len(kids))
+        ret = ''.join(kids) + stack[blob.tag] + slen(kids)
     elif blob.tag == 'b':
         if 'pos' in blob.attrib:
-            ret = '_' + chr(int(''.join([c for c in blob.attrib['pos'] if c.isdigit()])))
+            ret = '_' + sint(''.join([c for c in blob.attrib['pos'] if c.isdigit()]))
         else:
             ret = ' '
     elif blob.tag == 'with-param':
@@ -98,12 +108,12 @@ def tostr(blob):
     elif blob.tag == 'call-macro':
         ret = macros[blob.attrib['n']]
         for i,n in enumerate(kids):
-            ret = ret.replace('%s.'%chr(i+1), '%s.'%chr(int(''.join([c for c in n if c.isdigit()]))))
+            ret = ret.replace('%s.'%sint(i+1), '%s.'%sint(''.join([c for c in n if c.isdigit()])))
     elif blob.tag == 'list':
         litstr(blob.attrib['n'])
     elif blob.tag == 'clip':
         litstr(blob.attrib['part'])
-        ret += '.' + chr(int(''.join([c for c in blob.attrib['pos'] if c.isdigit()])))
+        ret += '.' + sint(''.join([c for c in blob.attrib['pos'] if c.isdigit()]))
     elif blob.tag == 'var':
         litstr(blob.attrib['n'])
         ret += '$'
@@ -111,15 +121,21 @@ def tostr(blob):
         litstr(blob.attrib['v'])
     elif blob.tag == 'lit-tag':
         litstr('<' + blob.attrib['v'].replace('.','><') + '>')
-        ret += '%'
+        #ret += '%'
     elif blob.tag == 'pseudolemma':
         ret = kids[0] + 'p'
     elif blob.tag == 'case-of':
         litstr(blob.attrib['part'])
-        ret += '.' + chr(int(''.join([c for c in blob.attrib['pos'] if c.isdigit()]))) + 'G'
+        ret += '.' + sint(''.join([c for c in blob.attrib['pos'] if c.isdigit()])) + 'G'
     return ret
 
-rulefile = xml.parse(sys.argv[1]).getroot()
-f = open(sys.argv[2], 'w')
+rf = sys.argv[1]
+of = sys.argv[2]
+if len(sys.argv) == 4 and sys.argv[1] == '-r':
+    rf = sys.argv[2]
+    of = sys.argv[3]
+    READABLE = True
+rulefile = xml.parse(rf).getroot()
+f = open(of, 'w')
 f.write(tostr(rulefile))#.encode('utf-8'))
 f.close()

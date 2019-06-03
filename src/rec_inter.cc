@@ -3,7 +3,7 @@
 
 int main(int argc, char *argv[])
 {
-  //LtLocale::tryToSetLocale();
+  LtLocale::tryToSetLocale();
 
   Interchunk i;
   FILE *input = stdin, *output = stdout;

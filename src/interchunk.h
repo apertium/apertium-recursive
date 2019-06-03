@@ -114,6 +114,21 @@ public:
         {
           indigittag = true;
         }
+        else if(surface[i] == L'{')
+        {
+          int j = i;
+          while(j < surface.size() && surface[j] != L'}')
+          {
+            if(surface[j] == L'\\')
+            {
+              j++;
+            }
+            j++;
+          }
+          result = result.substr(0, result.size()-1);
+          chunkData = surface.substr(i+1, j-i-1);
+          i = j;
+        }
       }
       else if(surface[i] == L'>')
       {

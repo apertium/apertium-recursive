@@ -501,19 +501,14 @@ Interchunk::applyRule(wstring rule)
         break;
       case L'$': // var
         //cout << "var" << endl;
-      {
-        wstring name = theStack.top().s;
-        popStack();
         if(in_let_setup)
         {
-          pushStack(name);
           in_let_setup = false;
         }
         else
         {
-          pushStack(variables[name]);
+          pushStack(variables[popStack().s]);
         }
-      }
         break;
       case L'G': // get-case-from, case-of
         //cout << "get-case-from or case-of" << endl;

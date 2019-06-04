@@ -111,8 +111,10 @@ def toreadstr(blob):
         ret += '\n. (clip) ' + sint(''.join([c for c in blob.attrib['pos'] if c.isdigit()])) + '\nG (get-case)'
     return ret
 
+ENDOFCHOOSE = False
+
 def tostr(blob):
-    global listNames, attrNames, catNames, varNames, macros, maxlen
+    global listNames, attrNames, catNames, varNames, macros, maxlen, ENDOFCHOOSE
     ret = ""
     kids = [tostr(x) for x in blob]
     if blob.tag == 'pattern':
@@ -180,13 +182,24 @@ def tostr(blob):
     elif blob.tag == 'action':
         ret = ''.join(kids)
     elif blob.tag == 'choose':
-        ret = kids[-1]
-        for cl in reversed(kids[:-1]):
-            ret = cl + 'j' + slen(ret) + ret
+        kls = blob.getchildren()
+        temp = ENDOFCHOOSE
+        ENDOFCHOOSE = True
+        ret = tostr(kls[-1])
+        ENDOFCHOOSE = False
+        for k in reversed(kls[:-1]):
+            ret = tostr(k) + 'j' + slen(ret) + ret
+        ENDOFCHOOSE = temp
+        #ret = kids[-1]
+        #for cl in reversed(kids[:-1]):
+        #    ret = cl + 'j' + slen(ret) + ret
         #ret += kids[-1]
     elif blob.tag == 'when':
         ret = ''.join(kids[1:])
-        ret = kids[0] + slen(ret) + ret
+        n = len(ret)
+        if not ENDOFCHOOSE:
+            n += 2
+        ret = kids[0] + sint(n) + ret
     elif blob.tag == 'otherwise':
         ret = ''.join(kids)
     elif blob.tag in stack:
@@ -213,7 +226,10 @@ def tostr(blob):
     elif blob.tag == 'lit':
         litstr(blob.attrib['v'])
     elif blob.tag == 'lit-tag':
-        litstr('<' + blob.attrib['v'].replace('.','><') + '>')
+        s = blob.attrib['v'].replace('.', '><')
+        if s:
+            s = '<' + s + '>'
+        litstr(s)
         #ret += '%'
     elif blob.tag == 'pseudolemma':
         ret = kids[0] + 'p'

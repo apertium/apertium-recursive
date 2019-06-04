@@ -241,7 +241,7 @@ Interchunk::popBool()
   }
   else
   {
-    cout << "tried to pop bool but mode is " << ret.mode << endl;
+    wcerr << "tried to pop bool but mode is " << ret.mode << endl;
     exit(1);
   }
 }
@@ -256,7 +256,7 @@ Interchunk::popInt()
   }
   else
   {
-    cout << "tried to pop int but mode is " << ret.mode << endl;
+    wcerr << "tried to pop int but mode is " << ret.mode << endl;
     exit(1);
   }
 }
@@ -271,7 +271,7 @@ Interchunk::popString()
   }
   else
   {
-    cout << "tried to pop wstring but mode is " << ret.mode << endl;
+    wcerr << "tried to pop wstring but mode is " << ret.mode << endl;
     exit(1);
   }
 }
@@ -286,7 +286,7 @@ Interchunk::popChunk()
   }
   else
   {
-    cout << "tried to pop Chunk but mode is " << ret.mode << endl;
+    wcerr << "tried to pop Chunk but mode is " << ret.mode << endl;
     exit(1);
   }
 }
@@ -301,7 +301,7 @@ Interchunk::popClip()
   }
   else
   {
-    cout << "tried to pop clip but mode is " << ret.mode << endl;
+    wcerr << "tried to pop clip but mode is " << ret.mode << endl;
     exit(1);
   }
 }
@@ -309,7 +309,6 @@ Interchunk::popClip()
 void
 Interchunk::applyRule(wstring rule)
 {
-  //cout << "in applyRule() with input of " << currentInput.size() << " elements" << endl;
   bool in_let_setup = false;
   for(int i = 0; i < rule.size(); i++)
   {
@@ -381,14 +380,14 @@ Interchunk::applyRule(wstring rule)
         }
         else
         {
-          cout << "not sure how to do equality on mode " << _a.mode << endl;
+          wcerr << "not sure how to do equality on mode " << _a.mode << endl;
           exit(1);
         }
         StackElement _b = popStack();
         wstring b;
         if(_b.mode == 2)
         {
-          b = _a.s;
+          b = _b.s;
         }
         else if(_b.mode == 3)
         {
@@ -396,7 +395,7 @@ Interchunk::applyRule(wstring rule)
         }
         else
         {
-          cout << "not sure how to do equality on mode " << _b.mode << endl;
+          wcerr << "not sure how to do equality on mode " << _b.mode << endl;
           exit(1);
         }
         //wstring a = popStack().s;
@@ -617,7 +616,11 @@ Interchunk::applyRule(wstring rule)
         break;
       case L'A': // copy-case
         //cout << "copy case" << endl;
-        pushStack(copycase(popString(), popString()));
+      {
+        wstring src = popString();
+        wstring dest = popString();
+        pushStack(copycase(src, dest));
+      }
         break;
       case L'+': // concat
         //cout << "concat" << endl;
@@ -688,7 +691,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       default:
-        cout << "unknown instruction: " << rule[i] << endl;
+        wcerr << "unknown instruction: " << rule[i] << endl;
         exit(1);
     }
   }
@@ -920,7 +923,7 @@ Interchunk::interchunk_do_pass()
       break;
     }
   }
-  if(layer == -1)
+  if(layer <= -1)
   {
     shouldshift = true;
     if(furtherInput)
@@ -967,6 +970,7 @@ Interchunk::interchunk_do_pass()
   }
   if(rule != -1)
   {
+    //wcerr << endl << "applying rule " << rule+1 << endl;
     currentInput.clear();
     currentOutput.clear();
     currentInput.assign(parseTower[layer].begin(), parseTower[layer].begin()+len);

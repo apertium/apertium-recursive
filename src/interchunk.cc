@@ -316,18 +316,18 @@ Interchunk::applyRule(wstring rule)
     {
       case L's': // string
       {
-        //cout << "string" << endl;
+        if(printingSteps) { wcerr << "string" << endl; }
         int ct = rule[++i];
         pushStack(rule.substr(i+1, ct));
         i += ct;
       }
         break;
       case L'j': // jump
-        //cout << "jump" << endl;
+        if(printingSteps) { wcerr << "jump" << endl; }
         i += rule[++i];
         break;
       case L'?': // test
-        //cout << "test" << endl;
+        if(printingSteps) { wcerr << "test" << endl; }
         if(popBool())
         {
           i++;
@@ -338,7 +338,7 @@ Interchunk::applyRule(wstring rule)
         }
         break;
       case L'&': // and
-        //cout << "and" << endl;
+        if(printingSteps) { wcerr << "and" << endl; }
       {
         int count = rule[++i];
         bool val = true;
@@ -350,7 +350,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'|': // or
-        //cout << "or" << endl;
+        if(printingSteps) { wcerr << "or" << endl; }
       {
         int count = rule[++i];
         bool val = false;
@@ -362,11 +362,11 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'!': // not
-        //cout << "not" << endl;
+        if(printingSteps) { wcerr << "not" << endl; }
         theStack.top().b = !theStack.top().b;
         break;
       case L'=': // equal
-        //cout << "equal" << endl;
+        if(printingSteps) { wcerr << "equal" << endl; }
       {
         StackElement _a = popStack();
         wstring a;
@@ -410,7 +410,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'(': // begins-with
-        //cout << "begins-with" << endl;
+        if(printingSteps) { wcerr << "begins-with" << endl; }
       {
         wstring substr = popString();
         wstring str = popString();
@@ -426,7 +426,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L')': // ends-with
-        //cout << "ends-with" << endl;
+        if(printingSteps) { wcerr << "ends-with" << endl; }
       {
         wstring substr = popString();
         wstring str = popString();
@@ -442,7 +442,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'[': // begins-with-list
-        //cout << "begins-with-list" << endl;
+        if(printingSteps) { wcerr << "begins-with-list" << endl; }
       {
         wstring list = popString();
         wstring needle = popString();
@@ -474,7 +474,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L']': // ends-with-list
-        //cout << "ends-with-list" << endl;
+        if(printingSteps) { wcerr << "ends-with-list" << endl; }
       {
         wstring list = popString();
         wstring needle = popString();
@@ -506,7 +506,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'c': // contains-substring
-        //cout << "contains-substring" << endl;
+        if(printingSteps) { wcerr << "contains-substring" << endl; }
       {
         wstring needle = popString();
         wstring haystack = popString();
@@ -520,7 +520,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'n': // in
-        //cout << "in" << endl;
+        if(printingSteps) { wcerr << "in" << endl; }
       {
         wstring list = popString();
         wstring str = popString();
@@ -539,11 +539,11 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'>': // let (begin)
-        //cout << "let" << endl;
+        if(printingSteps) { wcerr << "let" << endl; }
         in_let_setup = true;
         break;
       case L'*': // let (clip, end)
-        //cout << "let clip" << endl;
+        if(printingSteps) { wcerr << "let clip" << endl; }
       {
         wstring val = popString();
         pair<int, wstring> clip = popClip();
@@ -557,7 +557,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'4': // let (var, end)
-        //cout << "let var" << endl;
+        if(printingSteps) { wcerr << "let var" << endl; }
       {
         wstring val = popString();
         wstring var = popString();
@@ -570,12 +570,10 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'<': // out
-        //cout << "out" << endl;
+        if(printingSteps) { wcerr << "out" << endl; }
       {
         int count = rule[++i];
-        //cout << "currentOutput size was " << currentOutput.size() << endl;
         currentOutput.resize(currentOutput.size()+count);
-        //cout << "currentOutput size is now " << currentOutput.size() << endl;
         for(int j = 1; j <= count; j++)
         {
           currentOutput[currentOutput.size()-j] = popChunk();
@@ -583,7 +581,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'.': // clip
-        //cout << "clip" << endl;
+        if(printingSteps) { wcerr << "clip" << endl; }
       {
         wstring part = popString();
         int pos = rule[++i];
@@ -600,7 +598,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'$': // var
-        //cout << "var" << endl;
+        if(printingSteps) { wcerr << "var" << endl; }
         if(in_let_setup)
         {
           in_let_setup = false;
@@ -611,11 +609,11 @@ Interchunk::applyRule(wstring rule)
         }
         break;
       case L'G': // get-case-from, case-of
-        //cout << "get-case-from or case-of" << endl;
+        if(printingSteps) { wcerr << "get-case-from or case-of" << endl; }
         pushStack(caseOf(popString()));
         break;
       case L'A': // copy-case
-        //cout << "copy case" << endl;
+        if(printingSteps) { wcerr << "copy case" << endl; }
       {
         wstring src = popString();
         wstring dest = popString();
@@ -623,7 +621,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'+': // concat
-        //cout << "concat" << endl;
+        if(printingSteps) { wcerr << "concat" << endl; }
       {
         int count = rule[++i];
         wstring result;
@@ -635,7 +633,7 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'{': // chunk
-        //cout << "chunk" << endl;
+        if(printingSteps) { wcerr << "chunk" << endl; }
       {
         Chunk* ch = new Chunk();
         int count = rule[++i];
@@ -676,15 +674,15 @@ Interchunk::applyRule(wstring rule)
       }
         break;
       case L'p': // pseudolemma
-        //cout << "pseudolemma" << endl;
+        if(printingSteps) { wcerr << "pseudolemma" << endl; }
         pushStack(popChunk()->surface);
         break;
       case L' ': // b
-        //cout << "b" << endl;
+        if(printingSteps) { wcerr << "b" << endl; }
         pushStack(new Chunk(wstring(L" ")));
         break;
       case L'_': // b
-        //cout << "b pos" << endl;
+        if(printingSteps) { wcerr << "b pos" << endl; }
       {
         int loc = 2*(rule[++i]-1) + 1;
         pushStack(currentInput[loc]);
@@ -970,7 +968,10 @@ Interchunk::interchunk_do_pass()
   }
   if(rule != -1)
   {
-    //wcerr << endl << "applying rule " << rule+1 << endl;
+    if(printingRules)
+    {
+      wcerr << endl << "applying rule " << rule+1 << endl;
+    }
     currentInput.clear();
     currentOutput.clear();
     currentInput.assign(parseTower[layer].begin(), parseTower[layer].begin()+len);

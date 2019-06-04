@@ -289,6 +289,8 @@ private:
   bool null_flush;
   bool internal_null_flush;
   bool trace;
+  bool printingSteps;
+  bool printingRules;
 
   void destroy();
   void readData(FILE *input);
@@ -358,6 +360,14 @@ public:
   bool getNullFlush(void);
   void setNullFlush(bool null_flush);
   void setTrace(bool trace);
+  void printSteps(bool val)
+  {
+    printingSteps = val;
+  }
+  void printRules(bool val)
+  {
+    printingRules = val;
+  }
 };
 
 #endif

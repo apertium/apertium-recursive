@@ -119,7 +119,7 @@ def tostr(blob):
         maxlen = max(maxlen, len(kids))
     givecount = {'section-def-cats':'C', 'section-def-attrs': 'A', 'def-attr': 'a', 'section-def-vars':'V', 'section-def-lists':'L', 'section-rules':'R', 'pattern':'P'}
     namequote = {'attr-item': 'tags', 'list-item':'v'}
-    logic = {'not':'!', 'equal':'=', 'begins-with':'(', 'ends-with':')', 'begins-with-list':'[', 'ends-with-list':']', 'contains-substring':'c', 'in':'n', 'test':'?', 'get-case-from':'G'}
+    logic = {'not':'!', 'equal':'=', 'begins-with':'(', 'ends-with':')', 'begins-with-list':'[', 'ends-with-list':']', 'contains-substring':'c', 'in':'n', 'test':'?'}
     stack = {'and':'&', 'or':'|', 'concat':'+', 'out':'<', 'chunk':'{'}
     def litstr(s):
         nonlocal ret
@@ -157,7 +157,7 @@ def tostr(blob):
         ret = sint(catNames.index(blob.attrib['n']))
     elif blob.tag in logic:
         cs = ''
-        if blob.tag not in ['not', 'test', 'get-case-from']:
+        if blob.tag not in ['not', 'test']:
             if 'caseless' in blob.attrib and blob.attrib['caseless'] == 'yes':
                 cs = '#'
         ret = ''.join(kids) + logic[blob.tag] + cs
@@ -220,6 +220,10 @@ def tostr(blob):
     elif blob.tag == 'case-of':
         litstr(blob.attrib['part'])
         ret += '.' + sint(''.join([c for c in blob.attrib['pos'] if c.isdigit()])) + 'G'
+    elif blob.tag == 'get-case-from':
+        ret = kids[0]
+        litstr("lem")
+        ret += '.' + sint(''.join([c for c in blob.attrib['pos'] if c.isdigit()])) + 'A'
     if READABLE:
         ret += '\n'
     return ret

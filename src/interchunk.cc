@@ -309,7 +309,7 @@ Interchunk::popClip()
 void
 Interchunk::applyRule(wstring rule)
 {
-  cout << "in applyRule() with input of " << currentInput.size() << " elements" << endl;
+  //cout << "in applyRule() with input of " << currentInput.size() << " elements" << endl;
   bool in_let_setup = false;
   for(int i = 0; i < rule.size(); i++)
   {
@@ -574,9 +574,9 @@ Interchunk::applyRule(wstring rule)
         //cout << "out" << endl;
       {
         int count = rule[++i];
-        cout << "currentOutput size was " << currentOutput.size() << endl;
+        //cout << "currentOutput size was " << currentOutput.size() << endl;
         currentOutput.resize(currentOutput.size()+count);
-        cout << "currentOutput size is now " << currentOutput.size() << endl;
+        //cout << "currentOutput size is now " << currentOutput.size() << endl;
         for(int j = 1; j <= count; j++)
         {
           currentOutput[currentOutput.size()-j] = popChunk();
@@ -615,6 +615,10 @@ Interchunk::applyRule(wstring rule)
         //cout << "get-case-from or case-of" << endl;
         pushStack(caseOf(popString()));
         break;
+      case L'A': // copy-case
+        //cout << "copy case" << endl;
+        pushStack(copycase(popString(), popString()));
+        break;
       case L'+': // concat
         //cout << "concat" << endl;
       {
@@ -649,7 +653,20 @@ Interchunk::applyRule(wstring rule)
         {
           for(int j = 0; j < count; j++)
           {
-            ch->surface = popString() + ch->surface;
+            StackElement c = popStack();
+            if(c.mode == 2)
+            {
+              ch->surface = c.s + ch->surface;
+            }
+            else if(c.mode == 3)
+            {
+              ch->surface = c.c->surface + ch->surface;
+            }
+            else
+            {
+              wcerr << L"Unable to add to chunk StackElement with mode " << c.mode << endl;
+              exit(1);
+            }
           }
         }
         pushStack(ch);
@@ -672,6 +689,7 @@ Interchunk::applyRule(wstring rule)
         break;
       default:
         cout << "unknown instruction: " << rule[i] << endl;
+        exit(1);
     }
   }
 }
@@ -949,17 +967,14 @@ Interchunk::interchunk_do_pass()
   }
   if(rule != -1)
   {
-    cout << "applying rule " << rule+1 << endl;
     currentInput.clear();
     currentOutput.clear();
     currentInput.assign(parseTower[layer].begin(), parseTower[layer].begin()+len);
     parseTower[layer].erase(parseTower[layer].begin(), parseTower[layer].begin()+len);
     applyRule(rule_map[rule]);
     parseTower[layer+1].insert(parseTower[layer+1].end(), currentOutput.begin(), currentOutput.end());
-    cout << " " << currentOutput.size() << " items in output" << endl;
     currentInput.clear();
     currentOutput.clear();
-    cout << " done applying rule " << rule+1 << endl;
   }
   else if(shouldshift || parseTower[layer].size() >= minLayer)
   {
@@ -984,7 +999,7 @@ Interchunk::interchunk_linear(FILE *in, FILE *out)
     for(int i = 0; i < parseTower[1].size(); i++)
     {
       parseTower[1][i]->output(out);
-      delete parseTower[1][i];
+      //delete parseTower[1][i];
     }
     parseTower[1].clear();
   }

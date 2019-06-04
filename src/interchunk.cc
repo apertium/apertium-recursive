@@ -91,7 +91,7 @@ Interchunk::read(string const &transferfile, string const &datafile)
 {
   // rules
   FILE *in = fopen(transferfile.c_str(), "rb");
-  longestPattern = fgetwc(in);
+  longestPattern = 2*fgetwc(in)-1;
   int count = fgetwc(in);
   int len;
   wstring cur;
@@ -231,9 +231,85 @@ Interchunk::popStack()
   return ret;
 }
 
+bool
+Interchunk::popBool()
+{
+  StackElement ret = popStack();
+  if(ret.mode == 0)
+  {
+    return ret.b;
+  }
+  else
+  {
+    cout << "tried to pop bool but mode is " << ret.mode << endl;
+    exit(1);
+  }
+}
+
+int
+Interchunk::popInt()
+{
+  StackElement ret = popStack();
+  if(ret.mode == 1)
+  {
+    return ret.i;
+  }
+  else
+  {
+    cout << "tried to pop int but mode is " << ret.mode << endl;
+    exit(1);
+  }
+}
+
+wstring
+Interchunk::popString()
+{
+  StackElement ret = popStack();
+  if(ret.mode == 2)
+  {
+    return ret.s;
+  }
+  else
+  {
+    cout << "tried to pop wstring but mode is " << ret.mode << endl;
+    exit(1);
+  }
+}
+
+Chunk*
+Interchunk::popChunk()
+{
+  StackElement ret = popStack();
+  if(ret.mode == 3)
+  {
+    return ret.c;
+  }
+  else
+  {
+    cout << "tried to pop Chunk but mode is " << ret.mode << endl;
+    exit(1);
+  }
+}
+
+pair<int, wstring>
+Interchunk::popClip()
+{
+  StackElement ret = popStack();
+  if(ret.mode == 4)
+  {
+    return ret.clip;
+  }
+  else
+  {
+    cout << "tried to pop clip but mode is " << ret.mode << endl;
+    exit(1);
+  }
+}
+
 void
 Interchunk::applyRule(wstring rule)
 {
+  cout << "in applyRule() with input of " << currentInput.size() << " elements" << endl;
   bool in_let_setup = false;
   for(int i = 0; i < rule.size(); i++)
   {
@@ -253,7 +329,7 @@ Interchunk::applyRule(wstring rule)
         break;
       case L'?': // test
         //cout << "test" << endl;
-        if(popStack().b)
+        if(popBool())
         {
           i++;
         }
@@ -269,7 +345,7 @@ Interchunk::applyRule(wstring rule)
         bool val = true;
         for(int j = 0; j < count; j++)
         {
-          val = popStack().b && val;
+          val = popBool() && val;
         }
         pushStack(val);
       }
@@ -281,7 +357,7 @@ Interchunk::applyRule(wstring rule)
         bool val = false;
         for(int j = 0; j < count; j++)
         {
-          val = popStack().b || val;
+          val = popBool() || val;
         }
         pushStack(val);
       }
@@ -293,8 +369,38 @@ Interchunk::applyRule(wstring rule)
       case L'=': // equal
         //cout << "equal" << endl;
       {
-        wstring a = popStack().s;
-        wstring b = popStack().s;
+        StackElement _a = popStack();
+        wstring a;
+        if(_a.mode == 2)
+        {
+          a = _a.s;
+        }
+        else if(_a.mode == 3)
+        {
+          a = _a.c->surface;
+        }
+        else
+        {
+          cout << "not sure how to do equality on mode " << _a.mode << endl;
+          exit(1);
+        }
+        StackElement _b = popStack();
+        wstring b;
+        if(_b.mode == 2)
+        {
+          b = _a.s;
+        }
+        else if(_b.mode == 3)
+        {
+          b = _b.c->surface;
+        }
+        else
+        {
+          cout << "not sure how to do equality on mode " << _b.mode << endl;
+          exit(1);
+        }
+        //wstring a = popStack().s;
+        //wstring b = popStack().s;
         if(rule[i+1] == '#')
         {
           i++;
@@ -307,8 +413,8 @@ Interchunk::applyRule(wstring rule)
       case L'(': // begins-with
         //cout << "begins-with" << endl;
       {
-        wstring substr = popStack().s;
-        wstring str = popStack().s;
+        wstring substr = popString();
+        wstring str = popString();
         if(rule[i+1] == '#')
         {
           i++;
@@ -323,8 +429,8 @@ Interchunk::applyRule(wstring rule)
       case L')': // ends-with
         //cout << "ends-with" << endl;
       {
-        wstring substr = popStack().s;
-        wstring str = popStack().s;
+        wstring substr = popString();
+        wstring str = popString();
         if(rule[i+1] == '#')
         {
           i++;
@@ -339,8 +445,8 @@ Interchunk::applyRule(wstring rule)
       case L'[': // begins-with-list
         //cout << "begins-with-list" << endl;
       {
-        wstring list = popStack().s;
-        wstring needle = popStack().s;
+        wstring list = popString();
+        wstring needle = popString();
         set<wstring, Ltstr>::iterator it, limit;
 
         if(rule[i+1] == '#')
@@ -371,8 +477,8 @@ Interchunk::applyRule(wstring rule)
       case L']': // ends-with-list
         //cout << "ends-with-list" << endl;
       {
-        wstring list = popStack().s;
-        wstring needle = popStack().s;
+        wstring list = popString();
+        wstring needle = popString();
         set<wstring, Ltstr>::iterator it, limit;
 
         if(rule[i+1] == '#')
@@ -403,8 +509,8 @@ Interchunk::applyRule(wstring rule)
       case L'c': // contains-substring
         //cout << "contains-substring" << endl;
       {
-        wstring needle = popStack().s;
-        wstring haystack = popStack().s;
+        wstring needle = popString();
+        wstring haystack = popString();
         if(rule[i+1] == '#')
         {
           i++;
@@ -417,8 +523,8 @@ Interchunk::applyRule(wstring rule)
       case L'n': // in
         //cout << "in" << endl;
       {
-        wstring list = popStack().s;
-        wstring str = popStack().s;
+        wstring list = popString();
+        wstring str = popString();
         if(rule[i+1] == '#')
         {
           i++;
@@ -440,8 +546,8 @@ Interchunk::applyRule(wstring rule)
       case L'*': // let (clip, end)
         //cout << "let clip" << endl;
       {
-        wstring val = popStack().s;
-        pair<int, wstring> clip = popStack().clip;
+        wstring val = popString();
+        pair<int, wstring> clip = popClip();
         if(i+1 < rule.size() && rule[i+1] == L'#')
         {
           i++;
@@ -454,8 +560,8 @@ Interchunk::applyRule(wstring rule)
       case L'4': // let (var, end)
         //cout << "let var" << endl;
       {
-        wstring val = popStack().s;
-        wstring var = popStack().s;
+        wstring val = popString();
+        wstring var = popString();
         if(i+1 < rule.size() && rule[i+1] == L'#')
         {
           i++;
@@ -468,17 +574,19 @@ Interchunk::applyRule(wstring rule)
         //cout << "out" << endl;
       {
         int count = rule[++i];
+        cout << "currentOutput size was " << currentOutput.size() << endl;
         currentOutput.resize(currentOutput.size()+count);
+        cout << "currentOutput size is now " << currentOutput.size() << endl;
         for(int j = 1; j <= count; j++)
         {
-          currentOutput[currentOutput.size()-j] = popStack().c;
+          currentOutput[currentOutput.size()-j] = popChunk();
         }
       }
         break;
       case L'.': // clip
         //cout << "clip" << endl;
       {
-        wstring part = popStack().s;
+        wstring part = popString();
         int pos = rule[++i];
         if(in_let_setup)
         {
@@ -500,12 +608,12 @@ Interchunk::applyRule(wstring rule)
         }
         else
         {
-          pushStack(variables[popStack().s]);
+          pushStack(variables[popString()]);
         }
         break;
       case L'G': // get-case-from, case-of
         //cout << "get-case-from or case-of" << endl;
-        pushStack(caseOf(popStack().s));
+        pushStack(caseOf(popString()));
         break;
       case L'+': // concat
         //cout << "concat" << endl;
@@ -514,7 +622,7 @@ Interchunk::applyRule(wstring rule)
         wstring result;
         for(int j = 0; j < count; j++)
         {
-          result.append(popStack().s);
+          result.append(popString());
         }
         pushStack(result);
       }
@@ -529,7 +637,7 @@ Interchunk::applyRule(wstring rule)
           vector<Chunk*> temp;
           for(int j = 0; j < count; j++)
           {
-            temp.push_back(popStack().c);
+            temp.push_back(popChunk());
           }
           for(int j = 0; j < count; j++)
           {
@@ -541,7 +649,7 @@ Interchunk::applyRule(wstring rule)
         {
           for(int j = 0; j < count; j++)
           {
-            ch->surface = popStack().s + ch->surface;
+            ch->surface = popString() + ch->surface;
           }
         }
         pushStack(ch);
@@ -549,7 +657,7 @@ Interchunk::applyRule(wstring rule)
         break;
       case L'p': // pseudolemma
         //cout << "pseudolemma" << endl;
-        pushStack(popStack().c->surface);
+        pushStack(popChunk()->surface);
         break;
       case L' ': // b
         //cout << "b" << endl;
@@ -566,7 +674,6 @@ Interchunk::applyRule(wstring rule)
         cout << "unknown instruction: " << rule[i] << endl;
     }
   }
-  cout << "stack size is now: " << theStack.size() << endl;
 }
 
 Chunk *
@@ -764,12 +871,32 @@ Interchunk::interchunk(FILE *in, FILE *out)
 void
 Interchunk::interchunk_do_pass()
 {
-  cout << "do pass" << endl;
+  int minLayer = longestPattern;
+  if(!furtherInput)
+  {
+    minLayer = 0;
+    for(size_t i = 0; i < parseTower.size(); i++)
+    {
+      if(parseTower[i].size() > minLayer)
+      {
+        minLayer = parseTower[i].size();
+      }
+    }
+    if(minLayer > longestPattern)
+    {
+      minLayer = longestPattern;
+    }
+    if(minLayer == 0)
+    {
+      allDone = true;
+      return;
+    }
+  }
   int layer = -1;
   bool shouldshift = false;
-  for(int l = parseTower.size()-1; l >= 0; l--)
+  for(size_t l = parseTower.size()-1; l >= 0; l--)
   {
-    if(parseTower[l].size() >= 2*longestPattern - 1)
+    if(parseTower[l].size() >= minLayer)
     {
       layer = l;
       break;
@@ -782,7 +909,7 @@ Interchunk::interchunk_do_pass()
     {
       return;
     }
-    for(int l = 0; l < parseTower.size(); l++)
+    for(size_t l = 0; l < parseTower.size(); l++)
     {
       if(parseTower[l].size() > 0)
       {
@@ -800,32 +927,14 @@ Interchunk::interchunk_do_pass()
   {
     parseTower.push_back(vector<Chunk*>());
   }
-  cout << " layer is: " << layer << endl;
   ms.init(me->getInitial());
   int rule = -1;
   int len = 0;
-  for(int i = 0; i < parseTower[layer].size()+1 && i < 2*longestPattern+1; i++)
+  for(size_t i = 0; i < parseTower[layer].size(); i++)
   {
-    if(ms.size() == 0 || i == parseTower[layer].size()-1)
+    if(ms.size() == 0)
     {
-      if(rule != -1)
-      {
-        //cout << "applying rule " << rule+1 << endl;
-        currentInput.clear();
-        currentOutput.clear();
-        currentInput.assign(parseTower[layer].begin(), parseTower[layer].begin()+len);
-        parseTower[layer].erase(parseTower[layer].begin(), parseTower[layer].begin()+len);
-        applyRule(rule_map[rule]);
-        parseTower[layer+1].insert(parseTower[layer+1].end(), currentOutput.begin(), currentOutput.end());
-        currentInput.clear();
-        currentOutput.clear();
-      }
-      else if(shouldshift || parseTower[layer].size() >= 2*(longestPattern)-1)
-      {
-        parseTower[layer+1].push_back(parseTower[layer][0]);
-        parseTower[layer].erase(parseTower[layer].begin());
-      }
-      return;
+      break;
     }
     if(i != parseTower[layer].size())
     {
@@ -835,8 +944,27 @@ Interchunk::interchunk_do_pass()
     if(val != -1)
     {
       rule = val-1;
-      len = i;
+      len = i+1;
     }
+  }
+  if(rule != -1)
+  {
+    cout << "applying rule " << rule+1 << endl;
+    currentInput.clear();
+    currentOutput.clear();
+    currentInput.assign(parseTower[layer].begin(), parseTower[layer].begin()+len);
+    parseTower[layer].erase(parseTower[layer].begin(), parseTower[layer].begin()+len);
+    applyRule(rule_map[rule]);
+    parseTower[layer+1].insert(parseTower[layer+1].end(), currentOutput.begin(), currentOutput.end());
+    cout << " " << currentOutput.size() << " items in output" << endl;
+    currentInput.clear();
+    currentOutput.clear();
+    cout << " done applying rule " << rule+1 << endl;
+  }
+  else if(shouldshift || parseTower[layer].size() >= minLayer)
+  {
+    parseTower[layer+1].push_back(parseTower[layer][0]);
+    parseTower[layer].erase(parseTower[layer].begin());
   }
 }
 

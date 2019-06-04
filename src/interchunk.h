@@ -33,22 +33,26 @@ public:
   {
     //surface = L"";
     //chunkData = L"";
+    cout << "creating chunk with surface size " << surface.size() << endl;
   }
   Chunk(wstring blankContent)
   {
     surface = blankContent;
     //chunkData = L"";
+    cout << "creating chunk with surface size " << surface.size() << endl;
   }
   Chunk(wstring chunkTags, wstring chunkContent)
   {
     surface = chunkTags;
     chunkData = chunkContent;
+    cout << "creating chunk with surface size " << surface.size() << endl;
   }
   Chunk(wstring chunkTags, vector<Chunk*> children)
   {
     surface = chunkTags;
     //chunkData = L"";
     contents = children;
+    cout << "creating chunk with surface size " << surface.size() << endl;
   }
   ~Chunk()
   {
@@ -118,7 +122,19 @@ public:
         }
         else if(surface[i] == L'{')
         {
-          int j = i;
+          result = result.substr(0, result.size()-1);
+          i++;
+          cout << "adding to chunkData surface size is " << surface.size() << endl;
+          for(; i < surface.size() && surface[i] != L'}'; i++)
+          {
+            /*if(surface[i] == 0)
+            {
+              continue;
+            }
+            cout << surface[i] << endl;*/
+            chunkData += wchar_t(surface[i]);
+          }
+/*          int j = i;
           while(j < surface.size() && surface[j] != L'}')
           {
             if(surface[j] == L'\\')
@@ -128,8 +144,16 @@ public:
             j++;
           }
           result = result.substr(0, result.size()-1);
-          chunkData = surface.substr(i+1, j-i-1);
-          i = j;
+          if(j >= surface.size()-1)
+          {
+            chunkData = surface.substr(i);
+            break;
+          }
+          else
+          {
+            chunkData = surface.substr(i+1, j-i-1);
+          }
+          i = j;*/
         }
       }
       else if(surface[i] == L'>')
@@ -322,6 +346,11 @@ private:
   void interchunk_recursive(FILE *in, FILE *out);
   
   StackElement popStack();
+  bool popBool();
+  int popInt();
+  wstring popString();
+  Chunk* popChunk();
+  pair<int, wstring> popClip();
   void pushStack(bool b)
   {
     StackElement el(b);

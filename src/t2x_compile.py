@@ -180,9 +180,10 @@ def tostr(blob):
     elif blob.tag == 'action':
         ret = ''.join(kids)
     elif blob.tag == 'choose':
+        ret = kids[-1]
         for cl in reversed(kids[:-1]):
             ret = cl + 'j' + slen(ret) + ret
-        ret += kids[-1]
+        #ret += kids[-1]
     elif blob.tag == 'when':
         ret = ''.join(kids[1:])
         ret = kids[0] + slen(ret) + ret

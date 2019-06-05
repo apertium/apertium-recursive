@@ -41,20 +41,16 @@ nbr_sense_sp = sg pl ND;
 nbr_sp = sp;
 temps = cni fti ifi imp pii pis inf prs pres past pri pp ger pprs subs;
 
-NOM.number.gender -> 1: @n.$number.$gender {1(gender=$gender, number=$number)} |
-		     1: @np.$number.$gender {1(gender=$gender, number=$number)} |
-		     0: @adj @guio NOM.$number.$gender
-		        {3(gender=$gender, number=$number) _
-			 1(gender=$gender, number=$number)} |
-	   	     0: @num @guio NOM.$number.$gender
-		        {3(gender=$gender, number=pl) _
-			 1(gender=$gender, number=$number)} |
-		     0: %@np @np @np {1 _1 2 _2 3} ;
+NOM.number.gender -> 1: %n {%1} |
+		     1: %np {%1} |
+		     0: adj guio %NOM {%3 _ %1} |
+	   	     0: num guio %NOM {%3 _ %1} |
+		     0: %np np np {1 _1 2 _2 3} ;
 		     ! not completely certain about where to put this
 		     ! t1x 11515
-		     0: NOM NOM %@n ! see t1x 11564
+		     0: NOM NOM %n ! see t1x 11564
 		        {3 _1 de@pr _ 2 _2 de@pr _
-			 el@det.def.$gender.$number _ 1} |
+			 %el@det.def _ 1} |
 			 ! but see t1x 11564
 		     0: NOM %NOM {2 _1 de@pr _ 1} ;
 
@@ -63,31 +59,31 @@ weekday = sunday monday tuesday wednesday thursday friday saturday ;
 month = january february march april may june
         july august september november december ;
 
-monthdate -> 1: the@det.def.sp @num.ord of@pr $month@n
+monthdate -> 1: the@det.def.sp num.ord of@pr $month@n
                 {2 _2 3 _3 4(gender=m, number=sg)} |
                 ! "the third of March" -> "tercero de Marzo"
                 
-             3: the@det.def.sp @num.ord {2} |
+             3: the@det.def.sp num.ord {2} |
                 ! "the third" -> "tercero"
                 ! higher weighting so we don't conflict with previous line
                 
-             1: @num $month@n {1 _1 de@pr 2} ;
+             1: num $month@n {1 _1 de@pr 2} ;
                 ! "3 March" -> "3 de Marzo"
                 
 caldate -> 2: monthdate {1} |
-           1: monthdate @num {1 _1 de@pr _ 2} ;
+           1: monthdate num {1 _1 de@pr _ 2} ;
               ! "[3 March] 1999" -> "[3 de Marzo] de 1999"
               
 date -> 2: caldate {el@det.def.m.sg 1} |
            ! "[3 March 1999]" -> "el [3 de Marzo de 1999]"
            
-        1: $weekday@n caldate {el@det.def.[1.gender].[1.number_tl] _ 1 _1 2} |
+        1: $weekday@n caldate {el@det.def.[1.gender].[1.number/tl] _ 1 _1 2} |
            ! "Monday [3 March 1999]" -> "El Lunes [el 3 de Marzo de 1999]"
            
-        2: weekday {el@det.def.[1.gender].[1.number_tl] _ 1} ;
+        2: weekday {el@det.def.[1.gender].[1.number/tl] _ 1} ;
            ! "Monday" -> "el Lunes"
 
-PP -> 3: @pr @n {1 2} |
+PP -> 3: pr NP {1 _1 2} |
          ! "in soup" -> "en sopa"
          
       2: on@pr date {2} |
@@ -101,49 +97,48 @@ PP -> 3: @pr @n {1 2} |
 
 CONJ -> 1: @cnjcoo {1} | 1: @cm {1} ;
 
-AP./gender.mode/ -> 2: @adj.$mode {1(gender=$gender)} |
-                       ! "blue" -> "azul"
+AP.gender.mode -> 2: %adj {%1} |
+                     ! "blue" -> "azul"
                        
-                    1: @adv @adj.$mode {1 _1 2(gender=$gender)} |
-		    0: @adv @guio @adj.$mode {1 _ 3(gender=$gender)} |
-                    1: @preadv @adj.$mode {1 _1 2(gender=$gender)} |
-                       ! "very green" -> "muy verde"
+                  1: adv %adj {1 _1 %2} |
+		  0: adv guio %adj {1 _ %3} |
+                  1: preadv %adj {1 _1 %2} |
+                     ! "very green" -> "muy verde"
 
-                    1: AP.$mode CONJ AP.$mode
-                       {1(gender=$gender) _1 2 _2 3(gender=$gender)} |
-                       ! "[totally green] and [very tall] ->
-                       ! "[totalmente verde] y [muy alto]
+                  1: AP.$mode CONJ AP.$mode
+                     {%1 _1 2 _2 %3} |
+                     ! "[totally green] and [very tall] ->
+                     ! "[totalmente verde] y [muy alto]
                        
-                    1: @apos AP.$mode @apos {1 _1 2(gender=$gender) _2 3} ;
-                       ! " 'blue' " -> " 'azul' "
+                  1: @apos %AP @apos {1 _1 %2 _2 3} ;
+                     ! " 'blue' " -> " 'azul' "
 
 tractaments =[] Mr\. Mrs\. Ms\. Dr\.;
-NA.number./gender -> 2: NOM.$number {1(number=$number, gender=$gender)} |
-                        ! gender probably hasn't changed, but just in case
+NA.number.gender -> 2: %NOM {%1} |
+                       ! gender probably hasn't changed, but just in case
                         
-                     1: AP NA.$number
-                        {2 _1 1(number=$number, gender=2.gender)} |
-                        ! "green socks" -> "calcetines verdes"
+                    1: AP %NA
+                       {2 _1 %1} |
+                       ! "green socks" -> "calcetines verdes"
                         
-                     2: @num NA.$number {1 _1 2(gender=$gender)} |
-                        ! "3 elephants" -> "tres elephantes"
+                    2: num %NA {1 _1 2} |
+                       ! "3 elephants" -> "tres elephantes"
                         
-                     2: @apos NP.$number @apos {1 _1 2(gender=$gender) _2 3} |
-                        ! " 'sock' " -> " 'calcetine' "
+                    2: apos %NP apos {1 _1 2 _2 3} |
+                       ! " 'sock' " -> " 'calcetine' "
 
-		     0: %NA.f @cnjcoo NA.f [$gender=f]
-		        {1 _1 2 _2 3} |
-		     0: %NA @cnjcoo NA {1 _1 2 _2 3} |
+		    0: %NA.f cnjcoo NA.f [$gender=f]
+		       {1 _1 2 _2 3} |
+		    0: %NA cnjcoo NA {1 _1 2 _2 3} |
 
-		     0: NOM NOM.$number.$gender
-		     	{1 _1 2} (1.nom in [np.ant np.cog] |
-			      	  2.nom in [np.ant np.cog] |
-				  1.lem/sl in tractaments |
-				  2.lem/sl in tractaments |
-				  2.lem/sl in weekday)
-		        {2 _1 de@pr _ 1} |
-		     0: NOM NOM NOM.$number.$gender
-		        {3 _2 2 _1 1};
+		    0: NOM NOM.$number.$gender
+		       {1 _1 2} (1.nom in [np.ant np.cog] |
+		       	      	 2.nom in [np.ant np.cog] |
+				 1.lem/sl in tractaments |
+				 2.lem/sl in tractaments |
+				 2.lem/sl in weekday)
+		       {2 _1 de@pr _ 1} |
+		    0: NOM NOM %NOM {3 _2 2 _1 1};
 
 yearmonth = year month;
 one = 1 one;
@@ -151,40 +146,32 @@ under20 = 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
 	  one two three four five six seven eight nine ten
 	  eleven twelve thirteen fourteen fifteen
 	  sixteen seventeen eighteen nineteen;
-AGE -> 0: %$one@num @guio $yearmonth@n @guio old@adj.sint
+AGE -> 0: %$one@num guio $yearmonth@n guio old@adj.sint
           {1 _ 3(number=sg)} |
-       0: %@num @guio $yearmonth@n @guio old@adj.sint
+       0: %num guio $yearmonth@n guio old@adj.sint
        	  {1 _ 3(number=pl)} |
        0: %$one@num %$yearmonth@n old@adj.sint
        	  {1 _1 2(number=sg)} |
-       0: %@num %$yearmonth@n old@adj.sint
+       0: %num %$yearmonth@n old@adj.sint
        	  {1 _1 2(number=pl)} ;
 
-NP.number./gender -> 1: all@predet NP.$gender(number=pl)
-                        {1(number=pl, gender=$gender) _
-                         el@det.def.$gender.pl _1 2} |
-                        ! "all tables" -> "todas las mesas"
+NP.number.gender -> 1: all@predet %NP.pl.$gender/tl
+                       {%1 _ el@det.def.$gender.pl _1 2} |
+                       ! "all tables" -> "todas las mesas"
                         
-                     2: @det NP.$number.$gender
-                        {1(number=$number, gender=$gender) _1 2} |
-                        ! "the books" -> "los libros"
+                    2: det %NP {%1 _1 2} |
+                       ! "the books" -> "los libros"
                         
-                     2: NP.$number {1} |
-                        ! "book" -> "libro"
+                    2: %NA {%1} |
+                       ! "book" -> "libro"
                         
-                     1: such\ a@det.ind.sg @adj NOM.$number
-                        {un@det.ind.[3.gender].sg _1 3 _2 tan@preadv _ 2} |
-                        ! "such a green ceiling" ->
-                        ! "un techo tan verde"
-		     0: AGE %NP {2 _1 de@pr _ 1} |
-		     0: $under20@AGE {niño@n.$gender.$number _ de@pr _ 1} |
-		     0: AGE {persona@n.f.sg _ de@pr _ 1} ;
-
-! we'll probably want to add the NP/NA and % syntax back in later
-! where NP/NA gives NP all the same variables as NA
-! due to general clutteredness
-! also something like >1 in the output meaning
-! "1(x=$x, y=$y, ...)" for every node variable
+                    1: such\ a@det.ind.sg adj %NOM
+                       {un@det.ind.[3.gender].sg _1 3 _2 tan@preadv _ 2} |
+                       ! "such a green ceiling" ->
+                       ! "un techo tan verde"
+		    0: AGE %NP {2 _1 de@pr _ 1} |
+		    0: $under20@AGE {%niño@n _ de@pr _ 1} |
+		    0: AGE {persona@n.f.sg _ de@pr _ 1} ;
 
 
 ! pick up at 15066

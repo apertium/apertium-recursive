@@ -56,7 +56,7 @@ public:
   string chunkPart(ApertiumRE const &part)
   {
     string chunk = UtfConverter::toUtf8(surface);
-    string queue = '{' + UtfConverter::toUtf8(chunkData) + '}';
+    string queue = UtfConverter::toUtf8(chunkData);
     string result = part.match(chunk);
     if(result.size() == 0)
     {
@@ -124,7 +124,7 @@ public:
             j++;
           }
           result = result.substr(0, result.size()-1);
-          chunkData = surface.substr(i+1, j-i-1);
+          chunkData = surface.substr(i, j-i+1);
           i = j;
         }
       }
@@ -218,15 +218,15 @@ public:
       if(out == NULL)
       {
         cout << "^" << UtfConverter::toUtf8(surface);
-        cout << "{" << UtfConverter::toUtf8(chunkData) << "}$";
+        cout << UtfConverter::toUtf8(chunkData) << "$";
       }
       else
       {
         fputc_unlocked('^', out);
         fputs_unlocked(UtfConverter::toUtf8(surface).c_str(), out);
-        fputc_unlocked('{', out);
+        //fputc_unlocked('{', out);
         fputs_unlocked(UtfConverter::toUtf8(chunkData).c_str(), out);
-        fputc_unlocked('}', out);
+        //fputc_unlocked('}', out);
         fputc_unlocked('$', out);
       }
     }

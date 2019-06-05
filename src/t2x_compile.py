@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import xml.etree.ElementTree as xml
-import sys
+import sys, re
 
 listNames = []
 attrNames = []
@@ -11,6 +11,12 @@ macros = {}
 maxlen = 0
 
 READABLE = False
+
+def str_repl(s, reps):
+    # from https://gist.github.com/carlsmith/b2e6ba538ca6f58689b4c18f46fef11c
+    subs = sorted(reps, key=len, reverse=True)
+    reg = re.compile('|'.join(map(re.escape, subs)))
+    return reg.sub(lambda m: reps[m.group(0)], s)
 
 def sint(num):
     if isinstance(num, str):
@@ -213,8 +219,11 @@ def tostr(blob):
         ret = blob.attrib['pos']
     elif blob.tag == 'call-macro':
         ret = macros[blob.attrib['n']]
+        rep = {}
         for i,n in enumerate(kids):
-            ret = ret.replace('%s.'%sint(i+1), '%s.'%sint(''.join([c for c in n if c.isdigit()])))
+            rep['.%s'%sint(i+1)] = '.%s'%sint(''.join([c for c in n if c.isdigit()]))
+            rep['_%s'%sint(i+1)] = '_%s'%sint(''.join([c for c in n if c.isdigit()]))
+        ret = str_repl(ret, rep)
     elif blob.tag == 'list':
         litstr(blob.attrib['n'])
     elif blob.tag == 'clip':

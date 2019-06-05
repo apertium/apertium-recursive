@@ -320,6 +320,7 @@ Interchunk::applyRule(wstring rule)
         int ct = rule[++i];
         pushStack(rule.substr(i+1, ct));
         i += ct;
+        if(printingSteps) { wcerr << " -> " << theStack.top().s << endl; }
       }
         break;
       case L'j': // jump
@@ -330,6 +331,7 @@ Interchunk::applyRule(wstring rule)
         if(printingSteps) { wcerr << "test" << endl; }
         if(popBool())
         {
+          if(printingSteps) { wcerr << " -> passed" << endl; }
           i++;
         }
         else
@@ -407,6 +409,7 @@ Interchunk::applyRule(wstring rule)
           b = StringUtils::tolower(b);
         }
         pushStack(a == b);
+        if(printingSteps) { wcerr << " -> " << theStack.top().b << endl; }
       }
         break;
       case L'(': // begins-with
@@ -594,6 +597,7 @@ Interchunk::applyRule(wstring rule)
         {
           string v = currentInput[2*(pos-1)]->chunkPart(attr_items[part]);
           pushStack(UtfConverter::fromUtf8(v));
+          if(printingSteps) { wcerr << " " << pos << " -> " << theStack.top().s << endl; }
         }
       }
         break;
@@ -738,6 +742,7 @@ Interchunk::readToken(FILE *in)
     }
     else if(inword && val == L'{')
     {
+      data += wchar_t(val);
       while(true)
       {
         int val2 = fgetwc_unlocked(in);
@@ -748,6 +753,7 @@ Interchunk::readToken(FILE *in)
         }
         else if(val2 == L'}')
         {
+          data += wchar_t(val2);
           int val3 = char(fgetwc_unlocked(in));
           ungetwc(val3, in);
 

@@ -2,3 +2,16 @@
 *.in
 *Makefile
 src/.deps/*
+*config*
+INSTALL
+aclocal.m4
+autom4te.cache/
+depcomp
+install-sh
+missing
+src/rec-inter
+src/rtx-comp
+src/rtx-comp2
+src/rtx-proc
+stamp-h1
+

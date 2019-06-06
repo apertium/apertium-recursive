@@ -3,6 +3,7 @@
 #include <rtx_parser.h>
 
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
@@ -261,8 +262,32 @@ void
 RTXReader::parsePatternElement(Rule* rule)
 {
   vector<wstring> ret = parseIdentGroup();
+  vector<wstring> pat;
   bool inVar = false;
-  for(unsigned int i = 0; i < ret.size(); i++)
+  int atidx = 0;
+  if(ret[0] == L"%")
+  {
+    rule->grab_all = rule->pattern.size();
+    atidx++;
+  }
+  if(find(ret.begin(), ret.end(), L"@") != ret.end())
+  {
+    if(ret[atidx] == L"$")
+    {
+      pat.push_back(ret[atidx] + ret[atidx+1]);
+      atidx += 3;
+    }
+    else
+    {
+      pat.push_back(ret[atidx]);
+      atidx += 2;
+    }
+  }
+  else
+  {
+    pat.push_back(L"");
+  }
+  for(unsigned int i = atidx; i < ret.size(); i++)
   {
     if(ret[i] == L"$")
     {
@@ -283,8 +308,12 @@ RTXReader::parsePatternElement(Rule* rule)
       }
       inVar = false;
     }
+    else
+    {
+      pat.push_back(ret[i]);
+    }
   }
-  rule->pattern.push_back(ret);
+  rule->pattern.push_back(pat);
   rule->patternLength++;
   eatSpaces();
 }
@@ -293,9 +322,11 @@ void
 RTXReader::parseOutputElement(Rule* rule)
 {
   vector<wstring> ret;
+  bool getall = false;
   if(source.peek() == L'%')
   {
-    ret.push_back(L"%");
+    source.get();
+    getall = true;
   }
   if(source.peek() == L'_')
   {
@@ -316,36 +347,54 @@ RTXReader::parseOutputElement(Rule* rule)
   {
     int pos;
     source >> pos;
+    ret.push_back(to_wstring(pos));
     if(pos < 1 || pos > rule->patternLength)
     {
       die(L"output index is out of bounds");
     }
+    if(getall)
+    {
+      vector<wstring> vars = rule->resultVars[rule->resultContents.size()-1];
+      for(unsigned int v = 0; v < vars.size(); v++)
+      {
+        VarUpdate* vu = new VarUpdate;
+        vu->src = 0;
+        vu->dest = pos;
+        vu->srcvar = L"<" + to_wstring(v+2) + L">";
+        vu->destvar = vars[v];
+      }
+    }
     if(source.peek() == L'(')
     {
       nextToken();
-      wstring var1;
-      wstring var2;
-      int pos2;
+      VarUpdate* vu = new VarUpdate;
+      vu->dest = pos;
       while(!source.eof() && source.peek() != L')')
       {
-        var1 = nextToken();
+        vu->destvar = nextToken();
         nextToken(L"=");
         eatSpaces();
         if(isdigit(source.peek()))
         {
-          source >> pos2;
+          source >> vu->src;
           nextToken(L".");
+        }
+        else if(source.peek() == L'$')
+        {
+          vu->src = -1;
+          nextToken(L"$");
         }
         else
         {
-          pos2 = 0;
-          nextToken(L"$");
+          vu->src = 0;
         }
-        var2 = nextToken();
-        rule->variableUpdates.push_back(
-                pair<pair<int, wstring>, pair<int, wstring>>(
-                    pair<int, wstring>(pos, var1),
-                    pair<int, wstring>(pos2, var2)));
+        vu->srcvar = nextToken();
+        if(source.peek() == L'/')
+        {
+          source.get();
+          vu->side = nextToken();
+        }
+        rule->variableUpdates.push_back(vu);
         eatSpaces();
         if(source.peek() == L',')
         {
@@ -359,7 +408,11 @@ RTXReader::parseOutputElement(Rule* rule)
       nextToken(L")");
     }
   }
-  rule->resultContents.push_back(ret);
+  else
+  {
+    die(L"unexpected character: " + source.get());
+  }
+  rule->resultContents.back().push_back(ret);
   eatSpaces();
 }
 
@@ -398,8 +451,7 @@ RTXReader::parseReduceRule(vector<wstring> output, wstring next)
     rule->patternLength = 0;
     rule->variableGrabs = vector<vector<pair<int, wstring>>>(
                             outNodes.size(), vector<pair<int, wstring>>());
-    rule->resultContents = vector<vector<wstring>>(
-                            outNodes.size(), vector<wstring>());
+    rule->grab_all = -1;
     eatSpaces();
     if(!isdigit(source.peek()))
     {
@@ -414,6 +466,7 @@ RTXReader::parseReduceRule(vector<wstring> output, wstring next)
     }
     for(unsigned int i = 0; i < outNodes.size(); i++)
     {
+      rule->resultContents.push_back(vector<vector<wstring>>());
       nextToken(L"{");
       while(!source.eof() && source.peek() != L'}')
       {
@@ -424,6 +477,92 @@ RTXReader::parseReduceRule(vector<wstring> output, wstring next)
     reductionRules.push_back(rule);
     endToken = nextToken(L"|", L";");
   }
+}
+
+int
+RTXReader::insertLemma(int const base, wstring const &lemma)
+{
+  int retval = base;
+  static int const any_char = td.getAlphabet()(ANY_CHAR);
+  if(lemma == L"")
+  {
+    retval = td.getTransducer().insertSingleTransduction(any_char, retval);
+    td.getTransducer().linkStates(retval, retval, any_char);
+    int another = td.getTransducer().insertSingleTransduction(L'\\', retval);
+    td.getTransducer().linkStates(another, retval, any_char);
+  }
+  else
+  {
+    for(unsigned int i = 0, limit = lemma.size();  i != limit; i++)
+    {
+      if(lemma[i] == L'\\')
+      {
+        retval = td.getTransducer().insertSingleTransduction(L'\\', retval);
+        i++;
+        retval = td.getTransducer().insertSingleTransduction(int(lemma[i]),
+                                                             retval);
+      }
+      else if(lemma[i] == L'*')
+      {
+        retval = td.getTransducer().insertSingleTransduction(any_char, retval);
+        td.getTransducer().linkStates(retval, retval, any_char);
+      }
+      else
+      {
+        retval = td.getTransducer().insertSingleTransduction(int(lemma[i]),
+                                                             retval);
+      }
+    }
+  }
+
+  return retval;
+}
+
+int
+RTXReader::insertTags(int const base, wstring const &tags)
+{
+  int retval = base;
+  static int const any_tag = td.getAlphabet()(ANY_TAG);
+  if(tags.size() != 0)
+  {
+    for(unsigned int i = 0, limit = tags.size(); i < limit; i++)
+    {
+      if(tags[i] == L'*')
+      {
+        retval = td.getTransducer().insertSingleTransduction(any_tag, retval);
+        td.getTransducer().linkStates(retval, retval, any_tag);
+        i++;
+      }
+      else
+      {
+        wstring symbol = L"<";
+        for(unsigned int j = i; j != limit; j++)
+        {
+          if(tags[j] == L'.')
+          {
+            symbol.append(tags.substr(i, j-i));
+            i = j;
+            break;
+          }
+        }
+
+        if(symbol == L"<")
+        {
+          symbol.append(tags.substr(i));
+          i = limit;
+        }
+        symbol += L'>';
+        td.getAlphabet().includeSymbol(symbol);
+        retval = td.getTransducer().insertSingleTransduction(td.getAlphabet()(symbol), retval);
+      }
+    }
+  }
+  else
+  {
+    return base; // new line
+  }
+
+  return retval;
 }
 
 /*
@@ -441,16 +580,263 @@ RTXReader::parseReduceRule(vector<wstring> output, wstring next)
     vector<pair<pair<int, wstring>, pair<int, wstring>>> variableUpdates;
     wstring compiled;
   };
+  n: _.gender.number
+  adj: _.<sint>.gender
+  NP.gender.number -> %n adj.sint {%2 _1 1};
 */
 
 void
 RTXReader::processRules()
 {
-  int maxLen = 0;
-  Rule* cur;
+  int epsilon = td.getAlphabet()(0, 0);
+  Rule* rule;
   for(unsigned int ruleid = 0; ruleid < reductionRules.size(); ruleid++)
   {
-    cur = reductionRules[ruleid];
+    rule = reductionRules[ruleid];
+    if(rule->pattern.size() > longestPattern)
+    {
+      longestPattern = rule->pattern.size();
+    }
+    // to make my life simpler, I'm going to start by only supporting 1 output chunk
+    // TODO: fix this
+    int loc = td.getTransducer().getInitial();
+    vector<wstring> pat;
+    for(unsigned int i = 0; i < rule->pattern.size(); i++)
+    {
+      if(i != 0)
+      {
+        td.getTransducer().linkStates(loc, loc, td.getAlphabet()(L" "));
+      }
+      pat = rule->pattern[i];
+      if(pat[0].size() > 0 && pat[0][0] == L'$')
+      {
+        int lemend;
+        vector<wstring> lems = collections[pat[0].substr(1)];
+        for(unsigned int l = 0; l < lems.size(); l++)
+        {
+          lemend = insertLemma(loc, lems[l]);
+          if(l == 0)
+          {
+            loc = td.getTransducer().insertSingleTransduction(epsilon, lemend);
+          }
+          else
+          {
+            td.getTransducer().linkStates(lemend, loc, epsilon);
+          }
+        }
+      }
+      else
+      {
+        loc = insertLemma(loc, pat[0]);
+      }
+      wstring tags;
+      for(unsigned int t = 1; t < pat.size(); t++)
+      {
+        if(t != 1)
+        {
+          tags += L'.';
+        }
+        tags += L'<' + pat[t] + L'>';
+      }
+      loc = insertTags(loc, tags);
+      td.getTransducer().linkStates(loc, loc, td.getAlphabet()(ANY_TAG));
+    }
+    const int symbol = td.countToFinalSymbol(ruleid);
+    const int fin = td.getTransducer().insertSingleTransduction(symbol, loc);
+    td.getTransducer().setFinal(fin);
+    wstring comp;
+    int output_pieces = 0;
+    wchar_t c;
+    c = rule->resultNodes[0].size();
+    comp += L's' + c;
+    comp += rule->resultNodes[0];
+    output_pieces++;
+    for(unsigned int vidx = 0; vidx < rule->resultVars[0].size(); vidx++)
+    {
+      wstring v = rule->resultVars[0][vidx];
+      c = v.size();
+      bool foundvar = false;
+      for(unsigned int g = 0; g < rule->variableGrabs[0].size(); g++)
+      {
+        if(rule->variableGrabs[0][g].second == v)
+        {
+          comp += L's';
+          comp += c;
+          comp += v;
+          comp += L'T';
+          comp += rule->variableGrabs[0][g].first;
+          foundvar = true;
+        }
+      }
+      if(!foundvar)
+      {
+        if(rule->grab_all == -1)
+        {
+          comp += L's';
+          comp += 5;
+          comp += L"<unk>"; // TODO
+        }
+        else
+        {
+          comp += L's';
+          comp += c;
+          comp += v;
+          comp += L'T';
+          comp += rule->grab_all+1;
+        }
+      }
+      output_pieces++;
+    }
+    for(unsigned int oidx = 0; oidx < rule->resultContents[0].size(); oidx++)
+    {
+      vector<wstring> cur = rule->resultContents[0][oidx];
+      if(cur[0] == L"_")
+      {
+        comp += cur[0];
+        if(cur.size() > 1)
+        {
+          comp += L'_';
+          comp += stoi(cur[1]);
+        }
+        output_pieces++;
+      }
+      else
+      {
+        int i = stoi(cur[0]);
+        vector<VarUpdate*> updates;
+        for(unsigned int u = 0; u < rule->variableUpdates.size(); u++)
+        {
+          if(rule->variableUpdates[u]->dest == i)
+          {
+            updates.push_back(rule->variableUpdates[u]);
+          }
+        }
+        for(unsigned int u = 0; u < updates.size(); u++)
+        {
+          if(updates[u]->src == -1)
+          {
+            continue;
+          }
+          comp += L's';
+          comp += updates[u]->srcvar.size();
+          comp += updates[u]->srcvar;
+          if(updates[u]->src != 0)
+          {
+            if(updates[u]->side == L"sl")
+            {
+              comp += L'S';
+            }
+            else if(updates[u]->side == L"ref")
+            {
+              comp += L'R';
+            }
+            else
+            {
+              comp += L'T';
+            }
+            comp += updates[u]->src;
+          }
+          comp += L's';
+          comp += updates[u]->destvar.size();
+          comp += updates[u]->destvar;
+          comp += L't';
+          comp += i;
+        }
+        if(rule->pattern[i-1].size() == 1)
+        {
+          comp += L's';
+          comp += 5;
+          comp += L"whole";
+          comp += L'T';
+          comp += i;
+          output_pieces++;
+        }
+        else
+        {
+          wstring pos = rule->pattern[i-1][1];
+          bool foundoutput = false;
+          for(unsigned int o = 0; o < outputRules.size(); o++)
+          {
+            // TODO: assumes output patterns are 1 tag long
+            // also, is this really what we want the semantics of output
+            // patterns to be? if not, what do we do with them instead?
+            if(outputRules[o].first[0] == pos)
+            {
+              foundoutput = true;
+              int ct = 0;
+              vector<wstring> rl = outputRules[0].second;
+              for(unsigned int p = 0; p < rl.size(); p++)
+              {
+                if(rl[p] == L"_")
+                {
+                  ct += 2;
+                  comp += L's';
+                  comp += 3;
+                  comp += L"lem";
+                  comp += L'T';
+                  comp += i;
+                  comp += L's';
+                  comp += (pos.size()+2);
+                  comp += L'<';
+                  comp += pos;
+                  comp += L'>';
+                }
+                else if(rl[p][0] == L'<')
+                {
+                  ct++;
+                  comp += L's';
+                  comp += rl[p].size();
+                  comp += rl[p];
+                }
+                else
+                {
+                  ct++;
+                  bool found = false;
+                  for(unsigned int v = 0; v < rule->resultVars[0].size(); v++)
+                  {
+                    if(rule->resultVars[0][v] == rl[p])
+                    {
+                      wstring s = L"<" + to_wstring(v+2) + L">";
+                      comp += L's';
+                      comp += s.size();
+                      comp += s;
+                      found = true;
+                      break;
+                    }
+                  }
+                  if(!found)
+                  {
+                    comp += L's';
+                    comp += rl[p].size();
+                    comp += rl[p];
+                    comp += L'T';
+                    comp += i;
+                  }
+                }
+              }
+              if(ct > 0)
+              {
+                comp += L'{';
+                comp += ct;
+                output_pieces++;
+              }
+            }
+          }
+          if(!foundoutput)
+          {
+            comp += L's';
+            comp += 5;
+            comp += L"whole";
+            comp += L'T';
+            comp += i;
+            output_pieces++;
+          }
+        }
+      }
+    }
+    comp += L'{';
+    comp += output_pieces;
+    rule->compiled = comp;
   }
 }
 
@@ -471,10 +857,38 @@ RTXReader::read(const string &fname)
   }
   source.close();
   processRules();
+  for(map<wstring, vector<wstring>>::iterator it=collections.begin(); it != collections.end(); ++it)
+  {
+    wstring regex = L"(";
+    for(unsigned int l = 0; l < it->second.size(); l++)
+    {
+      td.getLists()[it->first].insert(it->second[l]);
+      wstring attr = it->second[l];
+      if(l != 0)
+      {
+        regex += L'|';
+      }
+      regex += L'<';
+      for(unsigned int c = 0; c < attr.size(); c++)
+      {
+        if(attr[c] == L'.')
+        {
+          regex += L"><";
+        }
+        else
+        {
+          regex += attr[c];
+        }
+      }
+      regex += L'>';
+    }
+    regex += L")";
+    td.getAttrItems()[it->first] = regex;
+  }
 }
 
 void
-RTXReader::write(const string &fname)
+RTXReader::write(const string &fname, const string &bytename)
 {
   FILE *out = fopen(fname.c_str(), "wb");
   if(!out)
@@ -487,4 +901,24 @@ RTXReader::write(const string &fname)
   td.write(out);
 
   fclose(out);
+  
+  FILE *out2 = fopen(bytename.c_str(), "wb");
+  if(!out)
+  {
+    cerr << "Error: cannot open '" << bytename;
+    cerr << "' for writing" << endl;
+    exit(EXIT_FAILURE);
+  }
+  fputwc(longestPattern, out2);
+  fputwc(reductionRules.size(), out2);
+  for(unsigned int i = 0; i < reductionRules.size(); i++)
+  {
+    fputwc(reductionRules[i]->compiled.size(), out2);
+    for(unsigned int c = 0; c < reductionRules[i]->compiled.size(); c++)
+    {
+      fputwc(reductionRules[i]->compiled[c], out2);
+      // char by char because there might be \0s and that could be a problem?
+    }
+  }
+  fclose(out2);
 }

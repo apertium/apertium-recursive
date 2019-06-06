@@ -26,24 +26,29 @@ using namespace std;
 class Chunk
 {
 public:
-  wstring surface;
-  wstring chunkData;
+  wstring source;
+  wstring target;
+  wstring coref;
+  bool isBlank;
   vector<Chunk*> contents;
   Chunk()
   {
   }
   Chunk(wstring blankContent)
   {
-    surface = blankContent;
+    target = blankContent;
+    isBlank = true;
   }
-  Chunk(wstring chunkTags, wstring chunkContent)
+  Chunk(wstring src, wstring dest, wstring cor)
   {
-    surface = chunkTags;
-    chunkData = chunkContent;
+    source = src;
+    target = dest;
+    coref = cor;
+    isBlank = false;
   }
-  Chunk(wstring chunkTags, vector<Chunk*> children)
+  Chunk(wstring dest, vector<Chunk*> children)
   {
-    surface = chunkTags;
+    target = dest;
     contents = children;
   }
   ~Chunk()
@@ -53,45 +58,43 @@ public:
       delete contents[i];
     }
   }
-  string chunkPart(ApertiumRE const &part)
+  wstring chunkPart(ApertiumRE const &part, wstring side = L"tl")
   {
-    string chunk = UtfConverter::toUtf8(surface);
-    string queue = UtfConverter::toUtf8(chunkData);
-    string result = part.match(chunk);
-    if(result.size() == 0)
+    string chunk;
+    if(side == L"tl")
     {
-      result = part.match(queue);
-      if(result.size() != queue.size())
-      {
-        return string("");
-      }
-      else
-      {
-        return result;
-      }
+      chunk = UtfConverter::toUtf8(target);
     }
-    else if(result.size() == chunk.size())
+    else if(side == L"sl")
     {
-      return part.match(chunk+queue);
+      chunk = UtfConverter::toUtf8(source);
     }
     else
     {
-      return result;
+      chunk = UtfConverter::toUtf8(coref);
+    }
+    string result = part.match(chunk);
+    if(result.size() == 0)
+    {
+      return wstring(L"");
+    }
+    else
+    {
+      return UtfConverter::fromUtf8(result);
     }
   }
   void setChunkPart(ApertiumRE const &part, wstring const &value)
   {
-    string val = UtfConverter::toUtf8(value);
-    string surf = UtfConverter::toUtf8(surface);
-    part.replace(surf, val);
-    surface = UtfConverter::fromUtf8(surf);
-  }
-  void addPiece(Chunk* piece)
-  {
-    surface += piece->surface;
-    for(int i = 0; i < piece->contents.size(); i++)
+    string surf = UtfConverter::toUtf8(target);
+    if(part.match(surf).size() == 0)
     {
-      contents.push_back(piece->contents[i]);
+      target += value;
+    }
+    else
+    {
+      string val = UtfConverter::toUtf8(value);
+      part.replace(surf, val);
+      target = UtfConverter::fromUtf8(surf);
     }
   }
   void updateTags(vector<wstring> parentTags)
@@ -99,36 +102,21 @@ public:
     wstring result;
     wstring cur;
     bool indigittag = false;
-    for(size_t i = 0; i < surface.size(); i++)
+    for(size_t i = 0; i < target.size(); i++)
     {
       if(!indigittag)
       {
-        result += surface[i];
-        if(surface[i] == L'\\')
+        result += target[i];
+        if(target[i] == L'\\')
         {
-          result += surface[++i];
+          result += target[++i];
         }
-        else if(surface[i] == L'<')
+        else if(target[i] == L'<')
         {
           indigittag = true;
         }
-        else if(surface[i] == L'{')
-        {
-          int j = i;
-          while(j < surface.size() && surface[j] != L'}')
-          {
-            if(surface[j] == L'\\')
-            {
-              j++;
-            }
-            j++;
-          }
-          result = result.substr(0, result.size()-1);
-          chunkData = surface.substr(i, j-i+1);
-          i = j;
-        }
       }
-      else if(surface[i] == L'>')
+      else if(target[i] == L'>')
       {
         int idx = stoi(cur)-1;
         if(idx < parentTags.size())
@@ -139,35 +127,35 @@ public:
         cur.clear();
         indigittag = false;
       }
-      else if(!isdigit(surface[i]))
+      else if(!isdigit(target[i]))
       {
         result += cur;
         cur.clear();
-        result += surface[i];
+        result += target[i];
         indigittag = false;
       }
       else
       {
-        cur += surface[i];
+        cur += target[i];
       }
     }
-    surface = result;
+    target = result;
   }
   vector<wstring> getTags()
   {
     vector<wstring> result;
     wstring cur;
     bool intag = false;
-    for(int i = 0; i < surface.size(); i++)
+    for(int i = 0; i < target.size(); i++)
     {
       if(intag)
       {
-        if(surface[i] == L'\\')
+        if(target[i] == L'\\')
         {
-          cur += surface[i];
-          cur += surface[++i];
+          cur += target[i];
+          cur += target[++i];
         }
-        else if(surface[i] == L'>')
+        else if(target[i] == L'>')
         {
           if(cur.size() > 0)
           {
@@ -177,14 +165,14 @@ public:
         }
         else
         {
-          cur += surface[i];
+          cur += target[i];
         }
       }
-      else if(surface[i] == L'<')
+      else if(target[i] == L'<')
       {
         intag = true;
       }
-      else if(surface[i] == L'\\')
+      else if(target[i] == L'\\')
       {
         i++;
       }
@@ -202,31 +190,27 @@ public:
         contents[i]->output(tags, out);
       }
     }
-    else if(chunkData.size() == 0)
+    else if(isBlank)
     {
       if(out == NULL)
       {
-        cout << UtfConverter::toUtf8(surface);
+        cout << UtfConverter::toUtf8(target);
       }
       else
       {
-        fputs_unlocked(UtfConverter::toUtf8(surface).c_str(), out);
+        fputs_unlocked(UtfConverter::toUtf8(target).c_str(), out);
       }
     }
     else
     {
       if(out == NULL)
       {
-        cout << "^" << UtfConverter::toUtf8(surface);
-        cout << UtfConverter::toUtf8(chunkData) << "$";
+        cout << "^" << UtfConverter::toUtf8(target) << "$";
       }
       else
       {
         fputc_unlocked('^', out);
-        fputs_unlocked(UtfConverter::toUtf8(surface).c_str(), out);
-        //fputc_unlocked('{', out);
-        fputs_unlocked(UtfConverter::toUtf8(chunkData).c_str(), out);
-        //fputc_unlocked('}', out);
+        fputs_unlocked(UtfConverter::toUtf8(target).c_str(), out);
         fputc_unlocked('$', out);
       }
     }
@@ -235,10 +219,6 @@ public:
   {
     vector<wstring> tags;
     output(tags, out);
-  }
-  bool isBlank()
-  {
-    return !(chunkData.size() > 0 || contents.size() > 0);
   }
 };
 
@@ -250,13 +230,11 @@ public:
   int i;
   wstring s;
   Chunk* c;
-  pair<int, wstring> clip;
   
   StackElement(bool _b) : mode(0), b(_b) {};
   StackElement(int _i) : mode(1), i(_i) {};
   StackElement(wstring _s) : mode(2), s(_s) {};
   StackElement(Chunk* _c) : mode(3), c(_c) {};
-  StackElement(pair<int, wstring> _clip) : mode(4), clip(_clip) {};
 };
 
 class Interchunk
@@ -324,7 +302,6 @@ private:
   int popInt();
   wstring popString();
   Chunk* popChunk();
-  pair<int, wstring> popClip();
   void pushStack(bool b)
   {
     StackElement el(b);
@@ -343,11 +320,6 @@ private:
   void pushStack(Chunk* c)
   {
     StackElement el(c);
-    theStack.push(el);
-  }
-  void pushStack(pair<int, wstring> clip)
-  {
-    StackElement el(clip);
     theStack.push(el);
   }
 

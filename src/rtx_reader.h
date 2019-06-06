@@ -20,6 +20,15 @@ private:
     wstring tags;
   };
   
+  struct VarUpdate
+  {
+    int src;
+    int dest;
+    wstring srcvar;
+    wstring destvar;
+    wstring side;
+  };
+  
   struct Rule
   {
     int ID;
@@ -29,9 +38,9 @@ private:
     vector<vector<wstring>> pattern;
     vector<wstring> resultNodes;
     vector<vector<wstring>> resultVars;
-    vector<vector<wstring>> resultContents;
+    vector<vector<vector<wstring>>> resultContents;
     vector<vector<pair<int, wstring>>> variableGrabs;
-    vector<pair<pair<int, wstring>, pair<int, wstring>>> variableUpdates;
+    vector<VarUpdate*> variableUpdates;
     wstring compiled;
   };
 
@@ -128,10 +137,6 @@ private:
      * Rules file
      */
     map<wstring, vector<wstring>> collections;
-    set<wstring> attrs;
-    set<wstring> lemmas;
-    set<wstring> lists;
-    map<wstring, bool> allAttributes;
     
     /**
      * Rules file
@@ -146,6 +151,8 @@ private:
     vector<Rule*> reductionRules;
     
     void processRules();
+    
+    int longestPattern;
 
 public:
   static wstring const ANY_TAG;
@@ -157,7 +164,7 @@ public:
   {
   }
   void read(string const &filename);
-  void write(string const &filename);
+  void write(string const &patfilename, string const &bytefilename);
 };
 
 #endif

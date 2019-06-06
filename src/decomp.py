@@ -16,17 +16,16 @@ other = {'!':'not', '>':'begin-let', '$':'var', 'G':'case-of', 'A':'copy-case', 
 
 s = s[2:]
 for i in range(rulecount):
-    ln = ord(s[1])
+    ln = ord(s[0])
     out.append('')
     out.append('Rule %s - %s instructions' % (i+1, ln))
-    rl = s[2:2+ln]
-    s = s[2+ln:]
-    idx = 0
+    rl = s[1:1+ln]
+    s = s[1+ln:]
     for j in range(len(rl)):
         c = rl[j]
         if c in intarg:
             j += 1
-            out.append('[%s]: %s (%s) %s' % (idx, c, intarg[c], ord(rl[j])))
+            out.append('[%s]: %s (%s) %s' % (j, c, intarg[c], ord(rl[j])))
         elif c in caseless:
             name = caseless[c]
             if j+1 < len(rl) and rl[j+1] == '#':
@@ -35,15 +34,14 @@ for i in range(rulecount):
                 else:
                     name += ' caseless'
                 j += 1
-            out.append('[%s]: %s (%s)' % (idx, c, name))
+            out.append('[%s]: %s (%s)' % (j, c, name))
         elif c in other:
-            out.append('[%s]: %s (%s)' % (idx, c, other[c]))
+            out.append('[%s]: %s (%s)' % (j, c, other[c]))
         elif c == 's':
             j += 1
             n = ord(rl[j])
-            out.append('[%s]: s (string) "%s"' % (idx, rl[j+1:j+n+1]))
+            out.append('[%s]: s (string) "%s"' % (j, rl[j+1:j+n+1]))
             j += n
-        idx += 1
 
 f = open(sys.argv[2])
 f.write('\n'.join(out))

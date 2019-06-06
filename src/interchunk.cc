@@ -188,39 +188,7 @@ Interchunk::copycase(wstring const &source_word, wstring const &target_word)
 wstring
 Interchunk::caseOf(wstring const &s)
 {
-  //wstring ret (L"aa");
-  //return copycase(s, ret);
   return copycase(s, wstring(L"aa"));
-  /*if(s.size() > 1)
-  {
-    if(!iswupper(s[0]))
-    {
-      return L"aa";
-    }
-    else if(!iswupper(s[s.size()-1]))
-    {
-      return L"Aa";
-    }
-    else
-    {
-      return L"AA";
-    }
-  }
-  else if(s.size() == 1)
-  {
-    if(!iswupper(s[0]))
-    {
-      return L"aa";
-    }
-    else
-    {
-      return L"Aa";
-    }
-  }
-  else
-  {
-    return L"aa";
-  }*/
 }
 
 StackElement
@@ -291,26 +259,11 @@ Interchunk::popChunk()
   }
 }
 
-pair<int, wstring>
-Interchunk::popClip()
-{
-  StackElement ret = popStack();
-  if(ret.mode == 4)
-  {
-    return ret.clip;
-  }
-  else
-  {
-    wcerr << "tried to pop clip but mode is " << ret.mode << endl;
-    exit(1);
-  }
-}
-
 void
 Interchunk::applyRule(wstring rule)
 {
   bool in_let_setup = false;
-  for(int i = 0; i < rule.size(); i++)
+  for(unsigned int i = 0; i < rule.size(); i++)
   {
     switch(rule[i])
     {
@@ -378,7 +331,7 @@ Interchunk::applyRule(wstring rule)
         }
         else if(_a.mode == 3)
         {
-          a = _a.c->surface;
+          a = _a.c->target;
         }
         else
         {
@@ -393,7 +346,7 @@ Interchunk::applyRule(wstring rule)
         }
         else if(_b.mode == 3)
         {
-          b = _b.c->surface;
+          b = _b.c->target;
         }
         else
         {
@@ -541,29 +494,11 @@ Interchunk::applyRule(wstring rule)
         }
       }
         break;
-      case L'>': // let (begin)
-        if(printingSteps) { wcerr << "let" << endl; }
-        in_let_setup = true;
-        break;
-      case L'*': // let (clip, end)
-        if(printingSteps) { wcerr << "let clip" << endl; }
-      {
-        wstring val = popString();
-        pair<int, wstring> clip = popClip();
-        if(i+1 < rule.size() && rule[i+1] == L'#')
-        {
-          i++;
-          string temp = currentInput[2*(clip.first-1)]->chunkPart(attr_items[clip.second]);
-          val = copycase(val, UtfConverter::fromUtf8(temp));
-        }
-        currentInput[2*(clip.first-1)]->setChunkPart(attr_items[clip.second], val);
-      }
-        break;
       case L'4': // let (var, end)
         if(printingSteps) { wcerr << "let var" << endl; }
       {
-        wstring val = popString();
         wstring var = popString();
+        wstring val = popString();
         if(i+1 < rule.size() && rule[i+1] == L'#')
         {
           i++;
@@ -577,28 +512,54 @@ Interchunk::applyRule(wstring rule)
       {
         int count = rule[++i];
         currentOutput.resize(currentOutput.size()+count);
-        for(int j = 1; j <= count; j++)
+        for(unsigned int j = 1; j <= count; j++)
         {
           currentOutput[currentOutput.size()-j] = popChunk();
         }
       }
         break;
-      case L'.': // clip
-        if(printingSteps) { wcerr << "clip" << endl; }
+      case L'S': // clip side="sl"
+        if(printingSteps) { wcerr << "sl clip" << endl; }
       {
         wstring part = popString();
-        int pos = rule[++i];
-        if(in_let_setup)
+        int pos = 2*(rule[++i]-1);
+        pushStack(currentInput[pos]->chunkPart(attr_items[part], L"sl"));
+      }
+        break;
+      case L'T': // clip side="tl"
+        if(printingSteps) { wcerr << "tl clip" << endl; }
+      {
+        wstring part = popString();
+        int pos = 2*(rule[++i]-1);
+        if(part == L"whole")
         {
-          pushStack(pair<int, wstring>(pos, part));
-          in_let_setup = false;
+          pushStack(currentInput[pos]);
+        }
+        else if(part == L"chcontent")
+        {
+          Chunk* ch = new Chunk(L"", currentInput[pos]->contents);
+          pushStack(ch);
         }
         else
         {
-          string v = currentInput[2*(pos-1)]->chunkPart(attr_items[part]);
-          pushStack(UtfConverter::fromUtf8(v));
-          if(printingSteps) { wcerr << " " << pos << " -> " << theStack.top().s << endl; }
+          pushStack(currentInput[pos]->chunkPart(attr_items[part], L"tl"));
         }
+      }
+        break;
+      case L'R': // clip side="ref"
+        if(printingSteps) { wcerr << "ref clip" << endl; }
+      {
+        wstring part = popString();
+        int pos = 2*(rule[++i]-1);
+        pushStack(currentInput[pos]->chunkPart(attr_items[part], L"ref"));
+      }
+        break;
+      case L't': // let clip side="tl"
+        if(printingSteps) { wcerr << "let clip" << endl; }
+      {
+        wstring part = popString();
+        int pos = 2*(rule[++i]-1);
+        currentInput[pos]->setChunkPart(attr_items[part], popString());
       }
         break;
       case L'$': // var
@@ -629,7 +590,7 @@ Interchunk::applyRule(wstring rule)
       {
         int count = rule[++i];
         wstring result;
-        for(int j = 0; j < count; j++)
+        for(unsigned int j = 0; j < count; j++)
         {
           result.append(popString());
         }
@@ -641,37 +602,31 @@ Interchunk::applyRule(wstring rule)
       {
         Chunk* ch = new Chunk();
         int count = rule[++i];
-        if(recursing)
+        for(unsigned int j = 0; j < count; j++)
         {
-          vector<Chunk*> temp;
-          for(int j = 0; j < count; j++)
+          StackElement c = popStack();
+          if(c.mode == 2)
           {
-            temp.push_back(popChunk());
+            ch->target = c.s + ch->target;
           }
-          for(int j = 0; j < count; j++)
+          else if(c.mode == 3)
           {
-            ch->addPiece(temp.back());
-            temp.pop_back();
-          }
-        }
-        else
-        {
-          for(int j = 0; j < count; j++)
-          {
-            StackElement c = popStack();
-            if(c.mode == 2)
+            if(c.c->target.size() == 0)
             {
-              ch->surface = c.s + ch->surface;
-            }
-            else if(c.mode == 3)
-            {
-              ch->surface = c.c->surface + ch->surface;
+              for(unsigned int k = 0; k < c.c->contents.size(); k++)
+              {
+                ch->contents.push_back(c.c->contents[k]);
+              }
             }
             else
             {
-              wcerr << L"Unable to add to chunk StackElement with mode " << c.mode << endl;
-              exit(1);
+              ch->target = c.c->target + ch->target;
             }
+          }
+          else
+          {
+            wcerr << L"Unable to add to chunk StackElement with mode " << c.mode << endl;
+            exit(1);
           }
         }
         pushStack(ch);
@@ -679,7 +634,7 @@ Interchunk::applyRule(wstring rule)
         break;
       case L'p': // pseudolemma
         if(printingSteps) { wcerr << "pseudolemma" << endl; }
-        pushStack(popChunk()->surface);
+        pushStack(popChunk()->target);
         break;
       case L' ': // b
         if(printingSteps) { wcerr << "b" << endl; }
@@ -702,87 +657,79 @@ Interchunk::applyRule(wstring rule)
 Chunk *
 Interchunk::readToken(FILE *in)
 {
-  wstring content;
-  wstring data;
+  int pos = 0;
+  wstring cur;
+  wstring src;
+  wstring dest;
+  wstring coref;
   while(true)
   {
     int val = fgetwc_unlocked(in);
     if(feof(in) || (internal_null_flush && val == 0))
     {
       furtherInput = false;
-      Chunk* ret = new Chunk(content);
+      Chunk* ret = new Chunk(cur);
       return ret;
     }
     if(val == L'\\')
     {
-      content += L'\\';
-      content += wchar_t(fgetwc_unlocked(in));
+      cur += L'\\';
+      cur += wchar_t(fgetwc_unlocked(in));
     }
     else if(val == L'[')
     {
-      content += L'[';
+      cur += L'[';
       while(true)
       {
         int val2 = fgetwc_unlocked(in);
         if(val2 == L'\\')
         {
-          content += L'\\';
-          content += wchar_t(fgetwc_unlocked(in));
+          cur += L'\\';
+          cur += wchar_t(fgetwc_unlocked(in));
         }
         else if(val2 == L']')
         {
-          content += L']';
+          cur += L']';
           break;
         }
         else
         {
-          content += wchar_t(val2);
+          cur += wchar_t(val2);
         }
       }
     }
-    else if(inword && val == L'{')
+    else if(inword && (val == L'$' || val == L'/'))
     {
-      data += wchar_t(val);
-      while(true)
+      if(pos == 0)
       {
-        int val2 = fgetwc_unlocked(in);
-        if(val2 == L'\\')
-        {
-          data += L'\\';
-          data += wchar_t(fgetwc_unlocked(in));
-        }
-        else if(val2 == L'}')
-        {
-          data += wchar_t(val2);
-          int val3 = char(fgetwc_unlocked(in));
-          ungetwc(val3, in);
-
-          if(val3 == L'$')
-          {
-            break;
-          }
-        }
-        else
-        {
-          data += wchar_t(val2);
-        }
+        src = cur;
       }
-    }
-    else if(inword && val == L'$')
-    {
+      else if(pos == 1)
+      {
+        dest = cur;
+      }
+      else if(pos == 2)
+      {
+        coref = cur;
+      }
+      pos++;
+      cur.clear();
       inword = false;
-      Chunk* ret = new Chunk(content, data);
-      return ret;
+      if(val == L'$')
+      {
+        Chunk* ret = new Chunk(src, dest, coref);
+        return ret;
+      }
     }
     else if(val == L'^')
     {
       inword = true;
-      Chunk* ret = new Chunk(content);
+      Chunk* ret = new Chunk(cur);
       return ret;
     }
     else
     {
-      content += wchar_t(val);
+      cur += wchar_t(val);
     }
   }
 }
@@ -828,12 +775,20 @@ Interchunk::interchunk_wrapper_null_flush(FILE *in, FILE *out)
 void
 Interchunk::applyWord(Chunk& word)
 {
-  if(word.isBlank())
+  if(word.isBlank)
   {
     ms.step(L' ');
     return;
   }
-  wstring word_str = word.surface;
+  wstring word_str;
+  if(word.source.size() > 0)
+  {
+    word_str = word.source;
+  }
+  else
+  {
+    word_str = word.target;
+  }
   ms.step(L'^');
   for(unsigned int i = 0, limit = word_str.size(); i < limit; i++)
   {

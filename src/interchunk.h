@@ -255,7 +255,6 @@ private:
   int longestPattern;
   bool furtherInput;
   bool allDone;
-  bool recursing;
   stack<StackElement> theStack;
   vector<Chunk*> currentInput;
   vector<Chunk*> currentOutput;
@@ -271,6 +270,9 @@ private:
   bool trace;
   bool printingSteps;
   bool printingRules;
+  bool printingMatch;
+  int maxLayers;
+  int shiftCount;
 
   void destroy();
   void readData(FILE *input);
@@ -278,26 +280,13 @@ private:
   wstring caseOf(wstring const &str);
   wstring copycase(wstring const &source_word, wstring const &target_word);
 
-  void processAppend(xmlNode *localroot);
-  void processModifyCase(xmlNode *localroot);
-  void processInstruction(wstring rule);
-  string processChunk(xmlNode *localroot);
-
   bool beginsWith(wstring const &str1, wstring const &str2) const;
   bool endsWith(wstring const &str1, wstring const &str2) const;
-  wstring tolower(wstring const &str) const;
-  string tags(string const &str) const;
-  string readWord(FILE *in);
-  string readBlank(FILE *in);
-  string readUntil(FILE *in, int const symbol) const;
   void applyWord(Chunk& chunk);
   void applyRule(wstring rule);
   Chunk* readToken(FILE *in);
-  bool checkIndex(xmlNode *element, int index, int limit);
   void interchunk_wrapper_null_flush(FILE *in, FILE *out);
   void interchunk_do_pass();
-  void interchunk_linear(FILE *in, FILE *out);
-  void interchunk_recursive(FILE *in, FILE *out);
   
   StackElement popStack();
   bool popBool();
@@ -341,6 +330,14 @@ public:
   void printRules(bool val)
   {
     printingRules = val;
+  }
+  void printMatch(bool val)
+  {
+    printingMatch = val;
+  }
+  void numLayers(int val)
+  {
+    maxLayers = val;
   }
 };
 

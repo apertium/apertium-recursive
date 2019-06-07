@@ -18,7 +18,11 @@ Interchunk::Interchunk()
 {
   furtherInput = true;
   allDone = false;
-  recursing = false;
+  maxLayers = -1;
+  shiftCount = 0;
+  printingSteps = false;
+  printingRules = false;
+  printingMatch = false;
 }
 
 Interchunk::~Interchunk()
@@ -777,7 +781,9 @@ Interchunk::applyWord(Chunk& word)
 {
   if(word.isBlank)
   {
+    if(printingMatch) { wcerr << "stepping blank, size " << ms.size(); }
     ms.step(L' ');
+    if(printingMatch) { wcerr << " -> " << ms.size() << endl; }
     return;
   }
   wstring word_str;
@@ -789,7 +795,9 @@ Interchunk::applyWord(Chunk& word)
   {
     word_str = word.target;
   }
+  if(printingMatch) { wcerr << "stepping ^, size " << ms.size(); }
   ms.step(L'^');
+  if(printingMatch) { wcerr << " -> " << ms.size() << endl; }
   for(unsigned int i = 0, limit = word_str.size(); i < limit; i++)
   {
     switch(word_str[i])
@@ -800,6 +808,7 @@ Interchunk::applyWord(Chunk& word)
         break;
 
       case L'<':
+        if(printingMatch) { wcerr << "stepping tag, size " << ms.size(); }
         for(unsigned int j = i+1; j != limit; j++)
         {
           if(word_str[j] == L'>')
@@ -817,91 +826,44 @@ Interchunk::applyWord(Chunk& word)
             break;
           }
         }
+        if(printingMatch) { wcerr << " -> " << ms.size() << endl; }
         break;
 
       case L'{':  // ignore the unmodifiable part of the chunk
+        if(printingMatch) { wcerr << "stepping $, size " << ms.size(); }
         ms.step(L'$');
+        if(printingMatch) { wcerr << " -> " << ms.size() << endl; }
         return;
 
       default:
+        if(printingMatch) { wcerr << "stepping char, size " << ms.size(); }
         ms.step(towlower(word_str[i]), any_char);
+        if(printingMatch) { wcerr << " -> " << ms.size() << endl; }
         break;
     }
   }
+  if(printingMatch) { wcerr << "stepping $, size " << ms.size(); }
   ms.step(L'$');
-}
-
-void
-Interchunk::interchunk(FILE *in, FILE *out)
-{
-  /*if(getNullFlush())
-  {
-    interchunk_wrapper_null_flush(in, out);
-  }*/
-  if(recursing)
-  {
-    interchunk_recursive(in, out);
-  }
-  else
-  {
-    interchunk_linear(in, out);
-  }
+  if(printingMatch) { wcerr << " -> " << ms.size() << endl; }
 }
 
 void
 Interchunk::interchunk_do_pass()
 {
-  int minLayer = longestPattern;
-  if(!furtherInput)
-  {
-    minLayer = 0;
-    for(size_t i = 0; i < parseTower.size(); i++)
-    {
-      if(parseTower[i].size() > minLayer)
-      {
-        minLayer = parseTower[i].size();
-      }
-    }
-    if(minLayer > longestPattern)
-    {
-      minLayer = longestPattern;
-    }
-    if(minLayer == 0)
-    {
-      allDone = true;
-      return;
-    }
-  }
   int layer = -1;
-  bool shouldshift = false;
-  for(size_t l = parseTower.size()-1; l >= 0; l--)
+  int minLayer = furtherInput ? longestPattern : 0;
+  for(unsigned int l = 0; l < parseTower.size(); l++)
   {
-    if(parseTower[l].size() >= minLayer)
+    if(parseTower[l].size() > minLayer)
     {
       layer = l;
       break;
     }
   }
-  if(layer <= -1)
+  if(layer == -1)
   {
-    shouldshift = true;
-    if(furtherInput)
-    {
-      return;
-    }
-    for(size_t l = 0; l < parseTower.size(); l++)
-    {
-      if(parseTower[l].size() > 0)
-      {
-        layer = l;
-        break;
-      }
-    }
-    if(layer == -1)
-    {
-      allDone = true;
-      return;
-    }
+    allDone = !furtherInput;
+    return;
   }
   if(layer+1 == parseTower.size())
   {
@@ -942,19 +904,30 @@ Interchunk::interchunk_do_pass()
     parseTower[layer+1].insert(parseTower[layer+1].end(), currentOutput.begin(), currentOutput.end());
     currentInput.clear();
     currentOutput.clear();
+    if(layer+2 == parseTower.size())
+    {
+      shiftCount = 0;
+    }
   }
-  else if(shouldshift || parseTower[layer].size() >= minLayer)
+  else
   {
     if(printingRules) { wcerr << "shifting" << endl; }
     parseTower[layer+1].push_back(parseTower[layer][0]);
     parseTower[layer].erase(parseTower[layer].begin());
+    if(layer+2 == parseTower.size() && parseTower[layer+1].size() == 1)
+    {
+      shiftCount++;
+    }
   }
 }
 
 void
-Interchunk::interchunk_linear(FILE *in, FILE *out)
+Interchunk::interchunk(FILE *in, FILE *out)
 {
-  parseTower.push_back(vector<Chunk*>());
+  /*if(getNullFlush())
+  {
+    interchunk_wrapper_null_flush(in, out);
+  }*/
   parseTower.push_back(vector<Chunk*>());
   while(!allDone)
   {
@@ -963,18 +936,44 @@ Interchunk::interchunk_linear(FILE *in, FILE *out)
       Chunk* ch = readToken(in);
       parseTower[0].push_back(ch);
     }
+    int shift_was = shiftCount;
     interchunk_do_pass();
-    for(int i = 0; i < parseTower[1].size(); i++)
+    vector<vector<Chunk*>> newTower;
+    newTower.push_back(parseTower[0]);
+    for(unsigned int i = 1; i < parseTower.size(); i++)
     {
-      parseTower[1][i]->output(out);
-      //delete parseTower[1][i];
+      if(parseTower[i].size() > 0)
+      {
+        newTower.push_back(parseTower[i]);
+      }
     }
-    parseTower[1].clear();
+    parseTower = newTower;
+    int top = parseTower.size()-1;
+    if(shiftCount == 1 && parseTower[top][0]->isBlank)
+    {
+      parseTower[top][0]->output(out);
+      parseTower.pop_back();
+      shiftCount = 0;
+    }
+    else if(top == 0 && parseTower[0].size() == 0)
+    {
+      allDone = !furtherInput;
+    }
+    else if(maxLayers > 0 && top >= maxLayers)
+    {
+      for(unsigned int i = 0; i < parseTower[top].size(); i++)
+      {
+        parseTower[top][i]->output(out);
+      }
+      parseTower[top].clear();
+      shiftCount = 0;
+    }
+    else if(shiftCount > longestPattern ||
+            (shiftCount > shift_was && top == 1 && parseTower[0].size() == 0 && !furtherInput))
+    {
+      parseTower[top][0]->output(out);
+      parseTower[top].erase(parseTower[top].begin());
+      shiftCount--;
+    }
   }
-}
-
-void
-Interchunk::interchunk_recursive(FILE *in, FILE *out)
-{
-  
 }

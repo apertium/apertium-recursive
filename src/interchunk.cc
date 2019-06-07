@@ -614,15 +614,12 @@ Interchunk::applyRule(wstring rule)
           {
             if(c.c->target.size() == 0)
             {
-              for(unsigned int k = 0; k < c.c->contents.size(); k++)
-              {
-                ch->contents.push_back(c.c->contents[k]);
-              }
+              ch->contents.insert(ch->contents.begin(),
+                                  c.c->contents.begin(), c.c->contents.end());
             }
             else
             {
-              //ch->target = c.c->target + ch->target;
-              ch->contents.push_back(c.c);
+              ch->contents.insert(ch->contents.begin(), c.c);
             }
           }
           else

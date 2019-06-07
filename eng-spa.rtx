@@ -95,7 +95,7 @@ PP -> 3: pr NP {1 _1 2} |
 ! the rules beginning on lines 6408 (adj num adj nom) and 6852 (adv pp nom)
 ! were skipped because I'm not entirely sure what they're doing
 
-CONJ -> 1: @cnjcoo {1} | 1: @cm {1} ;
+CONJ -> 1: cnjcoo {1} | 1: cm {1} ;
 
 AP.gender.mode -> 2: %adj {%1} |
                      ! "blue" -> "azul"
@@ -110,7 +110,7 @@ AP.gender.mode -> 2: %adj {%1} |
                      ! "[totally green] and [very tall] ->
                      ! "[totalmente verde] y [muy alto]
                        
-                  1: @apos %AP @apos {1 _1 %2 _2 3} ;
+                  1: apos %AP apos {1 _1 %2 _2 3} ;
                      ! " 'blue' " -> " 'azul' "
 
 tractaments =[] Mr\. Mrs\. Ms\. Dr\.;

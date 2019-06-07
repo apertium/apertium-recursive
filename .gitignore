@@ -13,5 +13,7 @@ src/rec-inter
 src/rtx-comp
 src/rtx-comp2
 src/rtx-proc
+src/prep-all
 stamp-h1
-
+*.comp
+*.bin

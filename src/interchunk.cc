@@ -98,7 +98,6 @@ Interchunk::read(string const &transferfile, string const &datafile)
   for(int i = 0; i < count; i++)
   {
     cur.clear();
-    fgetwc(in);
     len = fgetwc(in);
     for(int j = 0; j < len; j++)
     {
@@ -543,6 +542,7 @@ Interchunk::applyRule(wstring rule)
         else
         {
           pushStack(currentInput[pos]->chunkPart(attr_items[part], L"tl"));
+          if(printingSteps) { wcerr << " -> " << theStack.top().s << endl; }
         }
       }
         break;
@@ -601,6 +601,7 @@ Interchunk::applyRule(wstring rule)
         if(printingSteps) { wcerr << "chunk" << endl; }
       {
         Chunk* ch = new Chunk();
+        ch->isBlank = false;
         int count = rule[++i];
         for(unsigned int j = 0; j < count; j++)
         {
@@ -620,7 +621,8 @@ Interchunk::applyRule(wstring rule)
             }
             else
             {
-              ch->target = c.c->target + ch->target;
+              //ch->target = c.c->target + ch->target;
+              ch->contents.push_back(c.c);
             }
           }
           else
@@ -629,6 +631,7 @@ Interchunk::applyRule(wstring rule)
             exit(1);
           }
         }
+        if(printingSteps) { wcerr << L" pushing chunk with target surface " << ch->target << endl; }
         pushStack(ch);
       }
         break;
@@ -671,7 +674,7 @@ Interchunk::readToken(FILE *in)
       Chunk* ret = new Chunk(cur);
       return ret;
     }
-    if(val == L'\\')
+    else if(val == L'\\')
     {
       cur += L'\\';
       cur += wchar_t(fgetwc_unlocked(in));
@@ -714,14 +717,14 @@ Interchunk::readToken(FILE *in)
       }
       pos++;
       cur.clear();
-      inword = false;
       if(val == L'$')
       {
+        inword = false;
         Chunk* ret = new Chunk(src, dest, coref);
         return ret;
       }
     }
-    else if(val == L'^')
+    else if(!inword && val == L'^')
     {
       inword = true;
       Chunk* ret = new Chunk(cur);
@@ -907,6 +910,7 @@ Interchunk::interchunk_do_pass()
   {
     parseTower.push_back(vector<Chunk*>());
   }
+  if(printingRules) { wcerr << "layer is " << layer << endl; }
   ms.init(me->getInitial());
   int rule = -1;
   int len = 0;
@@ -944,6 +948,7 @@ Interchunk::interchunk_do_pass()
   }
   else if(shouldshift || parseTower[layer].size() >= minLayer)
   {
+    if(printingRules) { wcerr << "shifting" << endl; }
     parseTower[layer+1].push_back(parseTower[layer][0]);
     parseTower[layer].erase(parseTower[layer].begin());
   }

@@ -17,6 +17,7 @@ RTXReader::RTXReader()
 {
   td.getAlphabet().includeSymbol(ANY_TAG);
   td.getAlphabet().includeSymbol(ANY_CHAR);
+  longestPattern = 0;
 }
 
 wstring const RTXReader::SPECIAL_CHARS = L"!@$%()={}[]|\\/:;<>,.";
@@ -488,8 +489,8 @@ RTXReader::insertLemma(int const base, wstring const &lemma)
   {
     retval = td.getTransducer().insertSingleTransduction(any_char, retval);
     td.getTransducer().linkStates(retval, retval, any_char);
-    int another = td.getTransducer().insertSingleTransduction(L'\\', retval);
-    td.getTransducer().linkStates(another, retval, any_char);
+    //int another = td.getTransducer().insertSingleTransduction(L'\\', retval);
+    //td.getTransducer().linkStates(another, retval, any_char);
   }
   else
   {
@@ -497,7 +498,7 @@ RTXReader::insertLemma(int const base, wstring const &lemma)
     {
       if(lemma[i] == L'\\')
       {
-        retval = td.getTransducer().insertSingleTransduction(L'\\', retval);
+        //retval = td.getTransducer().insertSingleTransduction(L'\\', retval);
         i++;
         retval = td.getTransducer().insertSingleTransduction(int(lemma[i]),
                                                              retval);
@@ -586,70 +587,82 @@ RTXReader::insertTags(int const base, wstring const &tags)
 */
 
 void
-RTXReader::processRules()
+RTXReader::makePattern(int ruleid)
 {
   int epsilon = td.getAlphabet()(0, 0);
+  Rule* rule = reductionRules[ruleid];
+  if(rule->pattern.size() > longestPattern)
+  {
+    longestPattern = rule->pattern.size();
+  }
+  // to make my life simpler, I'm going to start by only supporting 1 output chunk
+  // TODO: fix this
+  int loc = td.getTransducer().getInitial();
+  vector<wstring> pat;
+  for(unsigned int i = 0; i < rule->pattern.size(); i++)
+  {
+    if(i != 0)
+    {
+      loc = td.getTransducer().insertSingleTransduction(L' ', loc);
+      //td.getTransducer().linkStates(loc, loc, td.getAlphabet()(L" "));
+    }
+    loc = td.getTransducer().insertSingleTransduction(L'^', loc);
+    pat = rule->pattern[i];
+    if(pat[0].size() > 0 && pat[0][0] == L'$')
+    {
+      int lemend;
+      int tmp = loc;
+      vector<wstring> lems = collections[pat[0].substr(1)];
+      for(unsigned int l = 0; l < lems.size(); l++)
+      {
+        lemend = insertLemma(tmp, lems[l]);
+        if(l == 0)
+        {
+          loc = td.getTransducer().insertSingleTransduction(epsilon, lemend);
+        }
+        else
+        {
+          td.getTransducer().linkStates(lemend, loc, epsilon);
+        }
+      }
+    }
+    else
+    {
+      loc = insertLemma(loc, pat[0]);
+    }
+    wstring tags;
+    for(unsigned int t = 1; t < pat.size(); t++)
+    {
+      if(t != 1)
+      {
+        tags += L'.';
+      }
+      tags += pat[t];
+    }
+    loc = insertTags(loc, tags);
+    td.getTransducer().linkStates(loc, loc, td.getAlphabet()(ANY_TAG));
+    loc = td.getTransducer().insertSingleTransduction(L'$', loc);
+  }
+  const int symbol = td.countToFinalSymbol(ruleid+1);
+  loc = td.getTransducer().insertSingleTransduction(symbol, loc);
+  td.getTransducer().setFinal(loc);
+}
+
+void
+RTXReader::processRules()
+{
   Rule* rule;
   for(unsigned int ruleid = 0; ruleid < reductionRules.size(); ruleid++)
   {
     rule = reductionRules[ruleid];
-    if(rule->pattern.size() > longestPattern)
-    {
-      longestPattern = rule->pattern.size();
-    }
-    // to make my life simpler, I'm going to start by only supporting 1 output chunk
-    // TODO: fix this
-    int loc = td.getTransducer().getInitial();
-    vector<wstring> pat;
-    for(unsigned int i = 0; i < rule->pattern.size(); i++)
-    {
-      if(i != 0)
-      {
-        td.getTransducer().linkStates(loc, loc, td.getAlphabet()(L" "));
-      }
-      pat = rule->pattern[i];
-      if(pat[0].size() > 0 && pat[0][0] == L'$')
-      {
-        int lemend;
-        vector<wstring> lems = collections[pat[0].substr(1)];
-        for(unsigned int l = 0; l < lems.size(); l++)
-        {
-          lemend = insertLemma(loc, lems[l]);
-          if(l == 0)
-          {
-            loc = td.getTransducer().insertSingleTransduction(epsilon, lemend);
-          }
-          else
-          {
-            td.getTransducer().linkStates(lemend, loc, epsilon);
-          }
-        }
-      }
-      else
-      {
-        loc = insertLemma(loc, pat[0]);
-      }
-      wstring tags;
-      for(unsigned int t = 1; t < pat.size(); t++)
-      {
-        if(t != 1)
-        {
-          tags += L'.';
-        }
-        tags += L'<' + pat[t] + L'>';
-      }
-      loc = insertTags(loc, tags);
-      td.getTransducer().linkStates(loc, loc, td.getAlphabet()(ANY_TAG));
-    }
-    const int symbol = td.countToFinalSymbol(ruleid);
-    const int fin = td.getTransducer().insertSingleTransduction(symbol, loc);
-    td.getTransducer().setFinal(fin);
+    makePattern(ruleid);
     wstring comp;
     int output_pieces = 0;
     wchar_t c;
-    c = rule->resultNodes[0].size();
-    comp += L's' + c;
-    comp += rule->resultNodes[0];
+    c = rule->resultNodes[0].size() + 5;
+    comp += L's';
+    comp += c;
+    comp += L"unk<" + rule->resultNodes[0] + L">";
     output_pieces++;
     for(unsigned int vidx = 0; vidx < rule->resultVars[0].size(); vidx++)
     {
@@ -664,8 +677,9 @@ RTXReader::processRules()
           comp += c;
           comp += v;
           comp += L'T';
-          comp += rule->variableGrabs[0][g].first;
+          comp += (wchar_t)rule->variableGrabs[0][g].first;
           foundvar = true;
+          break;
         }
       }
       if(!foundvar)
@@ -682,7 +696,7 @@ RTXReader::processRules()
           comp += c;
           comp += v;
           comp += L'T';
-          comp += rule->grab_all+1;
+          comp += (wchar_t)rule->grab_all+1;
         }
       }
       output_pieces++;
@@ -692,11 +706,14 @@ RTXReader::processRules()
       vector<wstring> cur = rule->resultContents[0][oidx];
       if(cur[0] == L"_")
       {
-        comp += cur[0];
         if(cur.size() > 1)
         {
           comp += L'_';
-          comp += stoi(cur[1]);
+          comp += (wchar_t)stoi(cur[1]);
+        }
+        else
+        {
+          comp += L' ';
         }
         output_pieces++;
       }
@@ -836,6 +853,8 @@ RTXReader::processRules()
     }
     comp += L'{';
     comp += output_pieces;
+    comp += L'<';
+    comp += 1;
     rule->compiled = comp;
   }
 }

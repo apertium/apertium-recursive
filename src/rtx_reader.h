@@ -151,6 +151,7 @@ private:
     vector<Rule*> reductionRules;
     
     void processRules();
+    void makePattern(int ruleid);
     
     int longestPattern;
 

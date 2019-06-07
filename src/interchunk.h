@@ -50,6 +50,7 @@ public:
   {
     target = dest;
     contents = children;
+    isBlank = false;
   }
   ~Chunk()
   {
@@ -121,6 +122,7 @@ public:
         int idx = stoi(cur)-1;
         if(idx < parentTags.size())
         {
+          result = result.substr(0, result.size()-1);
           result += parentTags[idx];
           result += L'>';
         }
@@ -322,7 +324,7 @@ private:
     StackElement el(c);
     theStack.push(el);
   }
-
+  
 public:
   Interchunk();
   ~Interchunk();

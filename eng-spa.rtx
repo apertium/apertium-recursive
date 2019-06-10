@@ -1,18 +1,15 @@
-! This file is roughly equivalent to 45 of the first 47 rules
-! of apertium-eng-spa.eng-spa.t1x
-
-! This should be consistent with
-! http://wiki.apertium.org/wiki/User:Popcorndude/Recursive_Transfer/Formalism
-! as of most recent commit (3/13/19 20:00 UTC if I've forgotten to update this)
-
-! (it's no longer entirely consistent - see test_rules.rtx, this will probably be updated eventually)
-
 ! RULES TODO
 ! t1x 6408, 6852, 11368, 14368, 14489, 14704
+
+n: _.gender.number;
+adj: _.gen_sense_mf.gen_mf.nbr_sense_sp.nbr_sp.lemq;
+det: _.definite.gender.number;
+num: _.gender.number;
 
 number = sg pl ND ;
 gender = m f mf GD ;
 mode = comp sup pos sint ;
+definite = ind def ;
 
 nom = n n.acr np.loc np.ant np.cog np.al adv;
 np = np;
@@ -41,7 +38,9 @@ nbr_sense_sp = sg pl ND;
 nbr_sp = sp;
 temps = cni fti ifi imp pii pis inf prs pres past pri pp ger pprs subs;
 
-NOM.number.gender -> 1: %n {%1} |
+! pattern % passes lem, output % does not
+
+NOM.number.gender -> 1: %n.$lem/sl {%1} |
 		     1: %np {%1} |
 		     0: adj guio %NOM {%3 _ %1} |
 	   	     0: num guio %NOM {%3 _ %1} |
@@ -97,22 +96,41 @@ PP -> 3: pr NP {1 _1 2} |
 
 CONJ -> 1: cnjcoo {1} | 1: cm {1} ;
 
-AP.gender.mode -> 2: %adj {%1} |
-                     ! "blue" -> "azul"
+AP.gender.number.mode -> 2: %adj {%1} |
+                            ! "blue" -> "azul"
                        
-                  1: adv %adj {1 _1 %2} |
-		  0: adv guio %adj {1 _ %3} |
-                  1: preadv %adj {1 _1 %2} |
-                     ! "very green" -> "muy verde"
+                         1: adv %adj {1 _1 %2} |
+	       	         0: adv guio %adj {1 _ %3} |
+                         1: preadv %adj {1 _1 %2} |
+                            ! "very green" -> "muy verde"
 
-                  1: AP.$mode CONJ AP.$mode
-                     {%1 _1 2 _2 %3} |
-                     ! "[totally green] and [very tall] ->
-                     ! "[totalmente verde] y [muy alto]
+                         1: AP.$mode CONJ AP.$mode
+                            {%1 _1 2 _2 %3} |
+                            ! "[totally green] and [very tall] ->
+                            ! "[totalmente verde] y [muy alto]
                        
-                  1: apos %AP apos {1 _1 %2 _2 3} ;
-                     ! " 'blue' " -> " 'azul' "
+                         1: apos %AP apos {1 _1 %2 _2 3} |
+                            ! " 'blue' " -> " 'azul' "
+                     
+                         0: %adj enough@adv {2 _1 %1} |
+                         0: np.loc guio vblex.pp {%3 _ en@pr _ 1} |
+                         0: %AP to@pr INF {%1 _1 de@pr _2 3} ;
 
+controlnoun = desire order need right duty failure power wish capacity ability hope chance honour compulsion responsibility opportunity idea record way attempt obligation impulse surprise will mean;
+
+verbtype = pron;
+
+INF.temps -> 0: %vblex.inf {%1 se@prn.enc.ref.p3.mf.sp.[1.lemq]} (1.verbtype/tl = pron)
+                            ! ^ TODO: mlu
+                           {%1} |
+             0: %vblex.sep.inf {%1} |
+             0: %vbser.inf {%1} |
+             0: %vbmod.inf {%1} |
+             0: %vaux.inf {%1} |
+             0: %INF prn.obj
+                {%1 _1 prn.enc(lem=2.lem, person=2.person, gender=2.gender,
+		               number=2.number, lemq=1.lemq)} ;
+             
 tractaments =[] Mr\. Mrs\. Ms\. Dr\.;
 NA.number.gender -> 2: %NOM {%1} |
                        ! gender probably hasn't changed, but just in case
@@ -138,7 +156,8 @@ NA.number.gender -> 2: %NOM {%1} |
 				 2.lem/sl in tractaments |
 				 2.lem/sl in weekday)
 		       {2 _1 de@pr _ 1} |
-		    0: NOM NOM %NOM {3 _2 2 _1 1};
+		    0: NOM NOM %NOM {3 _2 2 _1 1} |
+		    0: %NOM to@pr INF {%1 _1 2 _2 3} ;
 
 yearmonth = year month;
 one = 1 one;
@@ -173,5 +192,34 @@ NP.number.gender -> 1: all@predet %NP.pl.$gender/tl
 		    0: $under20@AGE {%niño@n _ de@pr _ 1} |
 		    0: AGE {persona@n.f.sg _ de@pr _ 1} ;
 
+REL.tipus_rel.gender.number -> 0: which@prn.itg [$tipus_rel=nn]
+                                  {el\ cual@rel.nn.$gender.$number} |
+                               0: which@rel.an [$tipus_rel=nn]
+                                  {el\ cual@rel.nn.$gender.$number} ;
 
-! pick up at 15066
+NUM.gender.number -> 0: num {%1};
+DET.gender.number -> 0: det {%1};
+! TODO: 15232, 15288 - incorporate into other rules
+
+SN.tipus_det.gender.number -> 0: det num {%1 _1 %2};
+
+! TODO: 15370
+
+auxtemps = will shall;
+controlverbs = be#\ likely be#\ unlikely desire need wish hope choose expect pretend prefer promise recommend decide manage refuse agree avoid enjoy hate intend plan continue resolve try like vow;
+
+! having all these resulting VERB doesn't control for order
+! maybe they should be split, but it seems easier to do it this way
+! and better to err on the side of parsing everything
+VERB.temps.person.number -> 0: %vblex {%1} |
+                            0: %vbser VERB.ger {%estar@vblex _1 2} |
+                            0: %vbhaver VERB.pp {%1 _1 2(gender=m, number=sg)} |
+                            0: %do@vbaux VERB
+                               {_1 %2(tense=ifi)} (1.tense = past)
+                               {_1 %2(tense=pri)} |
+                            0: %$auxtemps@vbaux VERB {_1 %2(tense=fti)} |
+                            0: %would@vbaux VERB {_1 %2(tense=cni)} |
+                            0: %vbaux VERB.inf {%1 _1 2} |
+                            0: %$controlverbs@vblex to@pr VERB.inf
+                               {%1 _1 _2 3} ;
+adv VERB.temps.person.number -> 0: %VERB adv {{2} _1 {1}};

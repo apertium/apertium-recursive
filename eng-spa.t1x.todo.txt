@@ -1,0 +1,109 @@
+6408	REGLA: ADJ NUM ADJ NOM (top 100 listed companies)
+6852	REGLA: PREADV ADJ NOM (és com la regla anterior, però inclou tb adverbis junt amb pp: 'locally produced materials'. No hi ha cap regla per ADV ADJ(pp) NOM perquè l'adverbi no sempre modifica l'adjectiu o pp (....'always green articles'). He pensat que quan és 'pp' és més probable que l'adverbi modifiqui el pp, tot i que tampoc sempre és així.
+11368	REGLA: NOM1 NOM2 NOM3 -> NOM3 de NOM2 del NOM1 (noms comuns: una altra manera de solucionar reordenaments no volguts de noms propis, que en les regles anteriors es fa mitjançant operacions dins la regla
+14368	REGLA: NUM-NOM1-OLD NOM3 -> NOM3 de NUM NOM1(pl) (9-year-old - (nen) de 9 anys)
+14489	REGLA: NUM-NOM1-OLD NOM3 unknown -> NOM3 de NUM NOM1(pl) unknown (9-year-old xxxxxx - de 9 anys xxxxxx) - quan va abans d'una desconeguda no s'afegeix el nom (nen/persona)
+14704	REGLA: DET NUM-NOM1-OLD NOM3 unknown-> DET NOM3 de NUM NOM1(pl) unknown (the 9-year-old xxxxxx - de 9 anys xxxxx)
+15232	REGLA: PRONOM
+15288	REGLA: PRONOM reflexiu
+15370	REGLA: PREPOSICIÓ PRONOM_OBJECTE : with him - amb ell
+17407	REGLA: VERB copulatiu PP (el verb 'ser' del passat agafa aquí la forma perifràstica
+17554	REGLA: VERB copulatiu ADV
+17622	REGLA: be_sorry coma/punt
+17690	REGLA: be sorry ADV
+17752	REGLA: be sorry ADV coma/punt
+17852	REGLA: VERB
+17887	REGLA: VbSER + PRN(SUBJECT) are you...  eres...
+17931	REGLA: VERB+clític: finds it-> el troba
+17986	REGLA: VERB MODAL (have to, want to). Per quan apareix sol o amb un verb desconegut
+18028	REGLA: INF (per a col·locar la cua en les multiparaules)
+18113	REGLA: INF+clític
+18209	REGLA: TO INF (BCN canvia la prep 'a' per 'per' davant infinitiu')
+18310	REGLA: TO INF (BCN canvia la prep 'a' per 'per' davant infinitiu')
+18423	REGLA: PPRS (per a col·locar la cua en les multiparaules. per ara 'pprs' no es fa servir per res, he copiat la regla del gerundi per treure com a chunk gerundi; si de cas, més endavant s'ha d'estudiar la utilitat del pprs.)
+18486	REGLA: PPRS+clític (ídem regla anterior PPRS)
+18559	REGLA: GER (per a col·locar la cua en les multiparaules i el pronom dels verbs pronominals)
+18625	REGLA: GER+clític
+18699	REGLA: PREP GER 
+18814	REGLA: PREP GER+clític
+18929	PREP HAVERger PARTICIPI (without having finished - sense haver(inf) acabat)
+19056	PREP HAVERger PARTICIPI clític (without having finished it - sense haver-lo acabat)
+19185	REGLA: non-GER NOM, non-eating area > àrea de no menjar 
+19241	REGLA: non GER NOM, non eating area > àrea de no menjar
+19297	REGLA: det GER NOM, no eating area > cap àrea de menjar / an eating area - una àrea de menjar
+19370	REGLA: with no GER NOM, with no eating disorders > sense desordres de menjar
+19426	REGLA: no GER: no eating  > no menjar
+19466	REGLA: ADV-GER: fast-growing > que creix/en ràpidament
+19518	REGLA: ADJ-GER: fast-growing > que creix/en ràpidament (tagger tria adj i no adv)
+19593	REGLA: NOM-GER: Holocaust-denying (bishop) > (bisbe) que nega holocaust
+19652	REGLA: DET ADV-GER: the fast-growing > que creix/en ràpidament
+19717	REGLA: DET ADJ-GER: the fast-growing > que creix/en ràpidament (tagger tria adj i no adv)
+19806	REGLA: DET NOM-GER: the Holocaust-denying (bishop) > el (bisbe) que nega holocaust
+19879	REGLA: VERB SUBS (living -> viure)
+19942	REGLA: VERB SUBS+clític (living it -> viure'l) ATENCIÓ: no he pogut comprovar si funciona -carmentano
+20013	REGLA: VERB PART. Seran GD i ND excepte 'ser' i 'estar'. Caldria afegir el pp en les regles d'adjectiu?)
+20077	REGLA: AUX (de temps) VERB (will come, would come)
+20118	REGLA: AUX (de temps) VERB (will come, would come) + clític: will sing it -> el cantarà
+20178	REGLA: AUX (de mode) VERB (can come, should come)
+20221	REGLA: AUX (de mode) VERB (can come, should come) + clític (she should sing it -> l'hauria de cantar)
+20274	REGLA: DO (aux) VERB (do come, did come -> vénen, van venir)
+20315	REGLA: DO (aux) VERB + clític (do come, did come -> vénen, van venir)
+20373	REGLA: MODAL conjugable + VERB (had to come - va/van haver de venir)
+20428	REGLA: MODAL conjugable + VERB + clític (had to sing it -> el van haver de cantar)
+20494	REGLA: AUX + MODAL conjugable + VERB (I will have to come - hauré de venir)
+20611	REGLA: AUX + MODAL conjugable + VERB + clític (I will have to sing it - l'hauré de cantar)
+20747	REGLA: AUX + MODAL conjugable + VERB (I will have to - hauré de)
+20849	HAVER ADV YET PARTICIPI (have not yet asked - No lo han preguntado todavía)
+20986	HAVER PARTICIPI (have finished - han acabat)
+21056	HAVER PARTICIPI clític (have finished it - l'han acabat)
+21137	HAVER PARTICIPIcontrolverb TO INF (BCN)
+21238	REGLA: VERBcontrol + to + INF (BCN 'try/need/... to do this -> intentar/necessitar/ fer'
+21335	REGLA: VERBcontrol + to + INF (BCN 'try/need/... to do this -> intentar/necessitar/ fer
+21451	REGLA: AUX + VERBcontrol + to + INF (BCN 'try/need/... to do this -> intentar/necessitar/ fer'
+21525	REGLA: AUX + ADV + VERBcontrol + to + INF (BCN 'try/need/... to do this -> intentar/necessitar/ fer'
+21629	REGLA: AUX (temps) + VERBcontrol + to + INF (BCN 'try/need/... to do this -> intentar/necessitar/ fer'
+21701	REGLA: AUX (temps) + ADV + VERBcontrol + to + INF (BCN 'try/need/... to do this -> intentar/necessitar/ fer'
+21809	REGLA: BE GER (am saying -> estic dient)
+21893	REGLA: BE GER clític (am saying it-> ho estic dient)
+21997	REGLA: BE ADV GER (is always/not working -> sempre/no està treballant
+22115	REGLA: BE ADV GER clític (is always singing it-> sempre l'està cantant
+22253	REGLA: BE CONTROLger TO INF(BCN am planning to go -> estic planejant anar)
+22373	REGLA: BE going to INF (am going to read -> llegiré; was going to read -> anava a llegir ) mireia
+22436	REGLA: BE going to INF clitic (am going to read it -> el llegiré; was going to read -> l'anava a llegir )
+22516	REGLA: BE ADV going to INF (am not/always going to read ->no llegiré; was not/always going to read -> no anava a llegir ) mireia
+22612	REGLA: BE ADV going to INF clitic (am not/always going to read ->no llegiré; was not/always going to read -> no anava a llegir )
+22729	REGLA: VERB + ING (BCN 'avoid doing -> evitar fer'
+22780	REGLA: AUX + VERB + ING (BCN 'can avoid doing -> pot evitar fer'
+22839	REGLA: AUX (temps) + VERB + ING (BCN 'will avoid doing this -> evitar fer'
+22893	REGLA: AUX ADV VERB (will always think -> sempre pensaré. will not think -> no pensaré.)
+22965	REGLA: AUX ADV VERB clític (will always sing it-> sempre el cantaré. will not sing it-> no el cantaré.)
+23054	REGLA: AUX ADV VERB (can always think -> sempre puc pensar)
+23128	REGLA: AUX ADV VERB clític (can always think it -> sempre el puc pensar)
+23215	REGLA: AUX ADV VERB (I do not think -> no penso. I do always think -> sempre penso)
+23287	REGLA: AUX ADV VERB clític (I do not sing it -> no el canto. I do always sing it-> sempre el canto)
+23375	AUX + ADV + MODAL conjugable + VERB (He will sometimes have to explain - Alguna vegada haurà d'explicar. He will not have to explain -> No haurà d'explicar. He does not have to explain - No ha d'explicar)
+23530	AUX + ADV + MODAL conjugable + VERB + clític (He will sometimes have to explain it- Alguna vegada l'haurà d'explicar. He will not have to explain it-> No l'haurà d'explicar. He does not have to explain it- No l'ha d'explicar)
+23699	HAVER ADV PARTICIPI (have always/not asked - Sempre/No han preguntat)
+23872	PRONOM HAVER PARTICIPI clític (have always/not asked it- Sempre/No l'han preguntat)
+23989	AUXtemps HAVER PARTICIPI (would have finished - hauria acabat)
+24039	AUXmod HAVER PARTICIPI (might have finished - podria haver acabat)
+24089	AUXtemps HAVER SERpp GER (would have been giving - habria estado dando)
+24143	AUXmod HAVER PARTICIPI (might have finished - podria haver acabat)
+24201	AUXtemps HAVER PARTICIPI clític (would have finished it - l'hauria acabat)
+24260	AUXmod HAVER PARTICIPI clític (might have finished it - el podria haver acabat)
+24320	AUXtemps HAVER SERpp GER clític (might have been giving it - el podria haver acabat)
+24386	AUXmod HAVER SERpp GER clític (might have been giving it - el podria haver acabat)
+24454	AUXtemps HAVER PARTICIPIcontrolverb TO INF (would have decided to come)
+24534	AUXmod HAVER PARTICIPIcontrolverb TO INF (should have decided to come)
+24618	AUXtemps ADV HAVER PARTICIPI (would always/not have asked - Sempre/No hauria preguntat)
+24699	AUXmod ADV HAVER PARTICIPI (should always/not have asked - Sempre/No hauria d'haver preguntat)
+24781	AUXtemps PRONOM HAVER PARTICIPI clític (would always/not have asked it- Sempre/No ho hauria preguntat)
+24872	AUXmod PRONOM HAVER PARTICIPI clític (should always/not have asked it- Sempre/No ho hauria d'haver preguntat)
+24964	REGLA: HAVE PP + NOMBRE + VERBOgerundio (has spend months fighting - ha pasado meses luchando)
+25141	REGLA: VERBO + NOMBRE + VERBOgerundio (spend months fighting - pasar meses luchando)
+25248	REGLA: NOM1-LIKE -> estilo NOM1 (dog-like - estilo perro)
+25285	REGLA: NOM1-LIKE NOM2 -> NOM2 estilo NOM1 (dog-like bat - murciélago estilo perro)
+25336	REGLA: NOM1-LIKE NOM2 -> NOM2 estilo NOM1 (bus-like muscle movements - movimientos de músculo estilo autobús)
+25405	REL (funció de nom)
+25433	REL (funció adjectiva: visitors who search peace)
+25463	PRONOM tònic/interrogatiu/possessiu (queda com a GD o ND si és el cas)

@@ -84,6 +84,7 @@ static const wchar_t BLANK     = L'b';
 
 // Other
 
-static const wchar_t CONCAT = L'+';
+static const wchar_t CONCAT     = L'+';
+static const wchar_t REJECTRULE = L'X';
 
 #endif

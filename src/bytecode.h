@@ -79,9 +79,8 @@ static const wchar_t APPENDALLCHILDREN = L'3';
 
 // Output
 
-static const wchar_t OUTPUT    = L'<';
-static const wchar_t COPYINPUT = L'#';
-static const wchar_t BLANK     = L'b';
+static const wchar_t OUTPUT = L'<';
+static const wchar_t BLANK  = L'b';
 
 // Other
 

@@ -263,7 +263,7 @@ Interchunk::popChunk()
   }
 }
 
-void
+bool
 Interchunk::applyRule(wstring rule)
 {
   bool in_let_setup = false;
@@ -279,6 +279,24 @@ Interchunk::applyRule(wstring rule)
         if(printingSteps) { wcerr << "dup" << endl; }
         theStack.push(theStack.top());
         break;
+      case OVER:
+        if(printingSteps) { wcerr << "over" << endl; }
+      {
+        StackElement a = popStack();
+        StackElement b = theStack.top();
+        theStack.push(a);
+        theStack.push(b);
+      }
+        break;
+      case SWAP:
+        if(printingSteps) { wcerr << "swap" << endl; }
+      {
+        StackElement a = popStack();
+        StackElement b = popStack();
+        theStack.push(a);
+        theStack.push(b);
+      }
+        break;
       case STRING:
       {
         if(printingSteps) { wcerr << "string" << endl; }
@@ -291,6 +309,14 @@ Interchunk::applyRule(wstring rule)
       case INT:
         if(printingSteps) { wcerr << "int" << endl; }
         pushStack((int)rule[++i]);
+        break;
+      case PUSHFALSE:
+        if(printingSteps) { wcerr << "pushfalse" << endl; }
+        pushStack(false);
+        break;
+      case PUSHTRUE:
+        if(printingSteps) { wcerr << "pushtrue" << endl; }
+        pushStack(true);
         break;
       case JUMP:
         if(printingSteps) { wcerr << "jump" << endl; }
@@ -625,11 +651,16 @@ Interchunk::applyRule(wstring rule)
         }
       }
         break;
+      case REJECTRULE:
+        if(printingSteps) { wcerr << "rejectrule" << endl; }
+        return false;
+        break;
       default:
         wcerr << "unknown instruction: " << rule[i] << endl;
         exit(1);
     }
   }
+  return true;
 }
 
 Chunk *
@@ -857,7 +888,7 @@ Interchunk::interchunk_do_pass()
     {
       applyWord(*parseTower[layer][i]);
     }
-    int val = ms.classifyFinals(me->getFinals());
+    int val = ms.classifyFinals(me->getFinals(), rejectedRules);
     if(val != -1)
     {
       rule = val-1;
@@ -873,9 +904,16 @@ Interchunk::interchunk_do_pass()
     currentInput.clear();
     currentOutput.clear();
     currentInput.assign(parseTower[layer].begin(), parseTower[layer].begin()+len);
-    parseTower[layer].erase(parseTower[layer].begin(), parseTower[layer].begin()+len);
-    applyRule(rule_map[rule]);
-    parseTower[layer+1].insert(parseTower[layer+1].end(), currentOutput.begin(), currentOutput.end());
+    if(applyRule(rule_map[rule]))
+    {
+      parseTower[layer].erase(parseTower[layer].begin(), parseTower[layer].begin()+len);
+      parseTower[layer+1].insert(parseTower[layer+1].end(), currentOutput.begin(), currentOutput.end());
+      rejectedRules.clear();
+    }
+    else
+    {
+      rejectedRules.insert(rule+1);
+    }
     currentInput.clear();
     currentOutput.clear();
     if(layer+2 == parseTower.size())
@@ -892,6 +930,7 @@ Interchunk::interchunk_do_pass()
     {
       shiftCount++;
     }
+    rejectedRules.clear();
   }
 }
 

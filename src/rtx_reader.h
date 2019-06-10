@@ -154,6 +154,9 @@ private:
     void makePattern(int ruleid);
     
     int longestPattern;
+    
+    wstring compileString(wstring s);
+    wstring compileClip(wstring part, int pos, wstring side);
 
 public:
   static wstring const ANY_TAG;

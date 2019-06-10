@@ -271,7 +271,15 @@ Interchunk::applyRule(wstring rule)
   {
     switch(rule[i])
     {
-      case L's': // string
+      case DROP:
+        if(printingSteps) { wcerr << "drop" << endl; }
+        popStack();
+        break;
+      case DUP:
+        if(printingSteps) { wcerr << "dup" << endl; }
+        theStack.push(theStack.top());
+        break;
+      case STRING:
       {
         if(printingSteps) { wcerr << "string" << endl; }
         int ct = rule[++i];
@@ -280,15 +288,18 @@ Interchunk::applyRule(wstring rule)
         if(printingSteps) { wcerr << " -> " << theStack.top().s << endl; }
       }
         break;
-      case L'j': // jump
+      case INT:
+        if(printingSteps) { wcerr << "int" << endl; }
+        pushStack((int)rule[++i]);
+        break;
+      case JUMP:
         if(printingSteps) { wcerr << "jump" << endl; }
         i += rule[++i];
         break;
-      case L'?': // test
-        if(printingSteps) { wcerr << "test" << endl; }
+      case JUMPONFALSE:
+        if(printingSteps) { wcerr << "jumponfalse" << endl; }
         if(popBool())
         {
-          if(printingSteps) { wcerr << " -> passed" << endl; }
           i++;
         }
         else
@@ -296,35 +307,28 @@ Interchunk::applyRule(wstring rule)
           i += rule[++i];
         }
         break;
-      case L'&': // and
+      case AND:
         if(printingSteps) { wcerr << "and" << endl; }
       {
-        int count = rule[++i];
-        bool val = true;
-        for(int j = 0; j < count; j++)
-        {
-          val = popBool() && val;
-        }
-        pushStack(val);
+        bool a = popBool();
+        bool b = popBool();
+        pushStack(a && b);
       }
         break;
-      case L'|': // or
+      case OR:
         if(printingSteps) { wcerr << "or" << endl; }
       {
-        int count = rule[++i];
-        bool val = false;
-        for(int j = 0; j < count; j++)
-        {
-          val = popBool() || val;
-        }
-        pushStack(val);
+        bool a = popBool();
+        bool b = popBool();
+        pushStack(a || b);
       }
         break;
-      case L'!': // not
+      case NOT:
         if(printingSteps) { wcerr << "not" << endl; }
         theStack.top().b = !theStack.top().b;
         break;
-      case L'=': // equal
+      case EQUAL:
+      case EQUALCL:
         if(printingSteps) { wcerr << "equal" << endl; }
       {
         StackElement _a = popStack();
@@ -357,11 +361,8 @@ Interchunk::applyRule(wstring rule)
           wcerr << "not sure how to do equality on mode " << _b.mode << endl;
           exit(1);
         }
-        //wstring a = popStack().s;
-        //wstring b = popStack().s;
-        if(rule[i+1] == '#')
+        if(rule[i] == EQUALCL)
         {
-          i++;
           a = StringUtils::tolower(a);
           b = StringUtils::tolower(b);
         }
@@ -369,14 +370,14 @@ Interchunk::applyRule(wstring rule)
         if(printingSteps) { wcerr << " -> " << theStack.top().b << endl; }
       }
         break;
-      case L'(': // begins-with
-        if(printingSteps) { wcerr << "begins-with" << endl; }
+      case ISPREFIX:
+      case ISPREFIXCL:
+        if(printingSteps) { wcerr << "isprefix" << endl; }
       {
         wstring substr = popString();
         wstring str = popString();
-        if(rule[i+1] == '#')
+        if(rule[i] == ISPREFIXCL)
         {
-          i++;
           pushStack(beginsWith(StringUtils::tolower(str), StringUtils::tolower(substr)));
         }
         else
@@ -385,14 +386,14 @@ Interchunk::applyRule(wstring rule)
         }
       }
         break;
-      case L')': // ends-with
-        if(printingSteps) { wcerr << "ends-with" << endl; }
+      case ISSUFFIX:
+      case ISSUFFIXCL:
+        if(printingSteps) { wcerr << "issuffix" << endl; }
       {
         wstring substr = popString();
         wstring str = popString();
-        if(rule[i+1] == '#')
+        if(rule[i] == ISSUFFIXCL)
         {
-          i++;
           pushStack(endsWith(StringUtils::tolower(str), StringUtils::tolower(substr)));
         }
         else
@@ -401,16 +402,16 @@ Interchunk::applyRule(wstring rule)
         }
       }
         break;
-      case L'[': // begins-with-list
-        if(printingSteps) { wcerr << "begins-with-list" << endl; }
+      case HASPREFIX:
+      case HASPREFIXCL:
+        if(printingSteps) { wcerr << "hasprefix" << endl; }
       {
         wstring list = popString();
         wstring needle = popString();
         set<wstring, Ltstr>::iterator it, limit;
 
-        if(rule[i+1] == '#')
+        if(rule[i] == HASPREFIXCL)
         {
-          i++;
           it = lists[list].begin();
           limit = lists[list].end();
         }
@@ -433,16 +434,16 @@ Interchunk::applyRule(wstring rule)
         pushStack(found);
       }
         break;
-      case L']': // ends-with-list
-        if(printingSteps) { wcerr << "ends-with-list" << endl; }
+      case HASSUFFIX:
+      case HASSUFFIXCL:
+        if(printingSteps) { wcerr << "hassuffix" << endl; }
       {
         wstring list = popString();
         wstring needle = popString();
         set<wstring, Ltstr>::iterator it, limit;
 
-        if(rule[i+1] == '#')
+        if(rule[i] == HASSUFFIXCL)
         {
-          i++;
           it = lists[list].begin();
           limit = lists[list].end();
         }
@@ -465,28 +466,28 @@ Interchunk::applyRule(wstring rule)
         pushStack(found);
       }
         break;
-      case L'c': // contains-substring
-        if(printingSteps) { wcerr << "contains-substring" << endl; }
+      case ISSUBSTRING:
+      case ISSUBSTRINGCL:
+        if(printingSteps) { wcerr << "issubstring" << endl; }
       {
         wstring needle = popString();
         wstring haystack = popString();
-        if(rule[i+1] == '#')
+        if(rule[i] == ISSUBSTRINGCL)
         {
-          i++;
           needle = StringUtils::tolower(needle);
           haystack = StringUtils::tolower(haystack);
         }
         pushStack(haystack.find(needle) != wstring::npos);
       }
         break;
-      case L'n': // in
+      case IN:
+      case INCL:
         if(printingSteps) { wcerr << "in" << endl; }
       {
         wstring list = popString();
         wstring str = popString();
-        if(rule[i+1] == '#')
+        if(rule[i] == INCL)
         {
-          i++;
           str = StringUtils::tolower(str);
           set<wstring, Ltstr> &myset = listslow[list];
           pushStack(myset.find(str) != myset.end());
@@ -498,43 +499,31 @@ Interchunk::applyRule(wstring rule)
         }
       }
         break;
-      case L'4': // let (var, end)
-        if(printingSteps) { wcerr << "let var" << endl; }
+      case SETVAR:
+        if(printingSteps) { wcerr << "setvar" << endl; }
       {
         wstring var = popString();
         wstring val = popString();
-        if(i+1 < rule.size() && rule[i+1] == L'#')
-        {
-          i++;
-          val = copycase(val, variables[var]);
-        }
         variables[var] = val;
       }
         break;
-      case L'<': // out
+      case OUTPUT:
         if(printingSteps) { wcerr << "out" << endl; }
-      {
-        int count = rule[++i];
-        currentOutput.resize(currentOutput.size()+count);
-        for(unsigned int j = 1; j <= count; j++)
-        {
-          currentOutput[currentOutput.size()-j] = popChunk();
-        }
-      }
+        currentOutput.push_back(popChunk());
         break;
-      case L'S': // clip side="sl"
-        if(printingSteps) { wcerr << "sl clip" << endl; }
+      case SOURCECLIP:
+        if(printingSteps) { wcerr << "sourceclip" << endl; }
       {
+        int pos = 2*(popInt()-1);
         wstring part = popString();
-        int pos = 2*(rule[++i]-1);
         pushStack(currentInput[pos]->chunkPart(attr_items[part], L"sl"));
       }
         break;
-      case L'T': // clip side="tl"
-        if(printingSteps) { wcerr << "tl clip" << endl; }
+      case TARGETCLIP:
+        if(printingSteps) { wcerr << "targetclip" << endl; }
       {
+        int pos = 2*(popInt()-1);
         wstring part = popString();
-        int pos = 2*(rule[++i]-1);
         if(part == L"whole")
         {
           pushStack(currentInput[pos]);
@@ -547,109 +536,93 @@ Interchunk::applyRule(wstring rule)
         else
         {
           pushStack(currentInput[pos]->chunkPart(attr_items[part], L"tl"));
-          if(printingSteps) { wcerr << " -> " << theStack.top().s << endl; }
         }
       }
         break;
-      case L'R': // clip side="ref"
-        if(printingSteps) { wcerr << "ref clip" << endl; }
+      case REFERENCECLIP:
+        if(printingSteps) { wcerr << "referenceclip" << endl; }
       {
+        int pos = 2*(popInt()-1);
         wstring part = popString();
-        int pos = 2*(rule[++i]-1);
         pushStack(currentInput[pos]->chunkPart(attr_items[part], L"ref"));
       }
         break;
-      case L't': // let clip side="tl"
-        if(printingSteps) { wcerr << "let clip" << endl; }
+      case SETCLIP:
+        if(printingSteps) { wcerr << "setclip" << endl; }
       {
+        int pos = 2*(popInt()-1);
         wstring part = popString();
-        int pos = 2*(rule[++i]-1);
         currentInput[pos]->setChunkPart(attr_items[part], popString());
       }
         break;
-      case L'$': // var
-        if(printingSteps) { wcerr << "var" << endl; }
-        if(in_let_setup)
-        {
-          in_let_setup = false;
-        }
-        else
-        {
-          pushStack(variables[popString()]);
-        }
+      case FETCHVAR:
+        if(printingSteps) { wcerr << "fetchvar" << endl; }
+        pushStack(variables[popString()]);
         break;
-      case L'G': // get-case-from, case-of
-        if(printingSteps) { wcerr << "get-case-from or case-of" << endl; }
+      case GETCASE:
+        if(printingSteps) { wcerr << "getcase" << endl; }
         pushStack(caseOf(popString()));
         break;
-      case L'A': // copy-case
-        if(printingSteps) { wcerr << "copy case" << endl; }
+      case SETCASE:
+        if(printingSteps) { wcerr << "setcase" << endl; }
       {
         wstring src = popString();
         wstring dest = popString();
         pushStack(copycase(src, dest));
       }
         break;
-      case L'+': // concat
+      case CONCAT:
         if(printingSteps) { wcerr << "concat" << endl; }
       {
-        int count = rule[++i];
-        wstring result;
-        for(unsigned int j = 0; j < count; j++)
-        {
-          result.append(popString());
-        }
+        wstring result = popString();
+        result += popString();
         pushStack(result);
       }
         break;
-      case L'{': // chunk
+      case CHUNK:
         if(printingSteps) { wcerr << "chunk" << endl; }
       {
         Chunk* ch = new Chunk();
         ch->isBlank = false;
-        int count = rule[++i];
-        for(unsigned int j = 0; j < count; j++)
-        {
-          StackElement c = popStack();
-          if(c.mode == 2)
-          {
-            ch->target = c.s + ch->target;
-          }
-          else if(c.mode == 3)
-          {
-            if(c.c->target.size() == 0)
-            {
-              ch->contents.insert(ch->contents.begin(),
-                                  c.c->contents.begin(), c.c->contents.end());
-            }
-            else
-            {
-              ch->contents.insert(ch->contents.begin(), c.c);
-            }
-          }
-          else
-          {
-            wcerr << L"Unable to add to chunk StackElement with mode " << c.mode << endl;
-            exit(1);
-          }
-        }
-        if(printingSteps) { wcerr << L" pushing chunk with target surface " << ch->target << endl; }
         pushStack(ch);
       }
         break;
-      case L'p': // pseudolemma
-        if(printingSteps) { wcerr << "pseudolemma" << endl; }
-        pushStack(popChunk()->target);
-        break;
-      case L' ': // b
-        if(printingSteps) { wcerr << "b" << endl; }
-        pushStack(new Chunk(wstring(L" ")));
-        break;
-      case L'_': // b
-        if(printingSteps) { wcerr << "b pos" << endl; }
+      case APPENDCHILD:
+        if(printingSteps) { wcerr << "appendchild" << endl; }
       {
-        int loc = 2*(rule[++i]-1) + 1;
-        pushStack(currentInput[loc]);
+        Chunk* kid = popChunk();
+        theStack.top().c->contents.push_back(kid);
+      }
+        break;
+      case APPENDSURFACE:
+        if(printingSteps) { wcerr << "appendsurface" << endl; }
+      {
+        wstring s = popString();
+        theStack.top().c->target += s;
+      }
+        break;
+      case APPENDALLCHILDREN:
+        if(printingSteps) { wcerr << "appendallchildren" << endl; }
+      {
+        Chunk* ch = popChunk();
+        for(unsigned int k = 0; k < ch->contents.size(); k++)
+        {
+          theStack.top().c->contents.push_back(ch->contents[k]);
+        }
+      }
+        break;
+      case BLANK:
+        if(printingSteps) { wcerr << "blank" << endl; }
+      {
+        int loc = 2*(popInt()-1) + 1;
+        if(loc == -1)
+        {
+          pushStack(new Chunk(L" "));
+        }
+        else
+        {
+          pushStack(currentInput[loc]);
+        }
       }
         break;
       default:

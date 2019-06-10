@@ -206,12 +206,15 @@ SN.tipus_det.gender.number -> 0: det num {%1 _1 %2};
 ! TODO: 15370
 
 auxtemps = will shall;
+
 controlverbs = be#\ likely be#\ unlikely desire need wish hope choose expect pretend prefer promise recommend decide manage refuse agree avoid enjoy hate intend plan continue resolve try like vow;
+
+copulatiu = look seem become feel get;
 
 ! having all these resulting VERB doesn't control for order
 ! maybe they should be split, but it seems easier to do it this way
 ! and better to err on the side of parsing everything
-VERB.temps.person.number -> 0: %vblex {%1} |
+VERB.temps.person.number -> 0: %vblex.$lem/sl {%1} |
                             0: %vbser VERB.ger {%estar@vblex _1 2} |
                             0: %vbhaver VERB.pp {%1 _1 2(gender=m, number=sg)} |
                             0: %do@vbaux VERB
@@ -221,5 +224,8 @@ VERB.temps.person.number -> 0: %vblex {%1} |
                             0: %would@vbaux VERB {_1 %2(tense=cni)} |
                             0: %vbaux VERB.inf {%1 _1 2} |
                             0: %$controlverbs@vblex to@pr VERB.inf
-                               {%1 _1 _2 3} ;
+                               {%1 _1 _2 3} |
+                            0: %$copulatiu@VERB VERB.pp
+                               {%1 _1 2(gender=$gender, number=$number)};
 adv VERB.temps.person.number -> 0: %VERB adv {{2} _1 {1}};
+! TODO: prn.obj and adv (not sure if second rule is right)

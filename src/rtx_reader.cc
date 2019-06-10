@@ -1,6 +1,7 @@
 #include <rtx_reader.h>
 
 #include <rtx_parser.h>
+#include <bytecode.h>
 
 #include <vector>
 #include <algorithm>
@@ -648,6 +649,61 @@ RTXReader::makePattern(int ruleid)
   td.getTransducer().setFinal(loc);
 }
 
+wstring
+RTXReader::compileString(wstring s)
+{
+  wstring ret;
+  ret += STRING;
+  ret += s.size();
+  ret += s;
+  return ret;
+}
+
+wstring
+RTXReader::compileClip(wstring part, int pos, wstring side = L"")
+{
+  wstring c = compileString(part);
+  c += INT;
+  c += pos;
+  wstring ret = c;
+  if(side == L"sl")
+  {
+    ret += SOURCECLIP;
+  }
+  else if(side == L"tl")
+  {
+    ret += TARGETCLIP;
+  }
+  else if(side == L"ref")
+  {
+    ret += REFERENCECLIP;
+  }
+  else
+  {
+    ret += TARGETCLIP;
+    ret += DUP;
+    ret += compileString(L"");
+    ret += EQUAL;
+    ret += JUMPONFALSE;
+    ret += (2*c.size() + 12);
+    ret += c;
+    ret += INT;
+    ret += pos;
+    ret += REFERENCECLIP;
+    ret += DUP;
+    ret += compileString(L"");
+    ret += EQUAL;
+    ret += JUMPONFALSE;
+    ret += (c.size() + 1);
+    ret += c;
+    ret += INT;
+    ret += pos;
+    ret += SOURCECLIP;
+  }
+  // check if has default value
+  return ret;
+}
+
 void
 RTXReader::processRules()
 {
@@ -657,27 +713,18 @@ RTXReader::processRules()
     rule = reductionRules[ruleid];
     makePattern(ruleid);
     wstring comp;
-    int output_pieces = 0;
-    wchar_t c;
-    c = rule->resultNodes[0].size() + 5;
-    comp += L's';
-    comp += c;
-    comp += L"unk<" + rule->resultNodes[0] + L">";
-    output_pieces++;
+    comp += CHUNK;
+    comp += compileString(L"unk<" + rule->resultNodes[0] + L">");
+    comp += APPENDSURFACE;
     for(unsigned int vidx = 0; vidx < rule->resultVars[0].size(); vidx++)
     {
       wstring v = rule->resultVars[0][vidx];
-      c = v.size();
       bool foundvar = false;
       for(unsigned int g = 0; g < rule->variableGrabs[0].size(); g++)
       {
         if(rule->variableGrabs[0][g].second == v)
         {
-          comp += L's';
-          comp += c;
-          comp += v;
-          comp += L'T';
-          comp += (wchar_t)rule->variableGrabs[0][g].first;
+          comp += compileClip(v, rule->variableGrabs[0][g].first, L"tl");
           foundvar = true;
           break;
         }
@@ -686,20 +733,14 @@ RTXReader::processRules()
       {
         if(rule->grab_all == -1)
         {
-          comp += L's';
-          comp += 5;
-          comp += L"<unk>"; // TODO
+          comp += compileString(L"<unk>"); // TODO
         }
         else
         {
-          comp += L's';
-          comp += c;
-          comp += v;
-          comp += L'T';
-          comp += (wchar_t)rule->grab_all+1;
+          comp += compileClip(v, rule->grab_all+1, L"tl");
         }
       }
-      output_pieces++;
+      comp += APPENDSURFACE;
     }
     for(unsigned int oidx = 0; oidx < rule->resultContents[0].size(); oidx++)
     {
@@ -708,14 +749,17 @@ RTXReader::processRules()
       {
         if(cur.size() > 1)
         {
-          comp += L'_';
+          comp += INT;
           comp += (wchar_t)stoi(cur[1]);
+          comp += BLANK;
         }
         else
         {
-          comp += L' ';
+          comp += INT;
+          comp += (wchar_t)0;
+          comp += BLANK;
         }
-        output_pieces++;
+        comp += APPENDCHILD;
       }
       else
       {
@@ -734,39 +778,23 @@ RTXReader::processRules()
           {
             continue;
           }
-          comp += L's';
-          comp += updates[u]->srcvar.size();
-          comp += updates[u]->srcvar;
           if(updates[u]->src != 0)
           {
-            if(updates[u]->side == L"sl")
-            {
-              comp += L'S';
-            }
-            else if(updates[u]->side == L"ref")
-            {
-              comp += L'R';
-            }
-            else
-            {
-              comp += L'T';
-            }
-            comp += updates[u]->src;
+            comp += compileClip(updates[u]->srcvar, updates[u]->src, updates[u]->side);
           }
-          comp += L's';
-          comp += updates[u]->destvar.size();
-          comp += updates[u]->destvar;
-          comp += L't';
+          else
+          {
+            comp += compileString(updates[u]->srcvar);
+          }
+          comp += compileString(updates[u]->destvar);
+          comp += INT;
           comp += i;
+          comp += SETCLIP;
         }
         if(rule->pattern[i-1].size() == 1)
         {
-          comp += L's';
-          comp += 5;
-          comp += L"whole";
-          comp += L'T';
-          comp += i;
-          output_pieces++;
+          comp += compileClip(L"whole", i, L"tl");
+          comp += APPENDCHILD;
         }
         else
         {
@@ -780,81 +808,57 @@ RTXReader::processRules()
             if(outputRules[o].first[0] == pos)
             {
               foundoutput = true;
-              int ct = 0;
-              vector<wstring> rl = outputRules[0].second;
+              comp += CHUNK;
+              vector<wstring> rl = outputRules[o].second;
               for(unsigned int p = 0; p < rl.size(); p++)
               {
                 if(rl[p] == L"_")
                 {
-                  ct += 2;
-                  comp += L's';
-                  comp += 3;
-                  comp += L"lem";
-                  comp += L'T';
-                  comp += i;
-                  comp += L's';
-                  comp += (pos.size()+2);
-                  comp += L'<';
-                  comp += pos;
-                  comp += L'>';
+                  comp += compileClip(L"lem", i, L"tl");
+                  comp += APPENDSURFACE;
+                  comp += compileString(L"<" + pos + L">");
+                  comp += APPENDSURFACE;
                 }
                 else if(rl[p][0] == L'<')
                 {
-                  ct++;
-                  comp += L's';
-                  comp += rl[p].size();
-                  comp += rl[p];
+                  comp += compileString(rl[p]);
+                  comp += APPENDSURFACE;
                 }
                 else
                 {
-                  ct++;
                   bool found = false;
                   for(unsigned int v = 0; v < rule->resultVars[0].size(); v++)
                   {
                     if(rule->resultVars[0][v] == rl[p])
                     {
-                      wstring s = L"<" + to_wstring(v+2) + L">";
-                      comp += L's';
-                      comp += s.size();
-                      comp += s;
+                      comp += compileString(L"<" + to_wstring(v+2) + L">");
+                      comp += APPENDSURFACE;
                       found = true;
                       break;
                     }
                   }
                   if(!found)
                   {
-                    comp += L's';
-                    comp += rl[p].size();
-                    comp += rl[p];
-                    comp += L'T';
-                    comp += i;
+                    comp += compileClip(rl[p], i, L"tl");
+                    comp += APPENDSURFACE;
                   }
                 }
               }
-              if(ct > 0)
-              {
-                comp += L'{';
-                comp += ct;
-                output_pieces++;
-              }
+              comp += compileClip(L"whole", i, L"tl");
+              comp += APPENDALLCHILDREN;
+              comp += APPENDCHILD;
+              break;
             }
           }
           if(!foundoutput)
           {
-            comp += L's';
-            comp += 5;
-            comp += L"whole";
-            comp += L'T';
-            comp += i;
-            output_pieces++;
+            comp += compileClip(L"whole", i, L"tl");
+            comp += APPENDCHILD;
           }
         }
       }
     }
-    comp += L'{';
-    comp += output_pieces;
-    comp += L'<';
-    comp += 1;
+    comp += OUTPUT;
     rule->compiled = comp;
   }
 }

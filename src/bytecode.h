@@ -4,7 +4,7 @@
 // Stack Operations
 
 static const wchar_t DROP = L'd';
-static const wchar_t DUP  = L'2';
+static const wchar_t DUP  = L'*';
 static const wchar_t OVER = L'o';
 static const wchar_t SWAP = L'w';
 
@@ -72,9 +72,10 @@ static const wchar_t SETCLIP       = L'>';
 
 // Chunks
 
-static const wchar_t CHUNK         = L'C';
-static const wchar_t APPENDCHILD   = L'1';
-static const wchar_t APPENDSURFACE = L'2';
+static const wchar_t CHUNK             = L'C';
+static const wchar_t APPENDCHILD       = L'1';
+static const wchar_t APPENDSURFACE     = L'2';
+static const wchar_t APPENDALLCHILDREN = L'3';
 
 // Output
 

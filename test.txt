@@ -1,0 +1,1 @@
+^potato<n><sg><m>/patata<n><sg><m>$ ^green<adj><blah>/verde<adj>$ * ^do<v><bloop>/hace<v>$

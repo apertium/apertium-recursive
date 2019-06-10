@@ -28,7 +28,19 @@ private:
     wstring destvar;
     wstring side;
   };
-  
+
+  struct ResultNode
+  {
+    wstring mode;
+    int pos;
+    wstring lemma;
+    map<wstring, pair<int, wstring>> clips;
+    vector<wstring> tags;
+    bool getall;
+    bool dontoverwrite;
+    vector<VarUpdate*> updates;
+  };
+
   struct Rule
   {
     int ID;
@@ -38,10 +50,11 @@ private:
     vector<vector<wstring>> pattern;
     vector<wstring> resultNodes;
     vector<vector<wstring>> resultVars;
-    vector<vector<vector<wstring>>> resultContents;
+    vector<vector<ResultNode*>> resultContents;
     vector<vector<pair<int, wstring>>> variableGrabs;
     vector<VarUpdate*> variableUpdates;
     wstring compiled;
+    vector<map<wstring, int>> varMap;
   };
 
   multimap<wstring, LemmaTags, Ltstr> cat_items;
@@ -157,6 +170,7 @@ private:
     
     wstring compileString(wstring s);
     wstring compileClip(wstring part, int pos, wstring side);
+    wstring processOutput(Rule* rule, ResultNode* r);
 
 public:
   static wstring const ANY_TAG;

@@ -578,7 +578,14 @@ Interchunk::applyRule(wstring rule)
       {
         int pos = 2*(popInt()-1);
         wstring part = popString();
-        currentInput[pos]->setChunkPart(attr_items[part], popString());
+        if(pos >= 0)
+        {
+          currentInput[pos]->setChunkPart(attr_items[part], popString());
+        }
+        else
+        {
+          theStack.top().c->setChunkPart(attr_items[part], popString());
+        }
       }
         break;
       case FETCHVAR:

@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <iterator>
 
 using namespace std;
 
@@ -95,7 +96,12 @@ RTXReader::nextTokenNoSpace()
     while(!source.eof())
     {
       c = source.peek();
-      if(SPECIAL_CHARS.find(c) == string::npos && !isspace(c))
+      if(c == L'\\')
+      {
+        ret += source.get();
+        ret += source.get();
+      }
+      else if(SPECIAL_CHARS.find(c) == string::npos && !isspace(c))
       {
         ret += wstring(1, source.get());
       }
@@ -323,96 +329,153 @@ RTXReader::parsePatternElement(Rule* rule)
 void
 RTXReader::parseOutputElement(Rule* rule)
 {
-  vector<wstring> ret;
-  bool getall = false;
+  ResultNode* ret = new ResultNode;
+  ret->getall = false;
+  ret->dontoverwrite = false;
   if(source.peek() == L'%')
   {
     source.get();
-    getall = true;
+    ret->getall = true;
+    if(source.peek() == L'%')
+    {
+      source.get();
+      ret->dontoverwrite = true;
+    }
   }
   if(source.peek() == L'_')
   {
-    ret.push_back(L"_");
+    if(ret->getall)
+    {
+      die(L"% cannot be used on blanks");
+    }
+    ret->mode = L"_";
     source.get();
     if(isdigit(source.peek()))
     {
-      int pos;
-      source >> pos;
-      if(pos < 1 || pos >= rule->patternLength)
+      source >> ret->pos;
+      if(ret->pos < 1 || ret->pos >= rule->patternLength)
       {
         die(L"position index of blank out of bounds");
       }
-      ret.push_back(to_wstring(pos));
+    }
+    else
+    {
+      ret->pos = 0;
     }
   }
   else if(isdigit(source.peek()))
   {
-    int pos;
-    source >> pos;
-    ret.push_back(to_wstring(pos));
-    if(pos < 1 || pos > rule->patternLength)
+    ret->mode = L"#";
+    source >> ret->pos;
+    if(ret->pos < 1 || ret->pos > rule->patternLength)
     {
       die(L"output index is out of bounds");
-    }
-    if(getall)
-    {
-      vector<wstring> vars = rule->resultVars[rule->resultContents.size()-1];
-      for(unsigned int v = 0; v < vars.size(); v++)
-      {
-        VarUpdate* vu = new VarUpdate;
-        vu->src = 0;
-        vu->dest = pos;
-        vu->srcvar = L"<" + to_wstring(v+2) + L">";
-        vu->destvar = vars[v];
-      }
-    }
-    if(source.peek() == L'(')
-    {
-      nextToken();
-      VarUpdate* vu = new VarUpdate;
-      vu->dest = pos;
-      while(!source.eof() && source.peek() != L')')
-      {
-        vu->destvar = nextToken();
-        nextToken(L"=");
-        eatSpaces();
-        if(isdigit(source.peek()))
-        {
-          source >> vu->src;
-          nextToken(L".");
-        }
-        else if(source.peek() == L'$')
-        {
-          vu->src = -1;
-          nextToken(L"$");
-        }
-        else
-        {
-          vu->src = 0;
-        }
-        vu->srcvar = nextToken();
-        if(source.peek() == L'/')
-        {
-          source.get();
-          vu->side = nextToken();
-        }
-        rule->variableUpdates.push_back(vu);
-        eatSpaces();
-        if(source.peek() == L',')
-        {
-          source.get();
-        }
-        else
-        {
-          break;
-        }
-      }
-      nextToken(L")");
     }
   }
   else
   {
-    die(L"unexpected character: " + source.get());
+    ret->lemma = nextToken();
+    ret->mode = nextToken(L"@");
+    while(true)
+    {
+      wstring cur = nextToken();
+      VarUpdate* vu = new VarUpdate;
+      if(cur == L"$")
+      {
+        vu->src = -1;
+        vu->destvar = nextToken();
+        vector<wstring>::iterator loc = find(rule->resultVars[0].begin(), rule->resultVars[0].end(), vu->destvar);
+        vu->srcvar += L'<';
+        vu->srcvar += to_wstring(distance(rule->resultVars[0].begin(), loc)+2);
+        vu->srcvar += L'>';
+      }
+      else if(cur == L"[")
+      {
+        if(!isdigit(source.peek()))
+        {
+          die(L"expected number after [");
+        }
+        source >> vu->src;
+        nextToken(L".");
+        vu->destvar = nextToken();
+        vu->srcvar = vu->destvar;
+        if(nextToken(L"]", L"/") == L"/")
+        {
+          vu->side = nextToken();
+          nextToken(L"]");
+        }
+      }
+      else
+      {
+        vu->src = 0;
+        vu->srcvar = cur;
+      }
+      ret->updates.push_back(vu);
+      if(source.peek() == L'.')
+      {
+        source.get();
+      }
+      else
+      {
+        break;
+      }
+    }
+  }
+  if(ret->getall)
+  {
+    vector<wstring> vars = rule->resultVars[rule->resultContents.size()-1];
+    for(unsigned int v = 0; v < vars.size(); v++)
+    {
+      VarUpdate* vu = new VarUpdate;
+      vu->src = 0;
+      vu->dest = ret->pos;
+      vu->srcvar = L"<" + to_wstring(v+2) + L">";
+      vu->destvar = vars[v];
+      ret->updates.push_back(vu);
+    }
+  }
+  if(source.peek() == L'(')
+  {
+    nextToken();
+    VarUpdate* vu = new VarUpdate;
+    vu->dest = ret->pos;
+    while(!source.eof() && source.peek() != L')')
+    {
+      vu->destvar = nextToken();
+      nextToken(L"=");
+      eatSpaces();
+      if(isdigit(source.peek()))
+      {
+        source >> vu->src;
+        nextToken(L".");
+      }
+      else if(source.peek() == L'$')
+      {
+        vu->src = -1;
+        nextToken(L"$");
+      }
+      else
+      {
+        vu->src = 0;
+      }
+      vu->srcvar = nextToken();
+      if(source.peek() == L'/')
+      {
+        source.get();
+        vu->side = nextToken();
+      }
+      ret->updates.push_back(vu);
+      eatSpaces();
+      if(source.peek() == L',')
+      {
+        source.get();
+      }
+      else
+      {
+        break;
+      }
+    }
+    nextToken(L")");
   }
   rule->resultContents.back().push_back(ret);
   eatSpaces();
@@ -468,7 +531,7 @@ RTXReader::parseReduceRule(vector<wstring> output, wstring next)
     }
     for(unsigned int i = 0; i < outNodes.size(); i++)
     {
-      rule->resultContents.push_back(vector<vector<wstring>>());
+      rule->resultContents.push_back(vector<ResultNode*>());
       nextToken(L"{");
       while(!source.eof() && source.peek() != L'}')
       {
@@ -704,6 +767,175 @@ RTXReader::compileClip(wstring part, int pos, wstring side = L"")
   return ret;
 }
 
+/*
+  struct VarUpdate
+  {
+    int src;
+    int dest;
+    wstring srcvar;
+    wstring destvar;
+    wstring side;
+  };
+  struct ResultNode
+  {
+    wstring mode;
+    int pos;
+    wstring lemma;
+    map<wstring, pair<int, wstring>> clips;
+    vector<wstring> tags;
+    bool getall;
+    bool dontoverwrite;
+    vector<VarUpdate*> updates;
+  };
+*/
+
+wstring
+RTXReader::processOutput(Rule* rule, ResultNode* r)
+{
+  wstring ret;
+  if(r->mode == L"_")
+  {
+    ret += INT;
+    ret += (wchar_t)r->pos;
+    ret += BLANK;
+  }
+  else if(r->mode == L"#")
+  {
+    map<wstring, wstring> grab;
+    for(unsigned int i = 0; i < r->updates.size(); i++)
+    {
+      VarUpdate* up = r->updates[i];
+      if(up->src == -1)
+      {
+        grab[up->destvar] = up->srcvar;
+        continue;
+      }
+      else if(up->src == 0)
+      {
+        ret += compileString(up->srcvar);
+      }
+      else
+      {
+        ret += compileClip(up->srcvar, up->src, up->side);
+      }
+      ret += compileString(up->destvar);
+      ret += INT;
+      ret += (wchar_t)r->pos;
+      ret += SETCLIP;
+    }
+    if(rule->pattern[r->pos-1].size() == 1)
+    {
+      for(unsigned int i = 0; i < r->updates.size(); i++)
+      {
+        VarUpdate* up = r->updates[i];
+        if(up->src == -1)
+        {
+          wstring tag;
+          tag += L'<';
+          tag += rule->varMap[0][up->srcvar];
+          tag += L'>';
+          ret += compileString(tag);
+          ret += compileString(up->destvar);
+          ret += INT;
+          ret += (wchar_t)r->pos;
+          ret += SETCLIP;
+        }
+      }
+      ret += compileClip(L"whole", r->pos, L"tl");
+    }
+    else
+    {
+      wstring pos = rule->pattern[r->pos-1][1];
+      vector<wstring> rl;
+      for(unsigned int i = 0; i < outputRules.size(); i++)
+      {
+        // TODO: assumes output patterns are 1 tag long
+        // also, is this really what we want the semantics of output
+        // patterns to be? if not, what do we do with them instead?
+        if(outputRules[i].first[0] == pos)
+        {
+          rl = outputRules[i].second;
+          break;
+        }
+      }
+      if(rl.size() == 0)
+      {
+        ret += compileClip(L"whole", r->pos, L"tl");
+      }
+      else
+      {
+        ret += CHUNK;
+      }
+      for(unsigned int p = 0; p < rl.size(); p++)
+      {
+        if(rl[p] == L"_")
+        {
+          ret += compileClip(L"lem", r->pos, L"tl");
+          ret += APPENDSURFACE;
+          wstring tag;
+          tag += L'<';
+          tag += pos;
+          tag += L'>';
+          ret += compileString(tag);
+          ret += APPENDSURFACE;
+        }
+        else if(rl[p][0] == L'<')
+        {
+          ret += compileString(rl[p]);
+          ret += APPENDSURFACE;
+        }
+        else if(grab.find(rl[p]) != grab.end())
+        {
+          wstring tag;
+          tag += L'<';
+          tag += rule->varMap[0][grab[rl[p]]];
+          tag += L'>';
+          ret += compileString(tag);
+          ret += APPENDSURFACE;
+        }
+        else
+        {
+          ret += compileClip(rl[p], r->pos, L"tl");
+          ret += APPENDSURFACE;
+        }
+      }
+      if(rl.size() != 0)
+      {
+        ret += compileClip(L"whole", r->pos, L"tl");
+        ret += APPENDALLCHILDREN;
+      }
+    }
+  }
+  else
+  {
+    ret += CHUNK;
+    ret += compileString(r->lemma);
+    ret += APPENDSURFACE;
+    for(unsigned int i = 0; i < r->updates.size(); i++)
+    {
+      VarUpdate* up = r->updates[i];
+      if(up->src == -1)
+      {
+        wstring tag;
+        tag += L'<';
+        tag += rule->varMap[0][up->srcvar];
+        tag += L'>';
+        ret += compileString(tag);
+      }
+      else if(up->src == 0)
+      {
+        ret += compileString(up->srcvar);
+      }
+      else
+      {
+        ret += compileClip(up->srcvar, up->src, up->side);
+      }
+      ret += APPENDSURFACE;
+    }
+  }
+  return ret;
+}
+
 void
 RTXReader::processRules()
 {
@@ -716,9 +948,11 @@ RTXReader::processRules()
     comp += CHUNK;
     comp += compileString(L"unk<" + rule->resultNodes[0] + L">");
     comp += APPENDSURFACE;
+    rule->varMap.push_back(map<wstring, int>());
     for(unsigned int vidx = 0; vidx < rule->resultVars[0].size(); vidx++)
     {
       wstring v = rule->resultVars[0][vidx];
+      rule->varMap[0][v] = vidx + 2;
       bool foundvar = false;
       for(unsigned int g = 0; g < rule->variableGrabs[0].size(); g++)
       {
@@ -744,119 +978,8 @@ RTXReader::processRules()
     }
     for(unsigned int oidx = 0; oidx < rule->resultContents[0].size(); oidx++)
     {
-      vector<wstring> cur = rule->resultContents[0][oidx];
-      if(cur[0] == L"_")
-      {
-        if(cur.size() > 1)
-        {
-          comp += INT;
-          comp += (wchar_t)stoi(cur[1]);
-          comp += BLANK;
-        }
-        else
-        {
-          comp += INT;
-          comp += (wchar_t)0;
-          comp += BLANK;
-        }
-        comp += APPENDCHILD;
-      }
-      else
-      {
-        int i = stoi(cur[0]);
-        vector<VarUpdate*> updates;
-        for(unsigned int u = 0; u < rule->variableUpdates.size(); u++)
-        {
-          if(rule->variableUpdates[u]->dest == i)
-          {
-            updates.push_back(rule->variableUpdates[u]);
-          }
-        }
-        for(unsigned int u = 0; u < updates.size(); u++)
-        {
-          if(updates[u]->src == -1)
-          {
-            continue;
-          }
-          if(updates[u]->src != 0)
-          {
-            comp += compileClip(updates[u]->srcvar, updates[u]->src, updates[u]->side);
-          }
-          else
-          {
-            comp += compileString(updates[u]->srcvar);
-          }
-          comp += compileString(updates[u]->destvar);
-          comp += INT;
-          comp += i;
-          comp += SETCLIP;
-        }
-        if(rule->pattern[i-1].size() == 1)
-        {
-          comp += compileClip(L"whole", i, L"tl");
-          comp += APPENDCHILD;
-        }
-        else
-        {
-          wstring pos = rule->pattern[i-1][1];
-          bool foundoutput = false;
-          for(unsigned int o = 0; o < outputRules.size(); o++)
-          {
-            // TODO: assumes output patterns are 1 tag long
-            // also, is this really what we want the semantics of output
-            // patterns to be? if not, what do we do with them instead?
-            if(outputRules[o].first[0] == pos)
-            {
-              foundoutput = true;
-              comp += CHUNK;
-              vector<wstring> rl = outputRules[o].second;
-              for(unsigned int p = 0; p < rl.size(); p++)
-              {
-                if(rl[p] == L"_")
-                {
-                  comp += compileClip(L"lem", i, L"tl");
-                  comp += APPENDSURFACE;
-                  comp += compileString(L"<" + pos + L">");
-                  comp += APPENDSURFACE;
-                }
-                else if(rl[p][0] == L'<')
-                {
-                  comp += compileString(rl[p]);
-                  comp += APPENDSURFACE;
-                }
-                else
-                {
-                  bool found = false;
-                  for(unsigned int v = 0; v < rule->resultVars[0].size(); v++)
-                  {
-                    if(rule->resultVars[0][v] == rl[p])
-                    {
-                      comp += compileString(L"<" + to_wstring(v+2) + L">");
-                      comp += APPENDSURFACE;
-                      found = true;
-                      break;
-                    }
-                  }
-                  if(!found)
-                  {
-                    comp += compileClip(rl[p], i, L"tl");
-                    comp += APPENDSURFACE;
-                  }
-                }
-              }
-              comp += compileClip(L"whole", i, L"tl");
-              comp += APPENDALLCHILDREN;
-              comp += APPENDCHILD;
-              break;
-            }
-          }
-          if(!foundoutput)
-          {
-            comp += compileClip(L"whole", i, L"tl");
-            comp += APPENDCHILD;
-          }
-        }
-      }
+      comp += processOutput(rule, rule->resultContents[0][oidx]);
+      comp += APPENDCHILD;
     }
     comp += OUTPUT;
     rule->compiled = comp;
@@ -907,6 +1030,7 @@ RTXReader::read(const string &fname)
     }
     regex += L")";
     td.getAttrItems()[it->first] = regex;
+    wcerr << regex << endl;
   }
 }
 

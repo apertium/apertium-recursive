@@ -51,7 +51,7 @@ private:
     vector<wstring> resultNodes;
     vector<vector<wstring>> resultVars;
     vector<vector<ResultNode*>> resultContents;
-    vector<vector<pair<int, wstring>>> variableGrabs;
+    vector<VarUpdate*> variableGrabs;
     vector<VarUpdate*> variableUpdates;
     wstring compiled;
     vector<map<wstring, int>> varMap;
@@ -169,6 +169,7 @@ private:
     int longestPattern;
     
     wstring compileString(wstring s);
+    wstring compileTag(wstring s);
     wstring compileClip(wstring part, int pos, wstring side);
     wstring processOutput(Rule* rule, ResultNode* r);
 

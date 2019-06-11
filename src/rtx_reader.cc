@@ -269,56 +269,57 @@ RTXReader::parseAttrRule(vector<wstring> name)
 void
 RTXReader::parsePatternElement(Rule* rule)
 {
-  vector<wstring> ret = parseIdentGroup();
   vector<wstring> pat;
   bool inVar = false;
-  int atidx = 0;
-  if(ret[0] == L"%")
+  if(source.peek() == L'%')
   {
+    source.get();
     rule->grab_all = rule->pattern.size();
-    atidx++;
   }
-  if(find(ret.begin(), ret.end(), L"@") != ret.end())
+  wstring t1 = nextToken();
+  if(t1 == L"$")
   {
-    if(ret[atidx] == L"$")
-    {
-      pat.push_back(ret[atidx] + ret[atidx+1]);
-      atidx += 3;
-    }
-    else
-    {
-      pat.push_back(ret[atidx]);
-      atidx += 2;
-    }
+    t1 += nextToken();
+  }
+  if(source.peek() == L'@')
+  {
+    pat.push_back(t1);
+  }
+  else if(t1[0] == L'$')
+  {
+    die(L"first tag in pattern element must be literal");
   }
   else
   {
     pat.push_back(L"");
+    pat.push_back(t1);
   }
-  for(unsigned int i = atidx; i < ret.size(); i++)
+  while(!source.eof())
   {
-    if(ret[i] == L"$")
+    if(source.peek() == L'.')
     {
-      inVar = true;
-    }
-    else if(inVar)
-    {
-      for(unsigned int n = 0; n < rule->resultVars.size(); n++)
-      {
-        for(unsigned int v = 0; v < rule->resultVars[n].size(); v++)
-        {
-          if(ret[i] == rule->resultVars[n][v])
-          {
-            rule->variableGrabs[n].push_back(
-                pair<int, wstring>(rule->patternLength+1, ret[i]));
-          }
-        }
-      }
-      inVar = false;
+      source.get();
     }
     else
     {
-      pat.push_back(ret[i]);
+      break;
+    }
+    wstring cur = nextToken();
+    if(cur == L"$")
+    {
+      VarUpdate* vu = new VarUpdate;
+      vu->srcvar = nextToken();
+      if(source.peek() == L'/')
+      {
+        source.get();
+        vu->side = nextToken();
+      }
+      vu->src = rule->patternLength+1;
+      rule->variableGrabs.push_back(vu);
+    }
+    else
+    {
+      pat.push_back(cur);
     }
   }
   rule->pattern.push_back(pat);
@@ -374,6 +375,10 @@ RTXReader::parseOutputElement(Rule* rule)
   }
   else
   {
+    if(ret->getall)
+    {
+      die(L"% not currently supported on output literals");
+    }
     ret->lemma = nextToken();
     ret->mode = nextToken(L"@");
     while(true)
@@ -383,11 +388,7 @@ RTXReader::parseOutputElement(Rule* rule)
       if(cur == L"$")
       {
         vu->src = -1;
-        vu->destvar = nextToken();
-        vector<wstring>::iterator loc = find(rule->resultVars[0].begin(), rule->resultVars[0].end(), vu->destvar);
-        vu->srcvar += L'<';
-        vu->srcvar += to_wstring(distance(rule->resultVars[0].begin(), loc)+2);
-        vu->srcvar += L'>';
+        vu->srcvar = nextToken();
       }
       else if(cur == L"[")
       {
@@ -427,9 +428,9 @@ RTXReader::parseOutputElement(Rule* rule)
     for(unsigned int v = 0; v < vars.size(); v++)
     {
       VarUpdate* vu = new VarUpdate;
-      vu->src = 0;
+      vu->src = -1;
       vu->dest = ret->pos;
-      vu->srcvar = L"<" + to_wstring(v+2) + L">";
+      vu->srcvar = vars[v];
       vu->destvar = vars[v];
       ret->updates.push_back(vu);
     }
@@ -514,8 +515,6 @@ RTXReader::parseReduceRule(vector<wstring> output, wstring next)
     rule->resultNodes = outNodes;
     rule->resultVars = outVars;
     rule->patternLength = 0;
-    rule->variableGrabs = vector<vector<pair<int, wstring>>>(
-                            outNodes.size(), vector<pair<int, wstring>>());
     rule->grab_all = -1;
     eatSpaces();
     if(!isdigit(source.peek()))
@@ -723,6 +722,16 @@ RTXReader::compileString(wstring s)
 }
 
 wstring
+RTXReader::compileTag(wstring s)
+{
+  wstring tag;
+  tag += L'<';
+  tag += s;
+  tag += L'>';
+  return compileString(tag);
+}
+
+wstring
 RTXReader::compileClip(wstring part, int pos, wstring side = L"")
 {
   wstring c = compileString(part);
@@ -748,19 +757,17 @@ RTXReader::compileClip(wstring part, int pos, wstring side = L"")
     ret += compileString(L"");
     ret += EQUAL;
     ret += JUMPONFALSE;
-    ret += (2*c.size() + 12);
+    ret += (2*c.size() + 10);
+    ret += DROP;
     ret += c;
-    ret += INT;
-    ret += pos;
     ret += REFERENCECLIP;
     ret += DUP;
     ret += compileString(L"");
     ret += EQUAL;
     ret += JUMPONFALSE;
-    ret += (c.size() + 3);
+    ret += (c.size() + 2);
+    ret += DROP;
     ret += c;
-    ret += INT;
-    ret += pos;
     ret += SOURCECLIP;
   }
   // check if has default value
@@ -801,45 +808,34 @@ RTXReader::processOutput(Rule* rule, ResultNode* r)
   }
   else if(r->mode == L"#")
   {
+    vector<wstring> defaultOrder;
     map<wstring, wstring> grab;
     for(unsigned int i = 0; i < r->updates.size(); i++)
     {
       VarUpdate* up = r->updates[i];
       if(up->src == -1)
       {
-        grab[up->destvar] = up->srcvar;
-        continue;
+        grab[up->destvar] = compileTag(to_wstring(rule->varMap[0][up->srcvar]));
       }
       else if(up->src == 0)
       {
-        ret += compileString(up->srcvar);
+        grab[up->destvar] = compileTag(up->srcvar);
       }
       else
       {
-        ret += compileClip(up->srcvar, up->src, up->side);
+        grab[up->destvar] = compileClip(up->srcvar, up->src, up->side);
       }
-      ret += compileString(up->destvar);
-      ret += INT;
-      ret += (wchar_t)r->pos;
-      ret += SETCLIP;
+      defaultOrder.push_back(up->destvar);
     }
     if(rule->pattern[r->pos-1].size() == 1)
     {
-      for(unsigned int i = 0; i < r->updates.size(); i++)
+      for(unsigned int i = 0; i < defaultOrder.size(); i++)
       {
-        VarUpdate* up = r->updates[i];
-        if(up->src == -1)
-        {
-          wstring tag;
-          tag += L'<';
-          tag += rule->varMap[0][up->srcvar];
-          tag += L'>';
-          ret += compileString(tag);
-          ret += compileString(up->destvar);
-          ret += INT;
-          ret += (wchar_t)r->pos;
-          ret += SETCLIP;
-        }
+        ret += grab[defaultOrder[i]];
+        ret += compileString(defaultOrder[i]);
+        ret += INT;
+        ret += (wchar_t)r->pos;
+        ret += SETCLIP;
       }
       ret += compileClip(L"whole", r->pos, L"tl");
     }
@@ -858,25 +854,24 @@ RTXReader::processOutput(Rule* rule, ResultNode* r)
           break;
         }
       }
-      if(rl.size() == 0)
+      /*if(rl.size() == 0)
       {
         ret += compileClip(L"whole", r->pos, L"tl");
       }
       else
       {
         ret += CHUNK;
-      }
+      }*/
+      ret += CHUNK;
+      // if the user gives an empty output pattern, give them empty output
+      // (should probably error at read time)
       for(unsigned int p = 0; p < rl.size(); p++)
       {
         if(rl[p] == L"_")
         {
           ret += compileClip(L"lem", r->pos, L"tl");
           ret += APPENDSURFACE;
-          wstring tag;
-          tag += L'<';
-          tag += pos;
-          tag += L'>';
-          ret += compileString(tag);
+          ret += compileTag(pos);
           ret += APPENDSURFACE;
         }
         else if(rl[p][0] == L'<')
@@ -886,16 +881,12 @@ RTXReader::processOutput(Rule* rule, ResultNode* r)
         }
         else if(grab.find(rl[p]) != grab.end())
         {
-          wstring tag;
-          tag += L'<';
-          tag += rule->varMap[0][grab[rl[p]]];
-          tag += L'>';
-          ret += compileString(tag);
+          ret += grab[rl[p]];
           ret += APPENDSURFACE;
         }
         else
         {
-          ret += compileClip(rl[p], r->pos, L"tl");
+          ret += compileClip(rl[p], r->pos);
           ret += APPENDSURFACE;
         }
       }
@@ -916,15 +907,11 @@ RTXReader::processOutput(Rule* rule, ResultNode* r)
       VarUpdate* up = r->updates[i];
       if(up->src == -1)
       {
-        wstring tag;
-        tag += L'<';
-        tag += rule->varMap[0][up->srcvar];
-        tag += L'>';
-        ret += compileString(tag);
+        ret += compileTag(to_wstring(rule->varMap[0][up->srcvar]));
       }
       else if(up->src == 0)
       {
-        ret += compileString(up->srcvar);
+        ret += compileTag(up->srcvar);
       }
       else
       {
@@ -954,11 +941,11 @@ RTXReader::processRules()
       wstring v = rule->resultVars[0][vidx];
       rule->varMap[0][v] = vidx + 2;
       bool foundvar = false;
-      for(unsigned int g = 0; g < rule->variableGrabs[0].size(); g++)
+      for(unsigned int g = 0; g < rule->variableGrabs.size(); g++)
       {
-        if(rule->variableGrabs[0][g].second == v)
+        if(rule->variableGrabs[g]->srcvar == v)
         {
-          comp += compileClip(v, rule->variableGrabs[0][g].first, L"tl");
+          comp += compileClip(v, rule->variableGrabs[g]->src, rule->variableGrabs[g]->side);
           foundvar = true;
           break;
         }

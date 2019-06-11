@@ -2,9 +2,13 @@
 ! t1x 6408, 6852, 11368, 14368, 14489, 14704
 
 n: _.gender.number;
+np: _.gender.number;
 adj: _.gender.number;
 det: _.definite.gender.number;
 num: _.gender.number;
+NOM: _.number.gender;
+NA: _.number.gender;
+AP: _.gender.number.mode;
 
 number = sg pl ND ;
 gender = m f mf GD ;
@@ -51,7 +55,7 @@ NOM.number.gender -> 1: %n.$lem/sl {%1} |
                      ! t1x 11515
                      0: NOM NOM %n ! see t1x 11564
                         {3 _1 de@pr _ 2 _2 de@pr _
-                         %el@det.def _ 1} |
+                         el@det.def.$gender.$number _ 1} |
                          ! but see t1x 11564
                      0: NOM %NOM {2 _1 de@pr _ 1} ;
 
@@ -147,7 +151,7 @@ NA.number.gender -> 2: %NOM {%1} |
                     2: apos %NP apos {1 _1 2 _2 3} |
                        ! " 'sock' " -> " 'calcetine' "
 
-                    0: %NA.f cnjcoo NA.f [$gender=f]
+                    0: %NA.f cnjcoo NA.f ![$gender=f]
                        {1 _1 2 _2 3} |
                     0: %NA cnjcoo NA {1 _1 2 _2 3} |
 
@@ -170,11 +174,11 @@ under20 = 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
 AGE -> 0: %$one@num guio $yearmonth@n guio old@adj.sint
           {1 _ 3(number=sg)} |
        0: %num guio $yearmonth@n guio old@adj.sint
-                 {1 _ 3(number=pl)} |
+          {1 _ 3(number=pl)} |
        0: %$one@num %$yearmonth@n old@adj.sint
-                 {1 _1 2(number=sg)} |
+          {1 _1 2(number=sg)} |
        0: %num %$yearmonth@n old@adj.sint
-                 {1 _1 2(number=pl)} ;
+          {1 _1 2(number=pl)} ;
 
 NP.number.gender -> 1: all@predet %NP.pl.$gender/tl
                        {%1 _ el@det.def.$gender.pl _1 2} |
@@ -191,13 +195,13 @@ NP.number.gender -> 1: all@predet %NP.pl.$gender/tl
                        ! "such a green ceiling" ->
                        ! "un techo tan verde"
                     0: AGE %NP {2 _1 de@pr _ 1} |
-                    0: $under20@AGE {%niño@n _ de@pr _ 1} |
+                    0: $under20@AGE {niño@n.$gender.$number _ de@pr _ 1} |
                     0: AGE {persona@n.f.sg _ de@pr _ 1} ;
 
-REL.tipus_rel.gender.number -> 0: which@prn.itg [$tipus_rel=nn]
-                                  {el\ cual@rel.nn.$gender.$number} |
-                               0: which@rel.an [$tipus_rel=nn]
-                                  {el\ cual@rel.nn.$gender.$number} ;
+!REL.tipus_rel.gender.number -> 0: which@prn.itg [$tipus_rel=nn]
+!                                  {el\ cual@rel.nn.$gender.$number} |
+!                               0: which@rel.an [$tipus_rel=nn]
+!                                  {el\ cual@rel.nn.$gender.$number} ;
 
 NUM.gender.number -> 0: num {%1};
 DET.gender.number -> 0: det {%1};
@@ -217,7 +221,7 @@ copulatiu = look seem become feel get;
 ! maybe they should be split, but it seems easier to do it this way
 ! and better to err on the side of parsing everything
 VERB.temps.person.number -> 0: %vblex.$lem/sl {%1} |
-                            0: %vbser VERB.ger {%estar@vblex _1 2} |
+                            0: %vbser VERB.ger {estar@vblex.$temps.$person.$number _1 2} |
                             0: %vbhaver VERB.pp {%1 _1 2(gender=m, number=sg)} |
                             !0: %do@vbaux VERB
                             !   {_1 %2(tense=ifi)} (1.tense = past)

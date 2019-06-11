@@ -2,7 +2,7 @@
 ! t1x 6408, 6852, 11368, 14368, 14489, 14704
 
 n: _.gender.number;
-adj: _.gen_sense_mf.gen_mf.nbr_sense_sp.nbr_sp.lemq;
+adj: _.gender.number;
 det: _.definite.gender.number;
 num: _.gender.number;
 
@@ -45,7 +45,7 @@ temps = cni fti ifi imp pii pis inf prs pres past pri pp ger pprs subs;
 NOM.number.gender -> 1: %n.$lem/sl {%1} |
                      1: %np {%1} |
                      0: adj guio %NOM {%3 _ %1} |
-                        0: num guio %NOM {%3 _ %1} |
+                     0: num guio %NOM {%3 _ %1} |
                      0: %np np np {1 _1 2 _2 3} |
                      ! not completely certain about where to put this
                      ! t1x 11515
@@ -133,7 +133,7 @@ INF.temps -> !0: %vblex.inf {%1 se@prn.enc.ref.p3.mf.sp.[1.lemq]} (1.verbtype/tl
                 {%1 _1 prpres@prn.enc(lem=2.lem, person=2.person, gender=2.gender,
                                       number=2.number, lemq=1.lemq)} ;
              
-tractaments =[] Mr\. Mrs\. Ms\. Dr\.;
+tractaments = Mr\. Mrs\. Ms\. Dr\.;
 NA.number.gender -> 2: %NOM {%1} |
                        ! gender probably hasn't changed, but just in case
                         
@@ -209,7 +209,7 @@ DET.gender.number -> 0: det {%1};
 
 auxtemps = will shall;
 
-controlverbs = be#\ likely be#\ unlikely desire need wish hope choose expect pretend prefer promise recommend decide manage refuse agree avoid enjoy hate intend plan continue resolve try like vow;
+controlverbs = be\#\ likely be\#\ unlikely desire need wish hope choose expect pretend prefer promise recommend decide manage refuse agree avoid enjoy hate intend plan continue resolve try like vow;
 
 copulatiu = look seem become feel get;
 

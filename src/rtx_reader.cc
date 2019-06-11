@@ -757,7 +757,7 @@ RTXReader::compileClip(wstring part, int pos, wstring side = L"")
     ret += compileString(L"");
     ret += EQUAL;
     ret += JUMPONFALSE;
-    ret += (c.size() + 1);
+    ret += (c.size() + 3);
     ret += c;
     ret += INT;
     ret += pos;
@@ -1030,7 +1030,6 @@ RTXReader::read(const string &fname)
     }
     regex += L")";
     td.getAttrItems()[it->first] = regex;
-    wcerr << regex << endl;
   }
 }
 

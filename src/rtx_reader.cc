@@ -22,7 +22,7 @@ RTXReader::RTXReader()
   longestPattern = 0;
 }
 
-wstring const RTXReader::SPECIAL_CHARS = L"!@$%()={}[]|\\/:;<>,.";
+wstring const RTXReader::SPECIAL_CHARS = L"!@$%()={}[]|/:;<>,.~";
 
 void
 RTXReader::die(wstring message)
@@ -135,6 +135,17 @@ RTXReader::nextToken(wstring check1 = L"", wstring check2 = L"")
     die(L"expected '" + check2 + L"', found '" + tok + L"'");
   }
   return tok;
+}
+
+wstring
+RTXReader::parseIdent()
+{
+  wstring ret = nextTokenNoSpace();
+  if(ret == L"->" || (ret.size() == 1 && SPECIAL_CHARS.find(ret[0]) != string::npos))
+  {
+    die(L"expected identifier, found '" + ret + L"'");
+  }
+  return ret;
 }
 
 vector<wstring>
@@ -270,7 +281,6 @@ void
 RTXReader::parsePatternElement(Rule* rule)
 {
   vector<wstring> pat;
-  bool inVar = false;
   if(source.peek() == L'%')
   {
     source.get();
@@ -279,7 +289,7 @@ RTXReader::parsePatternElement(Rule* rule)
   wstring t1 = nextToken();
   if(t1 == L"$")
   {
-    t1 += nextToken();
+    t1 += parseIdent();
   }
   if(source.peek() == L'@')
   {
@@ -308,11 +318,11 @@ RTXReader::parsePatternElement(Rule* rule)
     if(cur == L"$")
     {
       VarUpdate* vu = new VarUpdate;
-      vu->srcvar = nextToken();
+      vu->srcvar = parseIdent();
       if(source.peek() == L'/')
       {
         source.get();
-        vu->side = nextToken();
+        vu->side = parseIdent();
       }
       vu->src = rule->patternLength+1;
       rule->variableGrabs.push_back(vu);
@@ -524,9 +534,27 @@ RTXReader::parseReduceRule(vector<wstring> output, wstring next)
     source >> rule->weight;
     nextToken(L":");
     eatSpaces();
-    while(!source.eof() && source.peek() != L'{')
+    while(!source.eof() && source.peek() != L'{' && source.peek() != L'[')
     {
       parsePatternElement(rule);
+    }
+    if(source.peek() == L'[')
+    {
+      source.get();
+      while(!source.eof())
+      {
+        nextToken(L"$");
+        VarUpdate* vu = new VarUpdate;
+        vu->src = 0;
+        vu->destvar = parseIdent();
+        nextToken(L"=");
+        vu->srcvar = parseIdent();
+        rule->variableGrabs.push_back(vu);
+        if(nextToken(L",", L"]") == L"]")
+        {
+          break;
+        }
+      }
     }
     for(unsigned int i = 0; i < outNodes.size(); i++)
     {
@@ -943,9 +971,16 @@ RTXReader::processRules()
       bool foundvar = false;
       for(unsigned int g = 0; g < rule->variableGrabs.size(); g++)
       {
-        if(rule->variableGrabs[g]->srcvar == v)
+        if(rule->variableGrabs[g]->destvar == v)
         {
-          comp += compileClip(v, rule->variableGrabs[g]->src, rule->variableGrabs[g]->side);
+          if(rule->variableGrabs[g]->src == 0)
+          {
+            comp += compileTag(rule->variableGrabs[g]->srcvar);
+          }
+          else
+          {
+            comp += compileClip(v, rule->variableGrabs[g]->src, rule->variableGrabs[g]->side);
+          }
           foundvar = true;
           break;
         }

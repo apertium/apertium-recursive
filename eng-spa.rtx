@@ -137,6 +137,7 @@ INF.temps -> !0: %vblex.inf {%1 se@prn.enc.ref.p3.mf.sp.[1.lemq]} (1.verbtype/tl
                 {%1 _1 prpres@prn.enc(lem=2.lem, person=2.person, gender=2.gender,
                                       number=2.number, lemq=1.lemq)} ;
              
+cnjcoo: _;
 tractaments = Mr\. Mrs\. Ms\. Dr\.;
 NA.number.gender -> 2: %NOM {%1} |
                        ! gender probably hasn't changed, but just in case
@@ -151,7 +152,7 @@ NA.number.gender -> 2: %NOM {%1} |
                     2: apos %NP apos {1 _1 2 _2 3} |
                        ! " 'sock' " -> " 'calcetine' "
 
-                    0: %NA.f cnjcoo NA.f ![$gender=f]
+                    0: %NA.f cnjcoo NA.f [$gender=f]
                        {1 _1 2 _2 3} |
                     0: %NA cnjcoo NA {1 _1 2 _2 3} |
 

@@ -22,7 +22,7 @@ RTXReader::RTXReader()
   longestPattern = 0;
 }
 
-wstring const RTXReader::SPECIAL_CHARS = L"!@$%()={}[]|/:;<>,.~";
+wstring const RTXReader::SPECIAL_CHARS = L"!@$%()={}[]|/:;<>,.~→";
 
 void
 RTXReader::die(wstring message)
@@ -32,6 +32,24 @@ RTXReader::die(wstring message)
   fname.assign(sourceFile.begin(), sourceFile.end());
   wcerr << fname;
   wcerr <<L": " << message << endl;
+  if(!source.eof())
+  {
+    wstring arr = wstring(recentlyRead.size()-2, L' ');
+    while(!source.eof() && source.peek() != L'\n')
+    {
+      recentlyRead += source.get();
+    }
+    wcerr << recentlyRead << endl;
+    wcerr << arr << L"^^^" << endl;
+  }
+  exit(EXIT_FAILURE);
+}
+
+void
+RTXReader::die(int line, wstring message)
+{
+  wcerr << L"Error in rule beginning on line " << line << L" of ";
+  wcerr << UtfConverter::fromUtf8(sourceFile) << L": " << message << endl;
   exit(EXIT_FAILURE);
 }
 
@@ -45,23 +63,22 @@ RTXReader::eatSpaces()
     c = source.peek();
     if(c == L'\n')
     {
-      currentLine++;
-    }
-    if(inComment)
-    {
       source.get();
-      if(c == L'\n')
-      {
-        inComment = false;
-      }
+      inComment = false;
+      currentLine++;
+      recentlyRead.clear();
+    }
+    else if(inComment)
+    {
+      recentlyRead += source.get();
     }
     else if(isspace(c))
     {
-      source.get();
+      recentlyRead += source.get();
     }
     else if(c == L'!')
     {
-      source.get();
+      recentlyRead += source.get();
       inComment = true;
     }
     else
@@ -81,14 +98,21 @@ RTXReader::nextTokenNoSpace()
   wchar_t c = source.get();
   wchar_t next = source.peek();
   wstring ret;
-  if(SPECIAL_CHARS.find(c) != string::npos)
+  if(c == L'→')
+  {
+    recentlyRead += c;
+    ret = L"->";
+  }
+  else if(SPECIAL_CHARS.find(c) != string::npos)
   {
     ret = wstring(1, c);
+    recentlyRead += c;
   }
   else if(c == L'-' && next == L'>')
   {
     next = source.get();
     ret = wstring(1, c) + wstring(1, next);
+    recentlyRead += ret;
   }
   else
   {
@@ -110,6 +134,7 @@ RTXReader::nextTokenNoSpace()
         break;
       }
     }
+    recentlyRead += ret;
   }
   return ret;
 }
@@ -146,6 +171,37 @@ RTXReader::parseIdent()
     die(L"expected identifier, found '" + ret + L"'");
   }
   return ret;
+}
+
+int
+RTXReader::parseInt()
+{
+  wstring ret;
+  while(isdigit(source.peek()))
+  {
+    ret += source.get();
+  }
+  recentlyRead += ret;
+  return stoi(ret);
+}
+
+float
+RTXReader::parseWeight()
+{
+  wstring ret;
+  while(isdigit(source.peek()) || source.peek() == L'.')
+  {
+    ret += source.get();
+  }
+  recentlyRead += ret;
+  try
+  {
+    return stof(ret);
+  }
+  catch(const invalid_argument& ia)
+  {
+    die(L"unable to parse weight: " + ret);
+  }
 }
 
 vector<wstring>
@@ -277,6 +333,93 @@ RTXReader::parseAttrRule(vector<wstring> name)
   collections.insert(pair<wstring, vector<wstring>>(categoryName, members));
 }
 
+RTXReader::VarUpdate*
+RTXReader::parseVal()
+{
+  VarUpdate* ret = new VarUpdate;
+  eatSpaces();
+  if(isdigit(source.peek()))
+  {
+    ret->src = parseInt();
+    nextToken(L".");
+  }
+  else
+  {
+    ret->src = 0;
+  }
+  ret->srcvar = parseIdent();
+  if(source.peek() == L'/')
+  {
+    source.get();
+    ret->side = parseIdent();
+  }
+  return ret;
+}
+
+RTXReader::Cond*
+RTXReader::parseCond()
+{
+  Cond* ret = new Cond;
+  nextToken(L"(");
+  eatSpaces();
+  if(!source.eof() && source.peek() == L'~')
+  {
+    Cond* left = new Cond;
+    left->op = NOT;
+    left->right = parseCond();
+    ret->left = left;
+  }
+  else if(!source.eof() && source.peek() == L'(')
+  {
+    ret->left = parseCond();
+  }
+  else
+  {
+    Cond* left = new Cond;
+    left->op = 0;
+    left->val = parseVal();
+    ret->left = left;
+  }
+  while(true)
+  {
+    wstring op = nextToken();
+    if(op == L")")
+    {
+      return ret->left;
+    }
+    else if(op == L"=")
+    {
+      ret->op = EQUAL;
+    }
+    else
+    {
+      die(L"unknown operator '" + op + L"'");
+    }
+    eatSpaces();
+    if(!source.eof() && source.peek() == L'(')
+    {
+      ret->right = parseCond();
+    }
+    else if(!source.eof() && source.peek() == L'~')
+    {
+      source.get();
+      eatSpaces();
+      ret->right = new Cond;
+      ret->right->op = NOT;
+      ret->right->right = parseCond();
+    }
+    else
+    {
+      ret->right = new Cond;
+      ret->right->op = 0;
+      ret->right->val = parseVal();
+    }
+    Cond* temp = ret;
+    ret = new Cond;
+    ret->left = temp;
+  }
+}
+
 void
 RTXReader::parsePatternElement(Rule* rule)
 {
@@ -363,7 +506,7 @@ RTXReader::parseOutputElement(Rule* rule)
     source.get();
     if(isdigit(source.peek()))
     {
-      source >> ret->pos;
+      ret->pos = parseInt();
       if(ret->pos < 1 || ret->pos >= rule->patternLength)
       {
         die(L"position index of blank out of bounds");
@@ -377,7 +520,7 @@ RTXReader::parseOutputElement(Rule* rule)
   else if(isdigit(source.peek()))
   {
     ret->mode = L"#";
-    source >> ret->pos;
+    ret->pos = parseInt();
     if(ret->pos < 1 || ret->pos > rule->patternLength)
     {
       die(L"output index is out of bounds");
@@ -406,7 +549,7 @@ RTXReader::parseOutputElement(Rule* rule)
         {
           die(L"expected number after [");
         }
-        source >> vu->src;
+        vu->src = parseInt();
         nextToken(L".");
         vu->destvar = nextToken();
         vu->srcvar = vu->destvar;
@@ -457,7 +600,7 @@ RTXReader::parseOutputElement(Rule* rule)
       eatSpaces();
       if(isdigit(source.peek()))
       {
-        source >> vu->src;
+        vu->src = parseInt();
         nextToken(L".");
       }
       else if(source.peek() == L'$')
@@ -526,15 +669,16 @@ RTXReader::parseReduceRule(vector<wstring> output, wstring next)
     rule->resultVars = outVars;
     rule->patternLength = 0;
     rule->grab_all = -1;
+    rule->line = currentLine;
     eatSpaces();
     if(!isdigit(source.peek()))
     {
       die(L"Rule is missing weight");
     }
-    source >> rule->weight;
+    rule->weight = parseWeight();
     nextToken(L":");
     eatSpaces();
-    while(!source.eof() && source.peek() != L'{' && source.peek() != L'[')
+    while(!source.eof() && source.peek() != L'{' && source.peek() != L'[' && source.peek() != L'(')
     {
       parsePatternElement(rule);
     }
@@ -555,6 +699,12 @@ RTXReader::parseReduceRule(vector<wstring> output, wstring next)
           break;
         }
       }
+      eatSpaces();
+    }
+    if(source.peek() == L'(')
+    {
+      rule->cond = parseCond();
+      eatSpaces();
     }
     for(unsigned int i = 0; i < outNodes.size(); i++)
     {

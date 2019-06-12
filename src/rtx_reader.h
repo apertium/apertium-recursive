@@ -3,6 +3,7 @@
 
 #include <apertium/transfer_data.h>
 #include <lttoolbox/ltstr.h>
+#include <apertium/utf_converter.h>
 
 #include <map>
 #include <string>
@@ -29,6 +30,14 @@ private:
     wstring side;
   };
 
+  struct Cond
+  {
+    wchar_t op;
+    VarUpdate* val;
+    Cond* left;
+    Cond* right;
+  };
+
   struct ResultNode
   {
     wstring mode;
@@ -41,9 +50,17 @@ private:
     vector<VarUpdate*> updates;
   };
 
+  struct OutputChunk
+  {
+    Cond* cond;
+    int pos;
+    vector<ResultNode*> children;
+  };
+
   struct Rule
   {
     int ID;
+    int line;
     int grab_all;
     float weight;
     int patternLength;
@@ -55,6 +72,7 @@ private:
     vector<VarUpdate*> variableUpdates;
     wstring compiled;
     vector<map<wstring, int>> varMap;
+    Cond* cond;
   };
 
   multimap<wstring, LemmaTags, Ltstr> cat_items;
@@ -72,106 +90,113 @@ private:
   int insertLemma(int const base, wstring const &lemma);
   int insertTags(int const base, wstring const &tags);
 
-    /**
-     * Rules file
-     */
-    wifstream source;
-    string sourceFile;
-    
-    int currentLine;
-    
-    void die(wstring message);
+  /**
+   * Rules file
+   */
+  wifstream source;
+  string sourceFile;
+  
+  // for generating error messages
+  int currentLine;
+  wstring recentlyRead;
+  
+  void die(wstring message);
+  void die(int line, wstring message);
 
-    /**
-     * Consume all space characters and comments at front of stream
-     */
-    void eatSpaces();
+  /**
+   * Consume all space characters and comments at front of stream
+   */
+  void eatSpaces();
 
-    /**
-     * Parse an identifier
-     * @return identifier
-     */
-    wstring nextTokenNoSpace();
-    
-    wstring nextToken(wstring check1, wstring check2);
+  /**
+   * Parse an identifier
+   * @return identifier
+   */
+  wstring nextTokenNoSpace();
+  
+  wstring nextToken(wstring check1, wstring check2);
 
-    /**
-     * Parse an identifier
-     * @return identifier
-     */
-    wstring parseIdent();
+  /**
+   * Parse an identifier
+   * @return identifier
+   */
+  wstring parseIdent();
+  int parseInt();
+  float parseWeight();
 
-    /**
-     * Parse an identifier
-     * @return identifier
-     */
-    vector<wstring> parseIdentGroup(wstring first);
+  /**
+   * Parse an identifier
+   * @return identifier
+   */
+  vector<wstring> parseIdentGroup(wstring first);
+  VarUpdate* parseVal();
+  Cond* parseCond();
 
-    /**
-     * Parse an rule
-     */
-    void parseRule();
+  /**
+   * Parse an rule
+   */
+  void parseRule();
 
-    /**
-     * Parse an rule
-     */
-    void parseOutputRule(vector<wstring> pattern);
+  /**
+   * Parse an rule
+   */
+  void parseOutputRule(vector<wstring> pattern);
 
-    /**
-     * Parse an rule
-     */
-    void parseRetagRule(vector<wstring> srcTags);
+  /**
+   * Parse an rule
+   */
+  void parseRetagRule(vector<wstring> srcTags);
 
-    /**
-     * Parse an rule
-     */
-    void parseAttrRule(vector<wstring> name);
+  /**
+   * Parse an rule
+   */
+  void parseAttrRule(vector<wstring> name);
 
-    /**
-     * Parse an rule
-     */
-    void parsePatternElement(Rule* rule);
+  /**
+   * Parse an rule
+   */
+  void parsePatternElement(Rule* rule);
 
-    /**
-     * Parse an rule
-     */
-    void parseOutputElement(Rule* rule);
+  /**
+   * Parse an rule
+   */
+  void parseOutputElement(Rule* rule);
 
-    /**
-     * Parse an rule
-     */
-    void parseReduceRule(vector<wstring> output, wstring next);
+  /**
+   * Parse an rule
+   */
+  void parseReduceRule(vector<wstring> output, wstring next);
 
-    /**
-     * All characters not allowed in identifiers
-     */
-    static wstring const SPECIAL_CHARS;
-    /**
-     * Rules file
-     */
-    map<wstring, vector<wstring>> collections;
-    
-    /**
-     * Rules file
-     */
-    vector<vector<pair<vector<wstring>, vector<wstring>>>> retagRules;
-    
-    /**
-     * output rules
-     */
-    vector<pair<vector<wstring>, vector<wstring>>> outputRules;
-    
-    vector<Rule*> reductionRules;
-    
-    void processRules();
-    void makePattern(int ruleid);
-    
-    int longestPattern;
-    
-    wstring compileString(wstring s);
-    wstring compileTag(wstring s);
-    wstring compileClip(wstring part, int pos, wstring side);
-    wstring processOutput(Rule* rule, ResultNode* r);
+  /**
+   * All characters not allowed in identifiers
+   */
+  static wstring const SPECIAL_CHARS;
+  /**
+   * Rules file
+   */
+  map<wstring, vector<wstring>> collections;
+  
+  /**
+   * Rules file
+   */
+  vector<vector<pair<vector<wstring>, vector<wstring>>>> retagRules;
+  
+  /**
+   * output rules
+   */
+  vector<pair<vector<wstring>, vector<wstring>>> outputRules;
+  
+  vector<Rule*> reductionRules;
+  
+  void processRules();
+  void makePattern(int ruleid);
+  
+  int longestPattern;
+  
+  wstring compileString(wstring s);
+  wstring compileTag(wstring s);
+  wstring compileClip(wstring part, int pos, wstring side);
+  wstring processOutput(Rule* rule, ResultNode* r);
 
 public:
   static wstring const ANY_TAG;

@@ -1209,6 +1209,13 @@ RTXReader::processRules()
     rule = reductionRules[ruleid];
     makePattern(ruleid);
     wstring comp;
+    if(rule->cond != NULL)
+    {
+      comp += processCond(rule->cond);
+      comp += JUMPONFALSE;
+      comp += (wchar_t)1;
+      comp += REJECTRULE;
+    }
     comp += CHUNK;
     comp += compileString(L"unk<" + rule->resultNodes[0] + L">");
     comp += APPENDSURFACE;

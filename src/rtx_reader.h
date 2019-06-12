@@ -4,6 +4,7 @@
 #include <apertium/transfer_data.h>
 #include <lttoolbox/ltstr.h>
 #include <apertium/utf_converter.h>
+#include <bytecode.h>
 
 #include <map>
 #include <string>
@@ -175,6 +176,70 @@ private:
    * All characters not allowed in identifiers
    */
   static wstring const SPECIAL_CHARS;
+
+  // comparisons with these operator names are done lowercase with '-' and '_' removed
+  const vector<pair<wstring, wchar_t>> OPERATORS = {
+    make_pair(L"and", AND),
+    make_pair(L"&", AND),
+
+    make_pair(L"or", OR),
+    make_pair(L"|", OR),
+
+    make_pair(L"equal", EQUAL),
+    make_pair(L"=", EQUAL),
+
+    make_pair(L"isprefix", ISPREFIX),
+    make_pair(L"startswith", ISPREFIX),
+    make_pair(L"beginswith", ISPREFIX),
+
+    make_pair(L"issuffix", ISSUFFIX),
+    make_pair(L"endswith", ISSUFFIX),
+
+    make_pair(L"issubstring", ISSUBSTRING),
+    make_pair(L"contains", ISSUBSTRING),
+
+    make_pair(L"equalcl", EQUALCL),
+    make_pair(L"equalcaseless", EQUALCL),
+    make_pair(L"equalfold", EQUALCL),
+    make_pair(L"equalfoldcase", EQUALCL),
+
+    make_pair(L"isprefixcl", ISPREFIXCL),
+    make_pair(L"startswithcl", ISPREFIXCL),
+    make_pair(L"beginswithcl", ISPREFIXCL),
+    make_pair(L"isprefixcaseless", ISPREFIXCL),
+    make_pair(L"startswithcaseless", ISPREFIXCL),
+    make_pair(L"beginswithcaseless", ISPREFIXCL),
+    make_pair(L"isprefixfold", ISPREFIXCL),
+    make_pair(L"startswithfold", ISPREFIXCL),
+    make_pair(L"beginswithfold", ISPREFIXCL),
+    make_pair(L"isprefixfoldcase", ISPREFIXCL),
+    make_pair(L"startswithfoldcase", ISPREFIXCL),
+    make_pair(L"beginswithfoldcase", ISPREFIXCL),
+
+    make_pair(L"issuffixcl", ISSUFFIXCL),
+    make_pair(L"endswithcl", ISSUFFIXCL),
+    make_pair(L"issuffixcaseless", ISSUFFIXCL),
+    make_pair(L"endswithcaseless", ISSUFFIXCL),
+    make_pair(L"issuffixfold", ISSUFFIXCL),
+    make_pair(L"endswithfold", ISSUFFIXCL),
+    make_pair(L"issuffixfoldcase", ISSUFFIXCL),
+    make_pair(L"endswithfoldcase", ISSUFFIXCL),
+
+    make_pair(L"issubstringcl", ISSUBSTRINGCL),
+
+    make_pair(L"hasprefix", HASPREFIX),
+
+    make_pair(L"hassuffix", HASSUFFIX),
+
+    make_pair(L"in", IN),
+    make_pair(L"∈", IN),
+
+    make_pair(L"hasprefixcl", HASPREFIXCL),
+
+    make_pair(L"hassuffixcl", HASSUFFIXCL),
+
+    make_pair(L"incl", INCL)
+  };
   /**
    * Rules file
    */

@@ -1,8 +1,7 @@
 #include <rtx_reader.h>
-
 #include <rtx_parser.h>
 #include <bytecode.h>
-
+#include <apertium/string_utils.h>
 #include <vector>
 #include <algorithm>
 #include <iterator>
@@ -415,13 +414,25 @@ RTXReader::parseCond()
     {
       return ret->left;
     }
-    else if(op == L"=")
-    {
-      ret->op = EQUAL;
-    }
     else
     {
-      die(L"unknown operator '" + op + L"'");
+      bool found = false;
+      wstring key = StringUtils::tolower(op);
+      key = StringUtils::substitute(key, L"-", L"");
+      key = StringUtils::substitute(key, L"_", L"");
+      for(unsigned int i = 0; i < OPERATORS.size(); i++)
+      {
+        if(key == OPERATORS[i].first)
+        {
+          ret->op = OPERATORS[i].second;
+          found = true;
+          break;
+        }
+      }
+      if(!found)
+      {
+        die(L"unknown operator '" + op + L"'");
+      }
     }
     eatSpaces();
     if(!source.eof() && source.peek() == L'(')

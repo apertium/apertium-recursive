@@ -218,15 +218,17 @@ controlverbs = be\#\ likely be\#\ unlikely desire need wish hope choose expect p
 
 copulatiu = look seem become feel get;
 
+VERB: _.temps.person.number;
+
 ! having all these resulting VERB doesn't control for order
 ! maybe they should be split, but it seems easier to do it this way
 ! and better to err on the side of parsing everything
 VERB.temps.person.number -> 0: %vblex.$lem/sl {%1} |
                             0: %vbser VERB.ger {estar@vblex.$temps.$person.$number _1 2} |
                             0: %vbhaver VERB.pp {%1 _1 2(gender=m, number=sg)} |
-                            !0: %do@vbaux VERB
-                            !   {_1 %2(tense=ifi)} (1.tense = past)
-                            !   {_1 %2(tense=pri)} |
+                            0: %do@vbaux VERB
+                               {_1 %2(temps=ifi)} (1.tense = past)
+                               {_1 %2(temps=pri)} |
                             0: %$auxtemps@vbaux VERB {_1 %2(tense=fti)} |
                             0: %would@vbaux VERB {_1 %2(tense=cni)} |
                             0: %vbaux VERB.inf {%1 _1 2} |
@@ -236,5 +238,3 @@ VERB.temps.person.number -> 0: %vblex.$lem/sl {%1} |
                                {%1 _1 2(gender=$gender, number=$number)};
 ! adv VERB.temps.person.number -> 0: %VERB adv {{2} _1 {1}};
 ! TODO: prn.obj and adv (not sure if second rule is right)
-
-x -> 0: y z (1.number = 2.number) {2 _1 1};

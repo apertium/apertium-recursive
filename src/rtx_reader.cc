@@ -114,6 +114,14 @@ RTXReader::nextTokenNoSpace()
     ret = wstring(1, c) + wstring(1, next);
     recentlyRead += ret;
   }
+  else if(isspace(c))
+  {
+    die(L"unexpected space");
+  }
+  else if(c == L'!')
+  {
+    die(L"unexpected comment");
+  }
   else
   {
     ret = wstring(1, c);
@@ -137,6 +145,17 @@ RTXReader::nextTokenNoSpace()
     recentlyRead += ret;
   }
   return ret;
+}
+
+bool
+RTXReader::isNextToken(wchar_t c)
+{
+  if(source.peek() == c)
+  {
+    recentlyRead += source.get();
+    return true;
+  }
+  return false;
 }
 
 wstring
@@ -196,7 +215,16 @@ RTXReader::parseWeight()
   recentlyRead += ret;
   try
   {
-    return stof(ret);
+    wstring::size_type loc;
+    float r = stof(ret, &loc);
+    if(loc == ret.size())
+    {
+      return r;
+    }
+    else
+    {
+      die(L"unable to parse weight: " + ret);
+    }
   }
   catch(const invalid_argument& ia)
   {
@@ -348,9 +376,8 @@ RTXReader::parseVal()
     ret->src = 0;
   }
   ret->srcvar = parseIdent();
-  if(source.peek() == L'/')
+  if(isNextToken(L'/'))
   {
-    source.get();
     ret->side = parseIdent();
   }
   return ret;
@@ -360,9 +387,10 @@ RTXReader::Cond*
 RTXReader::parseCond()
 {
   Cond* ret = new Cond;
+  ret->op = 0;
   nextToken(L"(");
   eatSpaces();
-  if(!source.eof() && source.peek() == L'~')
+  if(isNextToken(L'~'))
   {
     Cond* left = new Cond;
     left->op = NOT;
@@ -400,9 +428,8 @@ RTXReader::parseCond()
     {
       ret->right = parseCond();
     }
-    else if(!source.eof() && source.peek() == L'~')
+    else if(isNextToken(L'~'))
     {
-      source.get();
       eatSpaces();
       ret->right = new Cond;
       ret->right->op = NOT;
@@ -424,9 +451,8 @@ void
 RTXReader::parsePatternElement(Rule* rule)
 {
   vector<wstring> pat;
-  if(source.peek() == L'%')
+  if(isNextToken(L'%'))
   {
-    source.get();
     rule->grab_all = rule->pattern.size();
   }
   wstring t1 = nextToken();
@@ -434,9 +460,10 @@ RTXReader::parsePatternElement(Rule* rule)
   {
     t1 += parseIdent();
   }
-  if(source.peek() == L'@')
+  if(isNextToken(L'@'))
   {
     pat.push_back(t1);
+    pat.push_back(parseIdent());
   }
   else if(t1[0] == L'$')
   {
@@ -449,11 +476,7 @@ RTXReader::parsePatternElement(Rule* rule)
   }
   while(!source.eof())
   {
-    if(source.peek() == L'.')
-    {
-      source.get();
-    }
-    else
+    if(!isNextToken(L'.'))
     {
       break;
     }
@@ -462,9 +485,8 @@ RTXReader::parsePatternElement(Rule* rule)
     {
       VarUpdate* vu = new VarUpdate;
       vu->srcvar = parseIdent();
-      if(source.peek() == L'/')
+      if(isNextToken(L'/'))
       {
-        source.get();
         vu->side = parseIdent();
       }
       vu->src = rule->patternLength+1;
@@ -481,18 +503,16 @@ RTXReader::parsePatternElement(Rule* rule)
 }
 
 void
-RTXReader::parseOutputElement(Rule* rule)
+RTXReader::parseOutputElement(Rule* rule, OutputChunk* chunk)
 {
   ResultNode* ret = new ResultNode;
   ret->getall = false;
   ret->dontoverwrite = false;
-  if(source.peek() == L'%')
+  if(isNextToken(L'%'))
   {
-    source.get();
     ret->getall = true;
-    if(source.peek() == L'%')
+    if(isNextToken(L'%'))
     {
-      source.get();
       ret->dontoverwrite = true;
     }
   }
@@ -503,7 +523,7 @@ RTXReader::parseOutputElement(Rule* rule)
       die(L"% cannot be used on blanks");
     }
     ret->mode = L"_";
-    source.get();
+    recentlyRead += source.get();
     if(isdigit(source.peek()))
     {
       ret->pos = parseInt();
@@ -532,7 +552,7 @@ RTXReader::parseOutputElement(Rule* rule)
     {
       die(L"% not currently supported on output literals");
     }
-    ret->lemma = nextToken();
+    ret->lemma = parseIdent();
     ret->mode = nextToken(L"@");
     while(true)
     {
@@ -541,7 +561,7 @@ RTXReader::parseOutputElement(Rule* rule)
       if(cur == L"$")
       {
         vu->src = -1;
-        vu->srcvar = nextToken();
+        vu->srcvar = parseIdent();
       }
       else if(cur == L"[")
       {
@@ -551,11 +571,11 @@ RTXReader::parseOutputElement(Rule* rule)
         }
         vu->src = parseInt();
         nextToken(L".");
-        vu->destvar = nextToken();
+        vu->destvar = parseIdent();
         vu->srcvar = vu->destvar;
         if(nextToken(L"]", L"/") == L"/")
         {
-          vu->side = nextToken();
+          vu->side = parseIdent();
           nextToken(L"]");
         }
       }
@@ -565,11 +585,7 @@ RTXReader::parseOutputElement(Rule* rule)
         vu->srcvar = cur;
       }
       ret->updates.push_back(vu);
-      if(source.peek() == L'.')
-      {
-        source.get();
-      }
-      else
+      if(!isNextToken(L'.'))
       {
         break;
       }
@@ -577,7 +593,8 @@ RTXReader::parseOutputElement(Rule* rule)
   }
   if(ret->getall)
   {
-    vector<wstring> vars = rule->resultVars[rule->resultContents.size()-1];
+    //vector<wstring> vars = rule->resultVars[rule->resultContents.size()-1];
+    vector<wstring> vars = rule->resultVars[0];
     for(unsigned int v = 0; v < vars.size(); v++)
     {
       VarUpdate* vu = new VarUpdate;
@@ -588,14 +605,14 @@ RTXReader::parseOutputElement(Rule* rule)
       ret->updates.push_back(vu);
     }
   }
-  if(source.peek() == L'(')
+  if(isNextToken(L'('))
   {
-    nextToken();
     VarUpdate* vu = new VarUpdate;
     vu->dest = ret->pos;
     while(!source.eof() && source.peek() != L')')
     {
-      vu->destvar = nextToken();
+      eatSpaces();
+      vu->destvar = parseIdent();
       nextToken(L"=");
       eatSpaces();
       if(isdigit(source.peek()))
@@ -603,36 +620,50 @@ RTXReader::parseOutputElement(Rule* rule)
         vu->src = parseInt();
         nextToken(L".");
       }
-      else if(source.peek() == L'$')
+      else if(isNextToken(L'$'))
       {
         vu->src = -1;
-        nextToken(L"$");
       }
       else
       {
         vu->src = 0;
       }
       vu->srcvar = nextToken();
-      if(source.peek() == L'/')
+      if(isNextToken(L'/'))
       {
-        source.get();
         vu->side = nextToken();
       }
       ret->updates.push_back(vu);
       eatSpaces();
-      if(source.peek() == L',')
-      {
-        source.get();
-      }
-      else
+      if(nextToken(L",", L")") == L")")
       {
         break;
       }
     }
-    nextToken(L")");
   }
-  rule->resultContents.back().push_back(ret);
+  chunk->children.push_back(ret);
   eatSpaces();
+}
+
+void
+RTXReader::parseOutputChunk(Rule* rule, bool recursing = false)
+{
+  nextToken(L"{");
+  eatSpaces();
+  OutputChunk* ch = new OutputChunk;
+  ch->cond = NULL;
+  while(source.peek() != L'}')
+  {
+    parseOutputElement(rule, ch);
+  }
+  nextToken(L"}");
+  eatSpaces();
+  if(source.peek() == L'(')
+  {
+    ch->cond = parseCond();
+  }
+  eatSpaces();
+  rule->resultContents.push_back(ch);
 }
 
 void
@@ -661,8 +692,7 @@ RTXReader::parseReduceRule(vector<wstring> output, wstring next)
     }
   }
   Rule* rule;
-  wstring endToken = L"";
-  while(endToken != L";")
+  while(true)
   {
     rule = new Rule();
     rule->resultNodes = outNodes;
@@ -682,9 +712,8 @@ RTXReader::parseReduceRule(vector<wstring> output, wstring next)
     {
       parsePatternElement(rule);
     }
-    if(source.peek() == L'[')
+    if(isNextToken(L'['))
     {
-      source.get();
       while(!source.eof())
       {
         nextToken(L"$");
@@ -706,18 +735,16 @@ RTXReader::parseReduceRule(vector<wstring> output, wstring next)
       rule->cond = parseCond();
       eatSpaces();
     }
-    for(unsigned int i = 0; i < outNodes.size(); i++)
+    eatSpaces();
+    while(!source.eof() && source.peek() == L'{')
     {
-      rule->resultContents.push_back(vector<ResultNode*>());
-      nextToken(L"{");
-      while(!source.eof() && source.peek() != L'}')
-      {
-        parseOutputElement(rule);
-      }
-      nextToken(L"}");
+      parseOutputChunk(rule);
     }
     reductionRules.push_back(rule);
-    endToken = nextToken(L"|", L";");
+    if(nextToken(L"|", L";") == L";")
+    {
+      break;
+    }
   }
 }
 
@@ -1101,6 +1128,67 @@ RTXReader::processOutput(Rule* rule, ResultNode* r)
   return ret;
 }
 
+wstring
+RTXReader::processCond(Cond* cond)
+{
+  wstring ret;
+  if(cond->op == 0)
+  {
+    if(cond->val->src == 0)
+    {
+      ret = compileTag(cond->val->srcvar);
+    }
+    else if(cond->val->srcvar == L"lem")
+    {
+      ret = compileString(L"<");
+      ret += compileClip(cond->val->srcvar, cond->val->src, cond->val->side);
+      ret += CONCAT;
+      ret += compileString(L">");
+      ret += CONCAT;
+      // This is an absurd hack, but it means we can compare lemmas to literals
+    }
+    else
+    {
+      ret = compileClip(cond->val->srcvar, cond->val->src, cond->val->side);
+    }
+  }
+  else if(cond->op == NOT)
+  {
+    ret = processCond(cond->right);
+    ret += NOT;
+  }
+  else
+  {
+    ret = processCond(cond->left);
+    ret += processCond(cond->right);
+    ret += cond->op;
+  }
+  return ret;
+}
+
+wstring
+RTXReader::processOutputChunk(Rule* rule, OutputChunk* chunk)
+{
+  wstring body;
+  for(unsigned int i = 0; i < chunk->children.size(); i++)
+  {
+    body += processOutput(rule, chunk->children[i]);
+    body += APPENDCHILD;
+  }
+  if(chunk->cond != NULL)
+  {
+    wstring ret = processCond(chunk->cond);
+    ret += JUMPONFALSE;
+    ret += (wchar_t)body.size();
+    ret += body;
+    return ret;
+  }
+  else
+  {
+    return body;
+  }
+}
+
 void
 RTXReader::processRules()
 {
@@ -1148,11 +1236,13 @@ RTXReader::processRules()
       }
       comp += APPENDSURFACE;
     }
-    for(unsigned int oidx = 0; oidx < rule->resultContents[0].size(); oidx++)
+    wstring out;
+    int sz = rule->resultContents.size();
+    for(unsigned int oidx = 0; oidx < sz; oidx++)
     {
-      comp += processOutput(rule, rule->resultContents[0][oidx]);
-      comp += APPENDCHILD;
+      out = processOutputChunk(rule, rule->resultContents[sz-oidx-1]) + JUMP + wstring(1, out.size()) + out;
     }
+    comp += out;
     comp += OUTPUT;
     rule->compiled = comp;
   }

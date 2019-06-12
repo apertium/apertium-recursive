@@ -67,7 +67,7 @@ private:
     vector<vector<wstring>> pattern;
     vector<wstring> resultNodes;
     vector<vector<wstring>> resultVars;
-    vector<vector<ResultNode*>> resultContents;
+    vector<OutputChunk*> resultContents;
     vector<VarUpdate*> variableGrabs;
     vector<VarUpdate*> variableUpdates;
     wstring compiled;
@@ -123,6 +123,9 @@ private:
   wstring parseIdent();
   int parseInt();
   float parseWeight();
+  // return whether the next token is special character c
+  // consume it if so
+  bool isNextToken(wchar_t c);
 
   /**
    * Parse an identifier
@@ -160,7 +163,8 @@ private:
   /**
    * Parse an rule
    */
-  void parseOutputElement(Rule* rule);
+  void parseOutputElement(Rule* rule, OutputChunk* chunk);
+  void parseOutputChunk(Rule* rule, bool recursing);
 
   /**
    * Parse an rule
@@ -197,6 +201,8 @@ private:
   wstring compileTag(wstring s);
   wstring compileClip(wstring part, int pos, wstring side);
   wstring processOutput(Rule* rule, ResultNode* r);
+  wstring processOutputChunk(Rule* rule, OutputChunk* chunk);
+  wstring processCond(Cond* cond);
 
 public:
   static wstring const ANY_TAG;

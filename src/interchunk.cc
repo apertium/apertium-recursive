@@ -42,11 +42,14 @@ Interchunk::readData(FILE *in)
 
   map<int, int> finals;
 
+  map<int, double> finalWeights = t.getFinals();
+
   // finals
   for(int i = 0, limit = Compression::multibyte_read(in); i != limit; i++)
   {
     int key = Compression::multibyte_read(in);
     finals[key] = Compression::multibyte_read(in);
+    ruleWeights[finals[key]] = finalWeights[key];
   }
 
   me = new MatchExe(t, finals);
@@ -859,6 +862,34 @@ Interchunk::applyWord(Chunk& word)
   if(printingMatch) { wcerr << " -> " << ms.size() << endl; }
 }
 
+int
+Interchunk::getRule()
+{
+  set<int> skip = rejectedRules;
+  int rule = ms.classifyFinals(me->getFinals(), skip);
+  if(rule == -1)
+  {
+    return -1;
+  }
+  double weight = ruleWeights[rule-1];
+  int temp = rule;
+  while(true)
+  {
+    skip.insert(temp);
+    temp = ms.classifyFinals(me->getFinals(), skip);
+    if(temp == -1)
+    {
+      break;
+    }
+    else if(ruleWeights[temp] > weight)
+    {
+      weight = ruleWeights[temp];
+      rule = temp;
+    }
+  }
+  return rule;
+}
+
 void
 Interchunk::interchunk_do_pass()
 {
@@ -895,7 +926,7 @@ Interchunk::interchunk_do_pass()
     {
       applyWord(*parseTower[layer][i]);
     }
-    int val = ms.classifyFinals(me->getFinals(), rejectedRules);
+    int val = getRule();
     if(val != -1)
     {
       rule = val-1;

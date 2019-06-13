@@ -923,7 +923,7 @@ RTXReader::makePattern(int ruleid)
     loc = td.getTransducer().insertSingleTransduction(L'$', loc);
   }
   const int symbol = td.countToFinalSymbol(ruleid+1);
-  loc = td.getTransducer().insertSingleTransduction(symbol, loc);
+  loc = td.getTransducer().insertSingleTransduction(symbol, loc, rule->weight);
   td.getTransducer().setFinal(loc);
 }
 

@@ -255,6 +255,7 @@ private:
   int longestPattern;
   bool furtherInput;
   bool allDone;
+  map<int, double> ruleWeights;
   set<int> rejectedRules;
   stack<StackElement> theStack;
   vector<Chunk*> currentInput;
@@ -284,6 +285,7 @@ private:
   bool beginsWith(wstring const &str1, wstring const &str2) const;
   bool endsWith(wstring const &str1, wstring const &str2) const;
   void applyWord(Chunk& chunk);
+  int getRule();
   bool applyRule(wstring rule);
   Chunk* readToken(FILE *in);
   void interchunk_wrapper_null_flush(FILE *in, FILE *out);

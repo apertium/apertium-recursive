@@ -121,7 +121,7 @@ private:
    * Parse an identifier
    * @return identifier
    */
-  wstring parseIdent();
+  wstring parseIdent(bool prespace);
   int parseInt();
   float parseWeight();
   // return whether the next token is special character c
@@ -244,6 +244,7 @@ private:
    * Rules file
    */
   map<wstring, vector<wstring>> collections;
+  map<wstring, pair<wstring, wstring>> attrDefaults;
   
   /**
    * Rules file
@@ -259,6 +260,7 @@ private:
   
   void processRules();
   void makePattern(int ruleid);
+  void makeDefaultRule();
   
   int longestPattern;
   

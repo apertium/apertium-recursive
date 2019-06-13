@@ -326,6 +326,17 @@ Interchunk::applyRule(wstring rule)
         if(printingSteps) { wcerr << "jump" << endl; }
         i += rule[++i];
         break;
+      case JUMPONTRUE:
+        if(printingSteps) { wcerr << "jumpontrue" << endl; }
+        if(!popBool())
+        {
+          i++;
+        }
+        else
+        {
+          i += rule[++i];
+        }
+        break;
       case JUMPONFALSE:
         if(printingSteps) { wcerr << "jumponfalse" << endl; }
         if(popBool())
@@ -948,6 +959,10 @@ Interchunk::interchunk_do_pass()
       parseTower[layer].erase(parseTower[layer].begin(), parseTower[layer].begin()+len);
       parseTower[layer+1].insert(parseTower[layer+1].end(), currentOutput.begin(), currentOutput.end());
       rejectedRules.clear();
+      if(layer+2 == parseTower.size())
+      {
+        shiftCount = 0;
+      }
     }
     else
     {
@@ -955,10 +970,6 @@ Interchunk::interchunk_do_pass()
     }
     currentInput.clear();
     currentOutput.clear();
-    if(layer+2 == parseTower.size())
-    {
-      shiftCount = 0;
-    }
   }
   else
   {

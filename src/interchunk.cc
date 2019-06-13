@@ -18,6 +18,7 @@ using namespace std;
 Interchunk::Interchunk()
 {
   furtherInput = true;
+  inword = false;
   allDone = false;
   maxLayers = -1;
   shiftCount = 0;

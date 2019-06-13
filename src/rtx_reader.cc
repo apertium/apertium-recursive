@@ -617,20 +617,6 @@ RTXReader::parseOutputElement(Rule* rule, OutputChunk* chunk)
       }
     }
   }
-  if(ret->getall)
-  {
-    //vector<wstring> vars = rule->resultVars[rule->resultContents.size()-1];
-    vector<wstring> vars = rule->resultVars[0];
-    for(unsigned int v = 0; v < vars.size(); v++)
-    {
-      VarUpdate* vu = new VarUpdate;
-      vu->src = -1;
-      vu->dest = ret->pos;
-      vu->srcvar = vars[v];
-      vu->destvar = vars[v];
-      ret->updates.push_back(vu);
-    }
-  }
   if(isNextToken(L'('))
   {
     VarUpdate* vu = new VarUpdate;
@@ -722,18 +708,20 @@ RTXReader::parseReduceRule(vector<wstring> output, wstring next)
   {
     rule = new Rule();
     rule->resultNodes = outNodes;
-    rule->resultVars = outVars;
     rule->patternLength = 0;
     rule->grab_all = -1;
     rule->line = currentLine;
     eatSpaces();
-    if(!isdigit(source.peek()))
+    if(isdigit(source.peek()))
     {
-      die(L"Rule is missing weight");
+      rule->weight = parseWeight();
+      nextToken(L":");
+      eatSpaces();
     }
-    rule->weight = parseWeight();
-    nextToken(L":");
-    eatSpaces();
+    else
+    {
+      rule->weight = 0;
+    }
     while(!source.eof() && source.peek() != L'{' && source.peek() != L'[' && source.peek() != L'(')
     {
       parsePatternElement(rule);
@@ -860,26 +848,6 @@ RTXReader::insertTags(int const base, wstring const &tags)
   return retval;
 }
 
-/*
-  struct Rule
-  {
-    int ID;
-    int grab_all;
-    float weight;
-    int patternLength;
-    vector<vector<wstring>> pattern;
-    vector<wstring> resultNodes;
-    vector<vector<wstring>> resultVars;
-    vector<vector<wstring>> resultContents;
-    vector<vector<pair<int, wstring>>> variableGrabs;
-    vector<pair<pair<int, wstring>, pair<int, wstring>>> variableUpdates;
-    wstring compiled;
-  };
-  n: _.gender.number
-  adj: _.<sint>.gender
-  NP.gender.number -> %n adj.sint {%2 _1 1};
-*/
-
 void
 RTXReader::makePattern(int ruleid)
 {
@@ -983,12 +951,24 @@ RTXReader::compileClip(wstring part, int pos, wstring side = L"")
   }
   else
   {
+    wstring def;
+    if(attrDefaults.find(part) != attrDefaults.end())
+    {
+      wstring tg = compileTag(attrDefaults[part].first);
+      def += DUP;
+      def += compileString(L"");
+      def += EQUAL;
+      def += JUMPONFALSE;
+      def += (wchar_t)(tg.size() + 1);
+      def += DROP;
+      def += tg;
+    }
     ret += TARGETCLIP;
     ret += DUP;
     ret += compileString(L"");
     ret += EQUAL;
     ret += JUMPONFALSE;
-    ret += (2*c.size() + 10);
+    ret += (2*c.size() + def.size() + 10);
     ret += DROP;
     ret += c;
     ret += REFERENCECLIP;
@@ -996,36 +976,14 @@ RTXReader::compileClip(wstring part, int pos, wstring side = L"")
     ret += compileString(L"");
     ret += EQUAL;
     ret += JUMPONFALSE;
-    ret += (c.size() + 2);
+    ret += (c.size() + def.size() + 2);
     ret += DROP;
     ret += c;
     ret += SOURCECLIP;
+    ret += def;
   }
-  // check if has default value
   return ret;
 }
-
-/*
-  struct VarUpdate
-  {
-    int src;
-    int dest;
-    wstring srcvar;
-    wstring destvar;
-    wstring side;
-  };
-  struct ResultNode
-  {
-    wstring mode;
-    int pos;
-    wstring lemma;
-    map<wstring, pair<int, wstring>> clips;
-    vector<wstring> tags;
-    bool getall;
-    bool dontoverwrite;
-    vector<VarUpdate*> updates;
-  };
-*/
 
 wstring
 RTXReader::processOutput(Rule* rule, ResultNode* r)
@@ -1113,6 +1071,11 @@ RTXReader::processOutput(Rule* rule, ResultNode* r)
         else if(grab.find(rl[p]) != grab.end())
         {
           ret += grab[rl[p]];
+          ret += APPENDSURFACE;
+        }
+        else if(r->getall && rule->varMap[0].find(rl[p]) != rule->varMap[0].end())
+        {
+          ret += compileTag(to_wstring(rule->varMap[0][rl[p]]));
           ret += APPENDSURFACE;
         }
         else
@@ -1235,13 +1198,7 @@ RTXReader::makeDefaultRule()
     reductionRules.push_back(update);
     makePattern(reductionRules.size()-1);
 
-    wstring cur = compileClip(cat, 1, L"tl");
-    cur += compileTag(undef);
-    cur += EQUAL;
-    cur += JUMPONTRUE;
-    cur += (wchar_t)1;
-    cur += REJECTRULE;
-    cur += compileTag(def);
+    wstring cur = compileTag(def);
     cur += compileString(it->first);
     cur += INT;
     cur += (wchar_t)1;
@@ -1269,13 +1226,26 @@ RTXReader::processRules()
       comp += REJECTRULE;
     }
     comp += CHUNK;
-    comp += compileString(L"unk<" + rule->resultNodes[0] + L">");
-    comp += APPENDSURFACE;
     rule->varMap.push_back(map<wstring, int>());
-    for(unsigned int vidx = 0; vidx < rule->resultVars[0].size(); vidx++)
+    vector<wstring> vars;
+    for(unsigned int i = 0; i < outputRules.size(); i++)
     {
-      wstring v = rule->resultVars[0][vidx];
-      rule->varMap[0][v] = vidx + 2;
+      if(outputRules[i].first[0] == rule->resultNodes[0])
+      {
+        vars = outputRules[i].second;
+        break;
+      }
+    }
+    for(unsigned int vidx = 0; vidx < vars.size(); vidx++)
+    {
+      wstring v = vars[vidx];
+      if(v == L"_")
+      {
+        comp += compileString(L"unk<" + rule->resultNodes[0] + L">");
+        comp += APPENDSURFACE;
+        continue;
+      }
+      rule->varMap[0][v] = vidx + 1;
       bool foundvar = false;
       for(unsigned int g = 0; g < rule->variableGrabs.size(); g++)
       {

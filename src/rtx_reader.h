@@ -60,14 +60,12 @@ private:
 
   struct Rule
   {
-    int ID;
     int line;
     int grab_all;
     float weight;
     int patternLength;
     vector<vector<wstring>> pattern;
     vector<wstring> resultNodes;
-    vector<vector<wstring>> resultVars;
     vector<OutputChunk*> resultContents;
     vector<VarUpdate*> variableGrabs;
     vector<VarUpdate*> variableUpdates;

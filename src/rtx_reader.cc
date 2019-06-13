@@ -1125,20 +1125,15 @@ RTXReader::processCond(Cond* cond)
   {
     if(cond->val->src == 0)
     {
-      ret = compileTag(cond->val->srcvar);
-    }
-    else if(cond->val->srcvar == L"lem")
-    {
-      ret = compileString(L"<");
-      ret += compileClip(cond->val->srcvar, cond->val->src, cond->val->side);
-      ret += CONCAT;
-      ret += compileString(L">");
-      ret += CONCAT;
-      // This is an absurd hack, but it means we can compare lemmas to literals
+      ret = compileString(cond->val->srcvar);
     }
     else
     {
       ret = compileClip(cond->val->srcvar, cond->val->src, cond->val->side);
+      if(cond->val->srcvar != L"lem")
+      {
+        ret += DISTAG;
+      }
     }
   }
   else if(cond->op == NOT)
@@ -1168,7 +1163,7 @@ RTXReader::processOutputChunk(Rule* rule, OutputChunk* chunk)
   {
     wstring ret = processCond(chunk->cond);
     ret += JUMPONFALSE;
-    ret += (wchar_t)body.size();
+    ret += (wchar_t)(body.size()+2);
     ret += body;
     return ret;
   }

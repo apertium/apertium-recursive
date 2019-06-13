@@ -17,22 +17,22 @@ definite = ind def ;
 
 det_type = dem ind def pos qnt itg org ;
 
-nom = n n.acr np.loc np.ant np.cog np.al adv;
+!nom = n n.acr np.loc np.ant np.cog np.al adv;
 np = np;
 np_acr = np acr;
-adj = adj adj.pos vblex.pp vbmod.pp vblex.pron.pp;
+!adj = adj adj.pos vblex.pp vbmod.pp vblex.pron.pp;
 grau_adj = comp sup;
-det = det.dem det.ind det.def det.pos det.qnt det.itg det.org adj.pos num predet rel.add;
-prnpro = prn.pro;
-prnenc = prn.enc;
-num = num num.percent num.org num.mon num.time;
-verb = vblex vblex.pron vbhaver vbser vbmod;
+!det = det.dem det.ind det.def det.pos det.qnt det.itg det.org adj.pos num predet rel.add;
+!prnpro = prn.pro;
+!prnenc = prn.enc;
+!num = num num.percent num.org num.mon num.time;
+!verb = vblex vblex.pron vbhaver vbser vbmod;
 have_aux = vbhaver;
-pp = vblex.pp vblex.pron.pp vbser.pp vbmod.pp;
+!pp = vblex.pp vblex.pron.pp vbser.pp vbmod.pp;
 aux = vaux;
 prn = prn;
-adv = adv preadv adv.itg cnjadv;
-rel = rel.nn rel.an rel.adv;
+!adv = adv preadv adv.itg cnjadv;
+!rel = rel.nn rel.an rel.adv;
 tipus_rel = nn an adv;
 tipus_prn = tn obj enc itg pos;
 pers = p1 p2 p3 PD;
@@ -139,6 +139,7 @@ INF.temps -> !0: %vblex.inf {%1 se@prn.enc.ref.p3.mf.sp.[1.lemq]} (1.verbtype/tl
              
 cnjcoo: _;
 tractaments = Mr\. Mrs\. Ms\. Dr\.;
+np_type = ant cog;
 NA.number.gender -> 2: %NOM {%1} |
                        ! gender probably hasn't changed, but just in case
                         
@@ -156,13 +157,13 @@ NA.number.gender -> 2: %NOM {%1} |
                        {1 _1 2 _2 3} |
                     0: %NA cnjcoo NA {1 _1 2 _2 3} |
 
-                    !0: NOM NOM.$number.$gender
-                    !   {1 _1 2} (1.nom in [np.ant np.cog] |
-                    !             2.nom in [np.ant np.cog] |
-                    !             1.lem/sl in tractaments |
-                    !             2.lem/sl in tractaments |
-                    !             2.lem/sl in weekday)
-                    !   {2 _1 de@pr _ 1} |
+                    0: NOM NOM.$number.$gender
+                       {1 _1 2} (1.nom in np_type |
+                                 2.nom in np_type |
+                                 1.lem/sl in tractaments |
+                                 2.lem/sl in tractaments |
+                                 2.lem/sl in weekday)
+                       {2 _1 de@pr _ 1} |
                     0: NOM NOM %NOM {3 _2 2 _1 1} |
                     0: %NOM to@pr INF {%1 _1 2 _2 3} ;
 
@@ -199,10 +200,10 @@ NP.number.gender -> 1: all@predet %NP.pl.$gender/tl
                     0: $under20@AGE {niño@n.$gender.$number _ de@pr _ 1} |
                     0: AGE {persona@n.f.sg _ de@pr _ 1} ;
 
-!REL.tipus_rel.gender.number -> 0: which@prn.itg [$tipus_rel=nn]
-!                                  {el\ cual@rel.nn.$gender.$number} |
-!                               0: which@rel.an [$tipus_rel=nn]
-!                                  {el\ cual@rel.nn.$gender.$number} ;
+REL.tipus_rel.gender.number -> 0: which@prn.itg [$tipus_rel=nn]
+                                  {el\ cual@rel.nn.$gender.$number} |
+                               0: which@rel.an [$tipus_rel=nn]
+                                  {el\ cual@rel.nn.$gender.$number} ;
 
 NUM.gender.number -> 0: num {%1};
 DET.gender.number -> 0: det {%1};

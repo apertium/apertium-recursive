@@ -169,6 +169,9 @@ void writeRule(wstring rule, FILE* out)
       case REJECTRULE:
         fwprintf(out, L"REJECTRULE\n");
         break;
+      case DISTAG:
+        fwprintf(out, L"DISTAG\n");
+        break;
       default:
         fwprintf(out, L"Unknown instruction: %s", rule.substr(i, 1));
     }

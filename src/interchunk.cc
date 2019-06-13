@@ -451,7 +451,7 @@ Interchunk::applyRule(wstring rule)
         wstring needle = popString();
         set<wstring, Ltstr>::iterator it, limit;
 
-        if(rule[i] == HASPREFIXCL)
+        if(rule[i] == HASPREFIX)
         {
           it = lists[list].begin();
           limit = lists[list].end();
@@ -483,7 +483,7 @@ Interchunk::applyRule(wstring rule)
         wstring needle = popString();
         set<wstring, Ltstr>::iterator it, limit;
 
-        if(rule[i] == HASSUFFIXCL)
+        if(rule[i] == HASSUFFIX)
         {
           it = lists[list].begin();
           limit = lists[list].end();
@@ -676,6 +676,17 @@ Interchunk::applyRule(wstring rule)
       case REJECTRULE:
         if(printingSteps) { wcerr << "rejectrule" << endl; }
         return false;
+        break;
+      case DISTAG:
+        if(printingSteps) { wcerr << "distag" << endl; }
+      {
+        wstring s = popString();
+        if(s.size() > 0 && s[0] == L'<' && s[s.size()-1] == L'>')
+        {
+          s = s.substr(1, s.size()-2);
+        }
+        pushStack(s);
+      }
         break;
       default:
         wcerr << "unknown instruction: " << rule[i] << endl;

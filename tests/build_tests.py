@@ -24,7 +24,7 @@ class InterpreterTest:
     def test_output(self):
         actual = subprocess.check_output(['../src/rec-inter', self.byte_file, self.bin_file],
                                          input=self.input, encoding='utf-8', universal_newlines=True)
-        self.assertEqual(actual, self.output)
+        self.assertEqual(self.output, actual)
 
 
 ''')

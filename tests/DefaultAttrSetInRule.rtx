@@ -1,0 +1,15 @@
+n: _.gender.number;
+adj: _.gender.number;
+NA: _.gender.number;
+NP: _.gender.number;
+VP: _;
+vblex: _.tense.person;
+
+gender = (GD m) m f mf GD;
+number = sg pl sp;
+person = p1 p2 p3;
+tense = past pres fut;
+
+NA -> adj %n {%2 _1 %1};
+NP -> det %n {%1 _1 %1};
+VP -> NP vblex {1 _1 2(person=p3)};

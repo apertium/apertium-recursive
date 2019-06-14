@@ -913,7 +913,7 @@ Interchunk::getRule()
   return rule;
 }
 
-void
+bool
 Interchunk::interchunk_do_pass()
 {
   int layer = -1;
@@ -929,7 +929,7 @@ Interchunk::interchunk_do_pass()
   if(layer == -1)
   {
     allDone = !furtherInput;
-    return;
+    return false;
   }
   if(layer+1 == parseTower.size())
   {
@@ -981,6 +981,7 @@ Interchunk::interchunk_do_pass()
     }
     currentInput.clear();
     currentOutput.clear();
+    return true;
   }
   else
   {
@@ -992,6 +993,7 @@ Interchunk::interchunk_do_pass()
       shiftCount++;
     }
     rejectedRules.clear();
+    return (shiftCount < longestPattern);
   }
 }
 
@@ -1005,49 +1007,43 @@ Interchunk::interchunk(FILE *in, FILE *out)
   parseTower.push_back(vector<Chunk*>());
   while(!allDone)
   {
-    if(furtherInput)
+    for(int i = 0; i < longestPattern*3 && furtherInput; i++)
     {
-      Chunk* ch = readToken(in);
-      parseTower[0].push_back(ch);
+      parseTower[0].push_back(readToken(in));
     }
-    int shift_was = shiftCount;
-    interchunk_do_pass();
-    vector<vector<Chunk*>> newTower;
-    newTower.push_back(parseTower[0]);
-    for(unsigned int i = 1; i < parseTower.size(); i++)
+    while(interchunk_do_pass())
     {
-      if(parseTower[i].size() > 0)
+      if(maxLayers > 0 && parseTower.size() > maxLayers)
       {
-        newTower.push_back(parseTower[i]);
+        while(parseTower.size() > maxLayers)
+        {
+          for(unsigned int i = 0; i < parseTower.back().size(); i++)
+          {
+            parseTower.back()[i]->output(out);
+          }
+          parseTower.pop_back();
+          shiftCount = 0;
+        }
       }
     }
-    parseTower = newTower;
-    int top = parseTower.size()-1;
-    if(shiftCount == 1 && parseTower[top][0]->isBlank)
+    if(shiftCount >= longestPattern)
     {
-      parseTower[top][0]->output(out);
-      parseTower.pop_back();
-      shiftCount = 0;
-    }
-    else if(top == 0 && parseTower[0].size() == 0)
-    {
-      allDone = !furtherInput;
-    }
-    else if(maxLayers > 0 && top >= maxLayers)
-    {
-      for(unsigned int i = 0; i < parseTower[top].size(); i++)
-      {
-        parseTower[top][i]->output(out);
-      }
-      parseTower[top].clear();
-      shiftCount = 0;
-    }
-    else if(shiftCount > longestPattern ||
-            (shiftCount > shift_was && top == 1 && parseTower[0].size() == 0 && !furtherInput))
-    {
-      parseTower[top][0]->output(out);
-      parseTower[top].erase(parseTower[top].begin());
+      int loc = parseTower.size()-1;
+      parseTower[loc][0]->output(out);
       shiftCount--;
+      parseTower[loc].erase(parseTower[loc].begin());
+      while(parseTower.back().size() == 0)
+      {
+        parseTower.pop_back();
+      }
     }
+  }
+  while(parseTower.size() > 0)
+  {
+    for(unsigned int i = 0; i < parseTower.back().size(); i++)
+    {
+      parseTower.back()[i]->output(out);
+    }
+    parseTower.pop_back();
   }
 }

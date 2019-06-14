@@ -289,7 +289,8 @@ private:
   bool applyRule(wstring rule);
   Chunk* readToken(FILE *in);
   void interchunk_wrapper_null_flush(FILE *in, FILE *out);
-  void interchunk_do_pass();
+  //void interchunk_do_pass();
+  bool interchunk_do_pass();
   
   StackElement popStack();
   bool popBool();

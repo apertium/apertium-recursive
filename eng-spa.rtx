@@ -9,9 +9,17 @@ num: _.gender.number;
 NOM: _.number.gender;
 NA: _.number.gender;
 AP: _.gender.number.mode;
+monthdate: _;
+caldate: _;
+date: _;
+PP: _;
+CONJ: _;
+age: _;
+NP: _.number.gender;
+VERB: _.temps.person.number;
 
-number = sg pl ND ;
-gender = m f mf GD ;
+number = (ND sg) sg pl ND ;
+gender = (GD m) m f mf GD ;
 mode = comp sup pos sint ;
 definite = ind def ;
 
@@ -126,16 +134,16 @@ controlnoun = desire order need right duty failure power wish capacity ability h
 
 verbtype = pron;
 
-INF.temps -> !0: %vblex.inf {%1 se@prn.enc.ref.p3.mf.sp.[1.lemq]} (1.verbtype/tl = pron)
-             !               ! ^ TODO: mlu
-             !              {%1} |
-             0: %vblex.sep.inf {%1} |
-             0: %vbser.inf {%1} |
-             0: %vbmod.inf {%1} |
-             0: %vaux.inf {%1} |
-             0: %INF prn.obj
-                {%1 _1 prpres@prn.enc(lem=2.lem, person=2.person, gender=2.gender,
-                                      number=2.number, lemq=1.lemq)} ;
+!INF.temps -> !0: %vblex.inf {%1 se@prn.enc.ref.p3.mf.sp.[1.lemq]} (1.verbtype/tl = pron)
+!             !               ! ^ TODO: mlu
+!             !              {%1} |
+!             0: %vblex.sep.inf {%1} |
+!             0: %vbser.inf {%1} |
+!             0: %vbmod.inf {%1} |
+!             0: %vaux.inf {%1} |
+!             0: %INF prn.obj
+!                {%1 _1 prpres@prn.enc(lem=2.lem, person=2.person, gender=2.gender,
+!                                      number=2.number, lemq=1.lemq)} ;
              
 cnjcoo: _;
 tractaments = Mr\. Mrs\. Ms\. Dr\.;
@@ -200,13 +208,13 @@ NP.number.gender -> 1: all@predet %NP.pl.$gender/tl
                     0: $under20@AGE {niño@n.$gender.$number _ de@pr _ 1} |
                     0: AGE {persona@n.f.sg _ de@pr _ 1} ;
 
-REL.tipus_rel.gender.number -> 0: which@prn.itg [$tipus_rel=nn]
-                                  {el\ cual@rel.nn.$gender.$number} |
-                               0: which@rel.an [$tipus_rel=nn]
-                                  {el\ cual@rel.nn.$gender.$number} ;
+!REL.tipus_rel.gender.number -> 0: which@prn.itg [$tipus_rel=nn]
+!                                  {el\ cual@rel.nn.$gender.$number} |
+!                               0: which@rel.an [$tipus_rel=nn]
+!                                  {el\ cual@rel.nn.$gender.$number} ;
 
-NUM.gender.number -> 0: num {%1};
-DET.gender.number -> 0: det {%1};
+!NUM.gender.number -> 0: num {%1};
+!DET.gender.number -> 0: det {%1};
 ! TODO: 15232, 15288 - incorporate into other rules
 
 ! SN.det_type.gender.number -> 0: det num {%1 _1 %2};
@@ -218,8 +226,6 @@ auxtemps = will shall;
 controlverbs = be\#\ likely be\#\ unlikely desire need wish hope choose expect pretend prefer promise recommend decide manage refuse agree avoid enjoy hate intend plan continue resolve try like vow;
 
 copulatiu = look seem become feel get;
-
-VERB: _.temps.person.number;
 
 ! having all these resulting VERB doesn't control for order
 ! maybe they should be split, but it seems easier to do it this way

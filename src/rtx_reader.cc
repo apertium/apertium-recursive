@@ -641,7 +641,11 @@ RTXReader::parseOutputElement(Rule* rule, OutputChunk* chunk)
         vu->src = 0;
       }
       vu->srcvar = nextToken();
-      if(isNextToken(L'/'))
+      if(vu->srcvar == L"_")
+      {
+        vu->srcvar = L"";
+      }
+      else if(isNextToken(L'/'))
       {
         vu->side = nextToken();
       }
@@ -923,6 +927,10 @@ RTXReader::compileString(wstring s)
 wstring
 RTXReader::compileTag(wstring s)
 {
+  if(s.size() == 0)
+  {
+    return compileString(s);
+  }
   wstring tag;
   tag += L'<';
   tag += s;
@@ -931,9 +939,13 @@ RTXReader::compileTag(wstring s)
 }
 
 wstring
-RTXReader::compileClip(wstring part, int pos, wstring side = L"")
+RTXReader::compileClip(wstring part, int pos, wstring side = L"", bool usereplace = false)
 {
   wstring c = compileString(part);
+  if(part == L"lemcase")
+  {
+    c = compileString(L"lem");
+  }
   c += INT;
   c += pos;
   wstring ret = c;
@@ -949,7 +961,7 @@ RTXReader::compileClip(wstring part, int pos, wstring side = L"")
   {
     ret += REFERENCECLIP;
   }
-  else
+  else if(!usereplace || attrDefaults.find(part) == attrDefaults.end())
   {
     wstring def;
     if(attrDefaults.find(part) != attrDefaults.end())
@@ -981,6 +993,25 @@ RTXReader::compileClip(wstring part, int pos, wstring side = L"")
     ret += c;
     ret += SOURCECLIP;
     ret += def;
+  }
+  else
+  {
+    wstring undef = attrDefaults[part].first;
+    wstring repl = attrDefaults[part].second;
+    wstring emp1 = compileString(L"") + EQUAL;
+    wstring emp2 = compileString(undef) + EQUAL;
+    wstring emp = wstring(1, DUP) + emp1 + OVER + emp2 + OR;
+    ret = wstring(1, DROP) + compileTag(repl);
+    ret = emp + wstring(1, JUMPONFALSE) + (wchar_t)ret.size() + ret;
+    ret = wstring(1, DROP) + c + SOURCECLIP + ret;
+    ret = emp + wstring(1, JUMPONFALSE) + (wchar_t)ret.size() + ret;
+    ret = wstring(1, DROP) + c + REFERENCECLIP + ret;
+    ret = emp + wstring(1, JUMPONFALSE) + (wchar_t)ret.size() + ret;
+    ret = c + TARGETCLIP + ret;
+  }
+  if(part == L"lemcase")
+  {
+    ret += GETCASE;
   }
   return ret;
 }
@@ -1020,8 +1051,18 @@ RTXReader::processOutput(Rule* rule, ResultNode* r)
     {
       for(unsigned int i = 0; i < defaultOrder.size(); i++)
       {
-        ret += grab[defaultOrder[i]];
-        ret += compileString(defaultOrder[i]);
+        if(defaultOrder[i] == L"lemcase")
+        {
+          ret += compileClip(L"lem", r->pos, L"tl");
+          ret += grab[defaultOrder[i]];
+          ret += SETCASE;
+          ret += compileString(L"lem");
+        }
+        else
+        {
+          ret += grab[defaultOrder[i]];
+          ret += compileString(defaultOrder[i]);
+        }
         ret += INT;
         ret += (wchar_t)r->pos;
         ret += SETCLIP;
@@ -1043,6 +1084,10 @@ RTXReader::processOutput(Rule* rule, ResultNode* r)
           break;
         }
       }
+      if(rl.size() == 0)
+      {
+        wcerr << L"Warning: could not find tag order for " << pos << endl;
+      }
       /*if(rl.size() == 0)
       {
         ret += compileClip(L"whole", r->pos, L"tl");
@@ -1058,7 +1103,7 @@ RTXReader::processOutput(Rule* rule, ResultNode* r)
       {
         if(rl[p] == L"_")
         {
-          ret += compileClip(L"lem", r->pos, L"tl");
+          ret += compileClip(L"lemh", r->pos, L"tl");
           ret += APPENDSURFACE;
           ret += compileTag(pos);
           ret += APPENDSURFACE;
@@ -1080,12 +1125,14 @@ RTXReader::processOutput(Rule* rule, ResultNode* r)
         }
         else
         {
-          ret += compileClip(rl[p], r->pos);
+          ret += compileClip(rl[p], r->pos, L"", true);
           ret += APPENDSURFACE;
         }
       }
       if(rl.size() != 0)
       {
+        ret += compileClip(L"lemq", r->pos, L"tl");
+        ret += APPENDSURFACE;
         ret += compileClip(L"whole", r->pos, L"tl");
         ret += APPENDALLCHILDREN;
       }
@@ -1231,6 +1278,10 @@ RTXReader::processRules()
         break;
       }
     }
+    if(vars.size() == 0)
+    {
+      wcerr << L"Warning: could not find tag order for " << rule->resultNodes[0] << endl;
+    }
     for(unsigned int vidx = 0; vidx < vars.size(); vidx++)
     {
       wstring v = vars[vidx];
@@ -1262,7 +1313,12 @@ RTXReader::processRules()
       {
         if(rule->grab_all == -1)
         {
-          comp += compileString(L"<unk>"); // TODO
+          wstring unk = L"unk";
+          if(attrDefaults.find(v) != attrDefaults.end())
+          {
+            unk = attrDefaults[v].first;
+          }
+          comp += compileTag(unk); // TODO
         }
         else
         {

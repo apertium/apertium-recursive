@@ -115,6 +115,7 @@ public:
         else if(target[i] == L'<')
         {
           indigittag = true;
+          result = result.substr(0, result.size()-1);
         }
       }
       else if(target[i] == L'>')
@@ -122,7 +123,6 @@ public:
         int idx = stoi(cur)-1;
         if(idx < parentTags.size())
         {
-          result = result.substr(0, result.size()-1);
           result += parentTags[idx];
           result += L'>';
         }
@@ -131,6 +131,7 @@ public:
       }
       else if(!isdigit(target[i]))
       {
+        result += L'<';
         result += cur;
         cur.clear();
         result += target[i];

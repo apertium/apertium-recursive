@@ -287,9 +287,11 @@ Interchunk::applyRule(wstring rule)
         if(printingSteps) { wcerr << "over" << endl; }
       {
         StackElement a = popStack();
-        StackElement b = theStack.top();
+        StackElement b = popStack();
+        theStack.push(b);
         theStack.push(a);
         theStack.push(b);
+        if(printingSteps) { wcerr << " -> " << b.mode << " " << a.mode << " " << b.mode << endl; }
       }
         break;
       case SWAP:

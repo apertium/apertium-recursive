@@ -264,7 +264,7 @@ private:
   
   wstring compileString(wstring s);
   wstring compileTag(wstring s);
-  wstring compileClip(wstring part, int pos, wstring side);
+  wstring compileClip(wstring part, int pos, wstring side, bool usereplace);
   wstring processOutput(Rule* rule, ResultNode* r);
   wstring processOutputChunk(Rule* rule, OutputChunk* chunk);
   wstring processCond(Cond* cond);

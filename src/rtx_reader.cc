@@ -315,7 +315,8 @@ RTXReader::parseOutputRule(vector<wstring> pattern)
     cur = nextToken();
     if(cur == L"<")
     {
-      cur = cur + nextToken() + nextToken(L">");
+      cur = cur + parseIdent();
+      cur += nextToken(L">");
     }
     output.push_back(cur);
     if(nextToken(L".", L";") == L";")

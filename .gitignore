@@ -17,3 +17,5 @@ src/prep-all
 stamp-h1
 *.comp
 *.bin
+*.decomp
+tests/run_tests.py

@@ -569,7 +569,12 @@ Interchunk::applyRule(wstring rule)
         wstring part = popString();
         if(part == L"whole")
         {
-          pushStack(currentInput[pos]);
+          Chunk* ch = new Chunk;
+          ch->isBlank = false;
+          ch->target = currentInput[pos]->target;
+          ch->contents = currentInput[pos]->contents;
+          pushStack(ch);
+          //pushStack(currentInput[pos]);
         }
         else if(part == L"chcontent")
         {
@@ -947,10 +952,7 @@ Interchunk::interchunk_do_pass()
     {
       break;
     }
-    if(i != parseTower[layer].size())
-    {
-      applyWord(*parseTower[layer][i]);
-    }
+    applyWord(*parseTower[layer][i]);
     int val = getRule();
     if(val != -1)
     {
@@ -969,6 +971,13 @@ Interchunk::interchunk_do_pass()
     currentInput.assign(parseTower[layer].begin(), parseTower[layer].begin()+len);
     if(applyRule(rule_map[rule]))
     {
+      if(printingRules)
+      {
+        for(unsigned int i = 0; i < currentOutput.size(); i++)
+        {
+          wcerr << currentOutput[i]->target << endl;
+        }
+      }
       parseTower[layer].erase(parseTower[layer].begin(), parseTower[layer].begin()+len);
       parseTower[layer+1].insert(parseTower[layer+1].end(), currentOutput.begin(), currentOutput.end());
       rejectedRules.clear();
@@ -1034,9 +1043,13 @@ Interchunk::interchunk(FILE *in, FILE *out)
       parseTower[loc][0]->output(out);
       shiftCount--;
       parseTower[loc].erase(parseTower[loc].begin());
-      while(parseTower.back().size() == 0)
+      while(parseTower.size() > 0 && parseTower.back().size() == 0)
       {
         parseTower.pop_back();
+      }
+      if(parseTower.size() == 0)
+      {
+        allDone = !furtherInput;
       }
     }
   }

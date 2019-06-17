@@ -553,6 +553,7 @@ Interchunk::applyRule(wstring rule)
       case OUTPUT:
         if(printingSteps) { wcerr << "out" << endl; }
         currentOutput.push_back(popChunk());
+        if(printingSteps) { wcerr << " -> " << currentOutput.back()->target << endl; }
         break;
       case SOURCECLIP:
         if(printingSteps) { wcerr << "sourceclip" << endl; }
@@ -574,7 +575,6 @@ Interchunk::applyRule(wstring rule)
           ch->target = currentInput[pos]->target;
           ch->contents = currentInput[pos]->contents;
           pushStack(ch);
-          //pushStack(currentInput[pos]);
         }
         else if(part == L"chcontent")
         {
@@ -824,6 +824,7 @@ Interchunk::interchunk_wrapper_null_flush(FILE *in, FILE *out)
 void
 Interchunk::applyWord(Chunk& word)
 {
+  if(printingMatch) { wcerr << "applyWord(" << word.target << ")" << endl; }
   if(word.isBlank)
   {
     if(printingMatch) { wcerr << "stepping blank, size " << ms.size(); }
@@ -957,6 +958,7 @@ Interchunk::interchunk_do_pass()
     if(val != -1)
     {
       rule = val-1;
+      if(printingRules) { wcerr << " rule is now " << rule << endl; }
       len = i+1;
     }
   }
@@ -971,13 +973,6 @@ Interchunk::interchunk_do_pass()
     currentInput.assign(parseTower[layer].begin(), parseTower[layer].begin()+len);
     if(applyRule(rule_map[rule]))
     {
-      if(printingRules)
-      {
-        for(unsigned int i = 0; i < currentOutput.size(); i++)
-        {
-          wcerr << currentOutput[i]->target << endl;
-        }
-      }
       parseTower[layer].erase(parseTower[layer].begin(), parseTower[layer].begin()+len);
       parseTower[layer+1].insert(parseTower[layer+1].end(), currentOutput.begin(), currentOutput.end());
       rejectedRules.clear();

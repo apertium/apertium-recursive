@@ -4,63 +4,69 @@
 n: _.gender.number;
 np: _.np_type.gender.number;
 adj: _.gender.number;
-det: _.det_type.definite.gender.number;
-DET: _.det_type.definite.gender.number;
+det: _.det_type.gender.number;
+DET:: _.det_type.gender.number;
 num: _.gender.number;
-NOM: _.number.gender;
-NA: _.number.gender;
-AP: _.gender.number.mode;
-monthdate: _;
-caldate: _;
-date: _;
-PP: _;
-CONJ: _;
-age: _;
-NP: _.number.gender.person;
-VERB: _.temps.person.number;
+NOM:: _.number.gender;
+NA:: _.number.gender;
+AP:: _.gender.number.mode;
+monthdate:: _;
+caldate:: _;
+date:: _;
+PP:: _;
+CONJ:: _;
+age:: _;
+NP:: _.number.gender.person;
+VERB:: _.temps.person.number;
 pr: _;
-adv: _;
+adv: _.adv_type;
 cm: _;
-weekday: _;
+weekday:: _;
 apos: _;
-AGE: _;
+AGE:: _;
 preadv: _;
-INF: _.temps;
 predet: _;
 vblex: _.temps.person.number;
 vbaux: _.temps.person.number;
 vbhaver: _.temps.person.number;
+vaux: _.temps.person.number;
+vbdo: _.temps.person.number;
 prn: _.prn_type.person.gender.number;
+rel: _.rel_type.gender.number;
 
-number = (ND sg) sg pl sp ND ;
-gender = (GD m) m f mf GD ;
+number = (ND sg) sg pl @sp ND ;
+gender = (GD m) m f @mf GD ;
 mode = comp sup pos sint num ;
 definite = ind def ;
 person = (PD p3) p1 p2 p3;
 
-det_type = dem pos qnt itg org ;
+det_type = dem pos qnt itg org def ind ;
 np_type = act loc ant cog al;
 prn_type = tn;
+adv_type = itg;
+rel_type = nn;
 
 temps = cni fti ifi imp pii pis inf prs pres past pri pp ger pprs subs;
 
 ! pattern % passes lem, output % does not
 
-NOM.number.gender -> 1: %n.$lem/sl {%1} |
-                     0: %n {%1} |
-                     1: %np {%1} |
-                     0: adj guio %NOM {%3 _ %1} |
-                     0: num guio %NOM {%3 _ %1} |
-                     0: %np np np {1 _1 2 _2 3} |
-                     ! not completely certain about where to put this
-                     ! t1x 11515
-                     0: NOM NOM %n ! see t1x 11564
-                        {3 _1 de@pr _ 2 _2 de@pr _
-                         el@det.def.$gender.$number _ 1} |
-                         ! but see t1x 11564
-                     0: NOM %NOM {2 _1 de@pr _ 1} |
-                     0: n %np {1(gender=2.gender) _1 2} |
-                     2: n %n {2 _ de@pr _1 1};
+NOM -> 1: %n.$lem/sl {%1} |
+       2: %information@n {el@det.def.f.sg _ 1} |
+       0: %n {%1} |
+       1: %np {%1} |
+       0: adj guio %NOM {%3 _ %1} |
+       0: num guio %NOM {%3 _ %1} |
+       0: %np np np {1 _1 2 _2 3} |
+          ! not completely certain about where to put this
+          ! t1x 11515
+       0: NOM NOM %n ! see t1x 11564
+          {3 _1 de@pr _ 2 _2 de@pr _
+           el@det.def.$gender.$number _ 1} |
+           ! but see t1x 11564
+       0: NOM %NOM {2 _1 de@pr _ 1} |
+       0: n %np {1(gender=2.gender) _1 2} |
+       2: n %n {2 _ de@pr _1 1} |
+       0: adj n %n {3 _1 de@pr _ 2 _2 1(gender=2.gender/tl, number=2.number/tl)};
 
 ! Lines 4989-5328 (dates)
 weekday = sunday monday tuesday wednesday thursday friday saturday ;
@@ -98,8 +104,7 @@ PP -> 3: pr NP {1 _1 2} |
          ! "on [Tuesday]" -> "[el Martes]"
       0: NP ago@adv {2 _1 1} |
       0: NP hence@adv {dentro\ de@pr _1 2} |
-      !1: to@pr VERB.inf (1.lemcase = Aa) {Para@pr _1 2(person=_, number=_)} |
-      0: to@pr VERB.inf {para@pr _1 2(person=_, number=_)} ;
+      0: to@pr VERB.inf {para@pr _1 2[verbinf]};
 
 ! Lines 5329-8545 (adjectives)
 ! the rules beginning on lines 6408 (adj num adj nom) and 6852 (adv pp nom)
@@ -107,76 +112,61 @@ PP -> 3: pr NP {1 _1 2} |
 
 CONJ -> 1: cnjcoo {1} | 1: cm {1} ;
 
-AP.gender.number.mode -> !2: %adj {%1} |
-                         !   ! "blue" -> "azul"
-                         3: %adj [$number=sg] (~(1.number/tl in number)) {%1} |
-                         3: %adj (1.gender/tl = mf) {1(gender=mf, number=$number)} |
-                         0: %adj {%1} |
-                       
-                         1: adv %adj {1 _1 %2} |
-                                0: adv guio %adj {1 _ %3} |
-                         1: preadv %adj {1 _1 %2} |
-                            ! "very green" -> "muy verde"
+digit: _;
 
-                         1: AP.$mode CONJ AP.$mode
-                            {%1 _1 2 _2 %3} |
-                            ! "[totally green] and [very tall] ->
-                            ! "[totalmente verde] y [muy alto]
-                       
-                         1: apos %AP apos {1 _1 %2 _2 3} |
-                            ! " 'blue' " -> " 'azul' "
-                     
-                         0: %adj enough@adv {2 _1 %1} |
-                         0: np.loc guio vblex.pp {%3 _ en@pr _ 1} |
-                         0: %AP to@pr INF {%1 _1 de@pr _2 3} ;
-                         !1: %num.sp [$mode=num, $gender=mf, $number=sp] {1(gender=1.gender/tl, number=1.number/tl)} |
-                         !0: %num [$mode=num] {1(gender=_, number=_)} ; ! digits ?
+AP -> 0: %adj [$gender=GD] {1(number=$number)} (1.gender/tl = mf)
+                           {%1} |
+
+      1: adv %adj {1 _1 %2} |
+      0: adv guio %adj {1 _ %3} |
+      1: preadv %adj {1 _1 %2} |
+         ! "very green" -> "muy verde"
+
+      1: AP.$mode CONJ AP.$mode
+         {%1 _1 2 _2 %3} |
+         ! "[totally green] and [very tall] ->
+         ! "[totalmente verde] y [muy alto]
+
+      1: apos %AP apos {1 _1 %2 _2 3} |
+         ! " 'blue' " -> " 'azul' "
+      
+      0: %adj enough@adv {2 _1 %1} |
+      0: np.loc guio vblex.pp {%3 _ en@pr _ 1} |
+      0: %AP to@pr VERB.inf {%1 _1 de@pr _2 3[verbinf]} |
+      1: %num.sp [$mode=num, $gender=mf, $number=sp] {1(gender=1.gender/tl, number=1.number/tl)} |
+      0: %num [$mode=num] {1[digit]} ; ! digits ?
 
 controlnoun = desire order need right duty failure power wish capacity ability hope chance honour compulsion responsibility opportunity idea record way attempt obligation impulse surprise will mean;
 
 verbtype = pron;
 
-!INF.temps -> !0: %vblex.inf {%1 se@prn.enc.ref.p3.mf.sp.[1.lemq]} (1.verbtype/tl = pron)
-!             !               ! ^ TODO: mlu
-!             !              {%1} |
-!             0: %vblex.sep.inf {%1} |
-!             0: %vbser.inf {%1} |
-!             0: %vbmod.inf {%1} |
-!             0: %vaux.inf {%1} |
-!             0: %INF prn.obj
-!                {%1 _1 prpres@prn.enc(lem=2.lem, person=2.person, gender=2.gender,
-!                                      number=2.number, lemq=1.lemq)} ;
-             
 cnjcoo: _;
 tractaments = Mr\. Mrs\. Ms\. Dr\.;
 np_type = ant cog;
-NA.number.gender -> 2: %NOM {%1} |
-                       ! gender probably hasn't changed, but just in case
-                    !3: AP.*.num %NA {1 _1 2} |
-                    2: AP %NOM {2 _1 1(gender=2.gender/tl, number=2.number/tl)} |
-                    1: AP %NA
-                       {2 _1 %1(gender=2.gender/tl, number=2.number/tl)} |
-                       ! "green socks" -> "calcetines verdes"
-                        
-                    2: num %NA {1 _1 2} |
-                       ! "3 elephants" -> "tres elephantes"
-                        
-                    2: apos %NP apos {1 _1 2 _2 3} |
-                       ! " 'sock' " -> " 'calcetine' "
+NA -> 0: AP %NA {1 _1 2} (1.mode = num)
+                {2 _1 %1} |
+      0: AP %NOM {1 _1 2} (1.mode = num)
+                {2 _1 %1} |
+         
+      2: num %NA {1 _1 2} |
+         ! "3 elephants" -> "tres elephantes"
+         
+      2: apos %NP apos {1 _1 2 _2 3} |
+         ! " 'sock' " -> " 'calcetine' "
 
-                    0: %NA.f cnjcoo NA.f [$gender=f]
-                       {1 _1 2 _2 3} |
-                    0: %NA cnjcoo NA {1 _1 2 _2 3} |
+      0: %NA.f cnjcoo NA.f [$gender=f]
+         {1 _1 2 _2 3} |
+      0: %NA cnjcoo NA {1 _1 2 _2 3} |
 
-                    0: NOM NOM.$number.$gender
-                       {1 _1 2} (1.nom in np_type |
-                                 2.nom in np_type |
-                                 1.lem/sl in tractaments |
-                                 2.lem/sl in tractaments |
-                                 2.lem/sl in weekday)
-                       {2 _1 de@pr _ 1} |
-                    0: NOM NOM %NOM {3 _2 2 _1 1} |
-                    0: %NOM to@pr INF {%1 _1 2 _2 3} ;
+      0: NOM NOM.$number.$gender
+         {1 _1 2} (1.nom in np_type |
+                   2.nom in np_type |
+                   1.lem/sl in tractaments |
+                   2.lem/sl in tractaments |
+                   2.lem/sl in weekday)
+         {2 _1 de@pr _ 1} |
+      0: NOM NOM %NOM {3 _2 2 _1 1} ;
+      !0: %NOM to@pr INF {%1 _1 2 _2 3} ;
 
 yearmonth = year month;
 one = 1 one;
@@ -194,40 +184,30 @@ AGE -> 0: %$one@num guio $yearmonth@n guio old@adj.sint
           {1 _1 2(number=pl)} ;
 
 
-DET -> 0: %det {1(gender=mf, number=sp)} ((1.gender = mf) & (1.number = sp))
-               {1(gender=mf, number=$number)} (1.gender = mf)
-               {1(number=sp, gender=$gender)} (1.number = sp)
+DET -> 0: %det {1} ((1.gender/tl = mf) & (1.number/tl = sp))
+               {1(number=$number)} (1.gender/tl = mf)
+               {1(gender=$gender)} (1.number/tl = sp)
                {%1} ;
-NP.number.gender -> 1: all@predet %NP.pl.$gender/tl
-                       {%1 _ el@det.def.$gender.pl _1 2} |
-                       ! "all tables" -> "todas las mesas"
-                        
-                    2: DET %NP {1(number=2.number, gender=2.gender) _1 2} |
-                       ! "the books" -> "los libros"
-                        
-                    2: %NA {%1} |
-                       ! "book" -> "libro"
-                        
-                    1: such\ a@det.ind.sg adj %NOM
-                       {un@det.ind.[3.gender].sg _1 3 _2 tan@preadv _ 2} |
-                       ! "such a green ceiling" ->
-                       ! "un techo tan verde"
-                    0: AGE %NP {2 _1 de@pr _ 1} |
-                    0: $under20@AGE {niño@n.$gender.$number _ de@pr _ 1} |
-                    0: AGE {persona@n.f.sg _ de@pr _ 1} |
-                    1: %prn [$person=p3] (~(1.person in person)) {1(person=_)} |
-                    0: %prn {1} ;
+NP -> 1: all@predet %NP.pl.$gender/tl
+         {%1 _ el@det.def.$gender.pl _1 2} |
+         ! "all tables" -> "todas las mesas"
 
-!REL.tipus_rel.gender.number -> 0: which@prn.itg [$tipus_rel=nn]
-!                                  {el\ cual@rel.nn.$gender.$number} |
-!                               0: which@rel.an [$tipus_rel=nn]
-!                                  {el\ cual@rel.nn.$gender.$number} ;
+      2: DET %NP {%1 _1 2} |
+         ! "the books" -> "los libros"
 
-!NUM.gender.number -> 0: num {%1};
-!DET.gender.number -> 0: det {%1};
+      2: %NA {%1} |
+         ! "book" -> "libro"
+
+      1: such\ a@det.ind.sg adj %NOM
+         {un@det.ind.[3.gender].sg _1 3 _2 tan@preadv _ %2} |
+         ! "such a green ceiling" ->
+         ! "un techo tan verde"
+      0: AGE %NP {2 _1 de@pr _ 1} |
+      0: $under20@AGE {niño@n.$gender.$number _ de@pr _ 1} |
+      0: AGE {persona@n.f.sg _ de@pr _ 1} |
+      0: %NP to@pr VERB.inf {1 _1 para@pr _2 3[verbinf]};
+
 ! TODO: 15232, 15288 - incorporate into other rules
-
-! SN.det_type.gender.number -> 0: det num {%1 _1 %2};
 
 ! TODO: 15370
 
@@ -237,26 +217,49 @@ controlverbs = be\#\ likely be\#\ unlikely desire need wish hope choose expect p
 
 copulatiu = look seem become feel get;
 
+verbpp: _.<pp>.gender.number;
+verbinf: _.<inf>;
+verbger: _.<ger>;
+
 ! having all these resulting VERB doesn't control for order
 ! maybe they should be split, but it seems easier to do it this way
 ! and better to err on the side of parsing everything
-VERB.temps.person.number -> 0: %vblex.$lem/sl {%1} |
-                            0: %vbser VERB.ger {estar@vblex.$temps.$person.$number _1 2} |
-                            0: %vbser VERB.pp {estar@vblex.$temps.$person.$number _1 2(person=m, number=$number)} |
-                            0: %vbhaver VERB.pp {%1 _1 2(person=m, number=sg)} |
-                            0: %do@vbaux VERB
-                               {_1 %2(temps=ifi)} (1.tense = past)
-                               {_1 %2(temps=pri)} |
-                            0: %$auxtemps@vbaux VERB {_1 %2(tense=fti)} |
-                            0: %would@vbaux VERB {_1 %2(tense=cni)} |
-                            0: %vbaux VERB.inf {%1 _1 2} |
-                            0: %$controlverbs@vblex to@pr VERB.inf
-                               {%1 _1 _2 3} |
-                            0: %$copulatiu@VERB VERB.pp
-                               {%1 _1 2(person=m, number=$number)};
-                                         ! ^ TODO: total hack
+VERB -> 0: %vblex.$lem/sl {%1} |
+        1: %vblex.pp {%1[verbpp]} |
+        1: %vblex.ger {%1[verbger]} |
+        0: %vblex %vblex.inf {%1 _1 2[verbinf]} |
+        0: %vbser VERB.ger {estar@vblex.$temps.$person.$number _1 2} |
+        0: %vbser VERB.pp {estar@vblex.$temps.$person.$number _1 %2[verbpp](gender=m)} |
+        0: %vbhaver VERB.pp {%1 _1 2[verbpp](gender=m, number=sg)} |
+        0: %do@vbaux VERB
+           {_1 %2(temps=ifi)} (1.tense = past)
+           {_1 %2(temps=pri)} |
+        0: %do@vbaux adv VERB
+           {_1 2 _2 %3(temps=ifi)} (1.tense = past)
+           {_1 2 _2 %3(temps=pri)} |
+        0: %do@vbdo adv adv VERB
+           {_1 2 _2 3 _3 %4(temps=ifi)} (1.tense = past)
+           {_1 2 _2 3 _3 %4(temps=pri)} |
+        0: %$auxtemps@vbaux VERB {_1 %2(tense=fti)} |
+        0: %would@vbaux VERB {_1 %2(tense=cni)} |
+        0: %vaux VERB.inf {%1 _1 2[verbinf]} |
+        0: %$controlverbs@vblex to@pr VERB.inf
+           {%1 _1 _2 3[verbinf]} |
+        0: %$copulatiu@VERB VERB.pp
+           {%1 _1 %2[verbpp](gender=m)} |
+        0: %VERB VERB.inf {%1 _1 2[verbinf]};
 ! adv VERB.temps.person.number -> 0: %VERB adv {{2} _1 {1}};
 ! TODO: prn.obj and adv (not sure if second rule is right)
 
+AV: _.temps.person.number;
+AV -> 0: %VERB {%1} |
+      0: adv %VERB {1 _1 %2} |
+      0: adv adv %VERB {1 _1 2 _2 %3};
+
+prn_impers: _.prn_type.gender.number;
+
 VP: _;
-VP -> 0: NP VERB {1 _1 2(person=1.person, number=2.number)};
+VP -> 0: NP AV {1 _1 2(person=1.person, number=1.number)} |
+      0: prn AV {_1 2(person=1.person, number=1.number)} |
+      0: all@prn of@pr rel VERB
+         {1[prn_impers](number=sg) _1 2 _2 3(gender=1.gender/tl, number=pl) _3 4(person=p3, number=pl)};

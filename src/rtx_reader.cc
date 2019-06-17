@@ -285,7 +285,7 @@ RTXReader::parseIdentGroup(wstring first = L"")
 void
 RTXReader::parseRule()
 {
-  vector<wstring> firstLabel = parseIdentGroup();
+  wstring firstLabel = parseIdent();
   wstring next = nextToken();
   if(next == L":")
   {
@@ -306,8 +306,9 @@ RTXReader::parseRule()
 }
 
 void
-RTXReader::parseOutputRule(vector<wstring> pattern)
+RTXReader::parseOutputRule(wstring pattern)
 {
+  nodeIsSurface[pattern] = !isNextToken(L':');
   vector<wstring> output;
   wstring cur;
   while(!source.eof())
@@ -324,22 +325,26 @@ RTXReader::parseOutputRule(vector<wstring> pattern)
       break;
     }
   }
-  outputRules.push_back(pair<vector<wstring>, vector<wstring>>(pattern, output));
+  if(output.size() == 0)
+  {
+    die(L"empty tag order rule");
+  }
+  outputRules[pattern] = output;
 }
 
 void
-RTXReader::parseRetagRule(vector<wstring> srcTags)
+RTXReader::parseRetagRule(wstring srcTag)
 {
-  vector<wstring> destTags = parseIdentGroup();
+  wstring destTag = parseIdent(true);
   nextToken(L":");
-  vector<pair<vector<wstring>, vector<wstring>>> rule;
-  rule.push_back(pair<vector<wstring>, vector<wstring>>(srcTags, destTags));
-  wstring next;
+  vector<pair<wstring, wstring>> rule;
+  rule.push_back(pair<wstring, wstring>(srcTag, destTag));
   while(!source.eof())
   {
-    rule.push_back(pair<vector<wstring>, vector<wstring>>(parseIdentGroup(), parseIdentGroup()));
-    next = nextToken(L";", L",");
-    if(next == L";")
+    wstring cs = parseIdent(true);
+    wstring cd = parseIdent(true);
+    rule.push_back(pair<wstring, wstring>(cs, cd));
+    if(nextToken(L";", L",") == L";")
     {
       break;
     }
@@ -348,13 +353,8 @@ RTXReader::parseRetagRule(vector<wstring> srcTags)
 }
 
 void
-RTXReader::parseAttrRule(vector<wstring> name)
+RTXReader::parseAttrRule(wstring categoryName)
 {
-  if(name.size() > 1)
-  {
-    die(L"Found multiple symbols in attribute category name");
-  }
-  wstring categoryName = name[0];
   eatSpaces();
   if(isNextToken(L'('))
   {
@@ -364,6 +364,7 @@ RTXReader::parseAttrRule(vector<wstring> name)
     nextToken(L")");
   }
   vector<wstring> members;
+  vector<wstring> noOver;
   while(true)
   {
     eatSpaces();
@@ -371,9 +372,19 @@ RTXReader::parseAttrRule(vector<wstring> name)
     {
       break;
     }
-    members.push_back(parseIdent());
+    if(isNextToken(L'@'))
+    {
+      wstring next = parseIdent();
+      members.push_back(next);
+      noOver.push_back(next);
+    }
+    else
+    {
+      members.push_back(parseIdent());
+    }
   }
   collections.insert(pair<wstring, vector<wstring>>(categoryName, members));
+  noOverwrite.insert(pair<wstring, vector<wstring>>(categoryName, noOver));
 }
 
 RTXReader::VarUpdate*
@@ -576,6 +587,12 @@ RTXReader::parseOutputElement(Rule* rule, OutputChunk* chunk)
     {
       die(L"output index is out of bounds");
     }
+    if(source.peek() == L'[')
+    {
+      nextToken(L"[");
+      ret->pattern = parseIdent();
+      nextToken(L"]");
+    }
   }
   else
   {
@@ -688,28 +705,17 @@ RTXReader::parseOutputChunk(Rule* rule, bool recursing = false)
 }
 
 void
-RTXReader::parseReduceRule(vector<wstring> output, wstring next)
+RTXReader::parseReduceRule(wstring output, wstring next)
 {
-  vector<vector<wstring>> output_stuff;
-  output_stuff.push_back(output);
+  vector<wstring> outNodes;
+  outNodes.push_back(output);
   if(next != L"->")
   {
     wstring cur = next;
     while(cur != L"->")
     {
-      output_stuff.push_back(parseIdentGroup(cur));
+      outNodes.push_back(cur);
       cur = nextToken();
-    }
-  }
-  vector<wstring> outNodes;
-  vector<vector<wstring>> outVars;
-  for(unsigned int n = 0; n < output_stuff.size(); n++)
-  {
-    outNodes.push_back(output_stuff[n][0]);
-    outVars.push_back(vector<wstring>());
-    for(unsigned int i = 1; i < output_stuff[n].size(); i++)
-    {
-      outVars[n].push_back(output_stuff[n][i]);
     }
   }
   Rule* rule;
@@ -866,8 +872,6 @@ RTXReader::makePattern(int ruleid)
   {
     longestPattern = rule->pattern.size();
   }
-  // to make my life simpler, I'm going to start by only supporting 1 output chunk
-  // TODO: fix this
   int loc = td.getTransducer().getInitial();
   vector<wstring> pat;
   for(unsigned int i = 0; i < rule->pattern.size(); i++)
@@ -941,6 +945,93 @@ RTXReader::compileTag(wstring s)
   tag += s;
   tag += L'>';
   return compileString(tag);
+}
+
+wstring
+RTXReader::compileClip(Clip* c)
+{
+  wstring cl = (c->part == L"lemcase") ? compileString(L"lem") : compileString(c->part);
+  cl += INT;
+  cl += c->src;
+  wstring ret = cl;
+  if(c->side == L"sl")
+  {
+    ret += SOURCECLIP;
+  }
+  else if(c->side == L"ref")
+  {
+    ret += REFERENCECLIP;
+  }
+  else if(c->side == L"tl" || c->part == L"lemcase")
+  {
+    ret += TARGETCLIP;
+  }
+  else
+  {
+    wstring undeftag;
+    wstring deftag;
+    wstring undef;
+    wstring def;
+    if(attrDefaults.find(c->part) != attrDefaults.end())
+    {
+      undeftag = attrDefaults[c->part].first;
+      deftag = attrDefaults[c->part].second;
+      undef += DROP;
+      undef += compileTag(undeftag);
+      def += DROP;
+      def += compileTag(deftag);
+    }
+    wstring blank;
+    blank += DUP;
+    blank += compileString(L"");
+    blank += EQUAL;
+    if(c->useReplace && undeftag.size() > 0)
+    {
+      blank += OVER;
+      blank += compileTag(undeftag);
+      blank += EQUAL;
+      blank += OR;
+    }
+    blank += JUMPONFALSE;
+    if(c->fromChunk)
+    {
+      ret += TARGETCLIP;
+      ret += blank;
+      if(c->useReplace)
+      {
+        ret += (wchar_t)def.size();
+        ret += def;
+      }
+      else
+      {
+        ret += (wchar_t)undef.size();
+        ret += undef;
+      }
+    }
+    else
+    {
+      int s = (c->useReplace ? def.size() : undef.size());
+      ret += TARGETCLIP;
+      ret += blank;
+      ret += (wchar_t)(5 + 2*cl.size() + 2*blank.size() + s);
+      ret += DROP;
+      ret += cl;
+      ret += REFERENCECLIP;
+      ret += blank;
+      ret += (wchar_t)(3 + cl.size() + blank.size() + s);
+      ret += DROP;
+      ret += cl;
+      ret += SOURCECLIP;
+      ret += blank;
+      ret += (wchar_t)s;
+      ret += (c->useReplace ? def : undef);
+    }
+  }
+  if(c->part == L"lemcase")
+  {
+    ret += GETCASE;
+  }
+  return ret;
 }
 
 wstring
@@ -1077,33 +1168,22 @@ RTXReader::processOutput(Rule* rule, ResultNode* r)
     else
     {
       wstring pos = rule->pattern[r->pos-1][1];
+      wstring patname = pos;
+      if(r->pattern.size() > 0)
+      {
+        patname = r->pattern;
+      }
       vector<wstring> rl;
-      for(unsigned int i = 0; i < outputRules.size(); i++)
+      if(outputRules.find(patname) != outputRules.end())
       {
-        // TODO: assumes output patterns are 1 tag long
-        // also, is this really what we want the semantics of output
-        // patterns to be? if not, what do we do with them instead?
-        if(outputRules[i].first[0] == pos)
-        {
-          rl = outputRules[i].second;
-          break;
-        }
-      }
-      if(rl.size() == 0)
-      {
-        wcerr << L"Warning: could not find tag order for " << pos << endl;
-      }
-      /*if(rl.size() == 0)
-      {
-        ret += compileClip(L"whole", r->pos, L"tl");
+        rl = outputRules[patname];
       }
       else
       {
-        ret += CHUNK;
-      }*/
+        wcerr << L"Could not find tag order for " << patname << endl;
+        exit(1);
+      }
       ret += CHUNK;
-      // if the user gives an empty output pattern, give them empty output
-      // (should probably error at read time)
       for(unsigned int p = 0; p < rl.size(); p++)
       {
         if(rl[p] == L"_")
@@ -1283,6 +1363,9 @@ RTXReader::makeDefaultRule()
     tmp = td.getTransducer().insertSingleTransduction(td.getAlphabet()(tags[i]), loc);
     if(i == 0)
     {
+      // this will make the rule only apply if the first undefined tags is present
+      // but doing otherwise results in a seeminly infinite loop
+      // TODO TODO TODO
       loc = td.getTransducer().insertSingleTransduction(epsilon, tmp);
     }
     else
@@ -1317,17 +1400,13 @@ RTXReader::processRules()
     comp += CHUNK;
     rule->varMap.push_back(map<wstring, int>());
     vector<wstring> vars;
-    for(unsigned int i = 0; i < outputRules.size(); i++)
+    if(outputRules.find(rule->resultNodes[0]) != outputRules.end())
     {
-      if(outputRules[i].first[0] == rule->resultNodes[0])
-      {
-        vars = outputRules[i].second;
-        break;
-      }
+      vars = outputRules[rule->resultNodes[0]];
     }
-    if(vars.size() == 0)
+    else
     {
-      wcerr << L"Warning: could not find tag order for " << rule->resultNodes[0] << endl;
+      die(rule->line, L"Could not find tag order for " + rule->resultNodes[0]);
     }
     for(unsigned int vidx = 0; vidx < vars.size(); vidx++)
     {

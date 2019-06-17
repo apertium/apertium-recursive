@@ -31,6 +31,15 @@ private:
     wstring side;
   };
 
+  struct Clip
+  {
+    int src;
+    wstring part;
+    wstring side;
+    bool fromChunk;
+    bool useReplace;
+  };
+
   struct Cond
   {
     wchar_t op;
@@ -49,6 +58,7 @@ private:
     bool getall;
     bool dontoverwrite;
     vector<VarUpdate*> updates;
+    wstring pattern;
   };
 
   struct OutputChunk
@@ -142,17 +152,17 @@ private:
   /**
    * Parse an rule
    */
-  void parseOutputRule(vector<wstring> pattern);
+  void parseOutputRule(wstring pattern);
 
   /**
    * Parse an rule
    */
-  void parseRetagRule(vector<wstring> srcTags);
+  void parseRetagRule(wstring srcTag);
 
   /**
    * Parse an rule
    */
-  void parseAttrRule(vector<wstring> name);
+  void parseAttrRule(wstring name);
 
   /**
    * Parse an rule
@@ -168,7 +178,7 @@ private:
   /**
    * Parse an rule
    */
-  void parseReduceRule(vector<wstring> output, wstring next);
+  void parseReduceRule(wstring firstnode, wstring next);
 
   /**
    * All characters not allowed in identifiers
@@ -243,16 +253,18 @@ private:
    */
   map<wstring, vector<wstring>> collections;
   map<wstring, pair<wstring, wstring>> attrDefaults;
+  map<wstring, vector<wstring>> noOverwrite;
   
   /**
    * Rules file
    */
-  vector<vector<pair<vector<wstring>, vector<wstring>>>> retagRules;
+  vector<vector<pair<wstring, wstring>>> retagRules;
   
   /**
    * output rules
    */
-  vector<pair<vector<wstring>, vector<wstring>>> outputRules;
+  map<wstring, vector<wstring>> outputRules;
+  map<wstring, bool> nodeIsSurface;
   
   vector<Rule*> reductionRules;
   
@@ -265,6 +277,7 @@ private:
   wstring compileString(wstring s);
   wstring compileTag(wstring s);
   wstring compileClip(wstring part, int pos, wstring side, bool usereplace);
+  wstring compileClip(Clip* c);
   wstring processOutput(Rule* rule, ResultNode* r);
   wstring processOutputChunk(Rule* rule, OutputChunk* chunk);
   wstring processCond(Cond* cond);

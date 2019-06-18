@@ -1,0 +1,8 @@
+^a<n><m>/b<n><f>/c<n><mf>$ ^d<adj>/e<adj>$
+^a<n><m>/b<n>/c<n><mf>$ ^d<adj>/e<adj>$
+^a<n><m>/b<n><f>/c<n>$ ^d<adj>/e<adj>$
+^a<n><m>/b<n>/c<n>$ ^d<adj>/e<adj>$
+^a<n>/b<n><f>/c<n><mf>$ ^d<adj>/e<adj>$
+^a<n>/b<n>/c<n><mf>$ ^d<adj>/e<adj>$
+^a<n>/b<n><f>/c<n>$ ^d<adj>/e<adj>$
+^a<n>/b<n>/c<n>$ ^d<adj>/e<adj>$

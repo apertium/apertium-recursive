@@ -339,6 +339,10 @@ RTXReader::parseAttrRule(wstring categoryName)
       members.push_back(parseIdent());
     }
   }
+  if(members.size() == 0)
+  {
+    die(L"empty attribute list");
+  }
   collections.insert(pair<wstring, vector<wstring>>(categoryName, members));
   noOverwrite.insert(pair<wstring, vector<wstring>>(categoryName, noOver));
 }
@@ -749,7 +753,7 @@ RTXReader::parseReduceRule(wstring output, wstring next)
         }
         cur->isToplevel = true;
       }
-      if(n+1 < outNodes.size())
+      if(n < outNodes.size())
       {
         die(L"not enough chunks in output pattern");
       }

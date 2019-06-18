@@ -1,0 +1,7 @@
+NP: _;
+n: _.gender;
+adj: _.gender;
+
+gender = m f;
+
+NP -> n.$gender adj.$gender {1 _1 2};

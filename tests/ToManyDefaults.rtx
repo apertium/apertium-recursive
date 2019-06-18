@@ -1,0 +1,7 @@
+! should fail due to excess default arguments
+blah = (x y z) x y z w;
+
+N: _;
+n: _;
+
+N -> n {1};

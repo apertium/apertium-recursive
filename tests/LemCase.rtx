@@ -1,0 +1,5 @@
+NP: _;
+n: _;
+adj: _;
+
+NP -> n adj {1(lemcase=aa) _1 2(lemcase=1.lemcase)};

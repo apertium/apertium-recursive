@@ -1,0 +1,4 @@
+^potato<n>/patata<n>$ ^green<adj>/verde<adj>$
+^potato<n>/Patata<n>$ ^green<adj>/verde<adj>$
+^potato<n>/PATATA<n>$ ^green<adj>/Verde<adj>$
+^potato<n>/paTAta<n>$ ^green<adj>/Verde<adj>$

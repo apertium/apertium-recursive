@@ -20,6 +20,7 @@ RTXReader::RTXReader()
   td.getAlphabet().includeSymbol(ANY_CHAR);
   longestPattern = 0;
   currentRule = NULL;
+  currentChunk = NULL;
   errorsAreSyntax = true;
 }
 
@@ -939,7 +940,7 @@ RTXReader::compileTag(wstring s)
 wstring
 RTXReader::compileClip(Clip* c)
 {
-  bool useReplace = !currentChunk->isToplevel;
+  bool useReplace = (currentChunk == NULL) ? false : !currentChunk->isToplevel;
   wstring cl = (c->part == L"lemcase") ? compileString(L"lem") : compileString(c->part);
   cl += INT;
   cl += c->src;

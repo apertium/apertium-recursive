@@ -5,17 +5,19 @@
 void endProgram(char *name)
 {
   cout << basename(name) << ": process a stream with a letter transducer" << endl;
-  cout << "USAGE: " << basename(name) << " [ -r | -s ] [-l N] bytecode_file pattern_file [input_file [output_file]]" << endl;
+  cout << "USAGE: " << basename(name) << " [ -m | -r | -s ] [-n] [-l N] bytecode_file pattern_file [input_file [output_file]]" << endl;
   cout << "Options:" << endl;
 #if HAVE_GETOPT_LONG
   cout << "  -l, --layers:     specify a maximum number of layers or rule application" << endl;
   cout << "  -m, --matches:    print the steps of the pattern transducer" << endl;
+  cout << "  -n, --no-coref:   treat stream as having no coreference LUs" << endl;
   cout << "  -r, --rules:      print the rules that are being applied" << endl;
   cout << "  -s, --steps:      print the instructions executed by the stack machine" << endl;
   cout << "  -h, --help:       show this help" << endl;
 #else
   cout << "  -l:   specify a maximum number of layers or rule application" << endl;
   cout << "  -m:   print the steps of the pattern transducer" << endl;
+  cout << "  -n:   treat stream as having no coreference LUs" << endl;
   cout << "  -r:   print the rules that are being applied" << endl;
   cout << "  -s:   print the instructions executed by the stack machine" << endl;
   cout << "  -h:   show this help" << endl;
@@ -30,10 +32,11 @@ int main(int argc, char *argv[])
 #if HAVE_GETOPT_LONG
   static struct option long_options[]=
     {
-      {"steps",             0, 0, 's'},
-      {"rules",             0, 0, 'r'},
       {"layers",            1, 0, 'l'},
       {"matches",           0, 0, 'm'},
+      {"no-coref",          0, 0, 'n'},
+      {"rules",             0, 0, 'r'},
+      {"steps",             0, 0, 's'},
       {"help",              0, 0, 'h'}
     };
 #endif
@@ -42,9 +45,9 @@ int main(int argc, char *argv[])
   {
 #if HAVE_GETOPT_LONG
     int option_index;
-    int c = getopt_long(argc, argv, "srl:mh", long_options, &option_index);
+    int c = getopt_long(argc, argv, "l:mnrsh", long_options, &option_index);
 #else
-    int c = getopt(argc, argv, "srl:mh");
+    int c = getopt(argc, argv, "l:mnrsh");
 #endif
 
     if(c == -1)
@@ -54,20 +57,24 @@ int main(int argc, char *argv[])
 
     switch(c)
     {
-    case 's':
-      i.printSteps(true);
-      break;
-
-    case 'r':
-      i.printRules(true);
+    case 'l':
+      i.numLayers(atoi(optarg));
       break;
 
     case 'm':
       i.printMatch(true);
       break;
 
-    case 'l':
-      i.numLayers(atoi(optarg));
+    case 'n':
+      i.withoutCoref(true);
+      break;
+
+    case 'r':
+      i.printRules(true);
+      break;
+
+    case 's':
+      i.printSteps(true);
       break;
 
     case 'h':

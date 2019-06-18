@@ -274,6 +274,7 @@ private:
   bool printingSteps;
   bool printingRules;
   bool printingMatch;
+  bool noCoref;
   int maxLayers;
   int shiftCount;
 
@@ -343,6 +344,10 @@ public:
   void numLayers(int val)
   {
     maxLayers = val;
+  }
+  void withoutCoref(bool val)
+  {
+    noCoref = val;
   }
 };
 

@@ -1,9 +1,0 @@
-n: _.gender.number;
-adj: _.gender;
-v: _.number;
-
-gender = m f;
-number = sg pl;
-
-NP.number -> 1: %n adj {2(gender=1.gender) _1 1} | 1: %n {1};
-VP -> 1: NP v {2(number=1.number) _1 1};

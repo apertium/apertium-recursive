@@ -21,15 +21,6 @@ private:
     wstring lemma;
     wstring tags;
   };
-  
-  struct VarUpdate
-  {
-    int src;
-    int dest;
-    wstring srcvar;
-    wstring destvar;
-    wstring side;
-  };
 
   struct Clip
   {
@@ -37,35 +28,28 @@ private:
     wstring part;
     wstring side;
     bool fromChunk;
-    bool useReplace;
+    bool noReplace;
   };
 
   struct Cond
   {
     wchar_t op;
-    VarUpdate* val;
+    Clip* val;
     Cond* left;
     Cond* right;
   };
 
-  struct ResultNode
+  struct OutputChunk
   {
     wstring mode;
     int pos;
     wstring lemma;
-    map<wstring, pair<int, wstring>> clips;
     vector<wstring> tags;
     bool getall;
-    bool dontoverwrite;
-    vector<VarUpdate*> updates;
+    map<wstring, Clip*> vars;
     wstring pattern;
-  };
-
-  struct OutputChunk
-  {
-    Cond* cond;
-    int pos;
-    vector<ResultNode*> children;
+    vector<OutputChunk*> children;
+    bool isToplevel;
   };
 
   struct Rule
@@ -73,14 +57,10 @@ private:
     int line;
     int grab_all;
     float weight;
-    int patternLength;
     vector<vector<wstring>> pattern;
-    vector<wstring> resultNodes;
-    vector<OutputChunk*> resultContents;
-    vector<VarUpdate*> variableGrabs;
-    vector<VarUpdate*> variableUpdates;
+    vector<pair<OutputChunk*, Cond*>> output;
+    map<wstring, Clip*> vars;
     wstring compiled;
-    vector<map<wstring, int>> varMap;
     Cond* cond;
   };
 
@@ -108,9 +88,9 @@ private:
   // for generating error messages
   int currentLine;
   wstring recentlyRead;
+  bool errorsAreSyntax;
   
   void die(wstring message);
-  void die(int line, wstring message);
 
   /**
    * Consume all space characters and comments at front of stream
@@ -141,7 +121,7 @@ private:
    * @return identifier
    */
   vector<wstring> parseIdentGroup(wstring first);
-  VarUpdate* parseVal();
+  Clip* parseClip(int src);
   Cond* parseCond();
 
   /**
@@ -172,8 +152,8 @@ private:
   /**
    * Parse an rule
    */
-  void parseOutputElement(Rule* rule, OutputChunk* chunk);
-  void parseOutputChunk(Rule* rule, bool recursing);
+  void parseOutputElement();
+  void parseOutputChunk(bool recursing);
 
   /**
    * Parse an rule
@@ -259,6 +239,7 @@ private:
    * Rules file
    */
   vector<vector<pair<wstring, wstring>>> retagRules;
+  map<wstring, vector<wstring>> altAttrs;
   
   /**
    * output rules
@@ -267,6 +248,10 @@ private:
   map<wstring, bool> nodeIsSurface;
   
   vector<Rule*> reductionRules;
+
+  Rule* currentRule;
+  OutputChunk* currentChunk;
+  vector<wstring> parentTags;
   
   void processRules();
   void makePattern(int ruleid);
@@ -278,8 +263,8 @@ private:
   wstring compileTag(wstring s);
   wstring compileClip(wstring part, int pos, wstring side, bool usereplace);
   wstring compileClip(Clip* c);
-  wstring processOutput(Rule* rule, ResultNode* r);
-  wstring processOutputChunk(Rule* rule, OutputChunk* chunk);
+  wstring processOutput(OutputChunk* ch);
+  wstring processOutputChunk(OutputChunk* chunk);
   wstring processCond(Cond* cond);
 
 public:

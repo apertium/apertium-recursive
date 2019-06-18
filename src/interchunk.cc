@@ -757,7 +757,7 @@ Interchunk::readToken(FILE *in)
       {
         dest = cur;
       }
-      else if(pos == 2)
+      else if(pos >= 2 && !noCoref)
       {
         coref = cur;
       }

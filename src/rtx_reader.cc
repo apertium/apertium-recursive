@@ -19,6 +19,8 @@ RTXReader::RTXReader()
   td.getAlphabet().includeSymbol(ANY_TAG);
   td.getAlphabet().includeSymbol(ANY_CHAR);
   longestPattern = 0;
+  currentRule = NULL;
+  errorsAreSyntax = true;
 }
 
 wstring const RTXReader::SPECIAL_CHARS = L"!@$%()={}[]|/:;<>,.~→";
@@ -26,12 +28,16 @@ wstring const RTXReader::SPECIAL_CHARS = L"!@$%()={}[]|/:;<>,.~→";
 void
 RTXReader::die(wstring message)
 {
-  wcerr << L"Syntax error on line " << currentLine << L" of ";
-  wstring fname;
-  fname.assign(sourceFile.begin(), sourceFile.end());
-  wcerr << fname;
-  wcerr <<L": " << message << endl;
-  if(!source.eof())
+  if(errorsAreSyntax)
+  {
+    wcerr << L"Syntax error on line " << currentLine << L" of ";
+  }
+  else
+  {
+    wcerr << L"Error in rule beginning on line " << currentRule->line << L" of ";
+  }
+  wcerr << UtfConverter::fromUtf8(sourceFile) << L": " << message << endl;
+  if(errorsAreSyntax && !source.eof())
   {
     wstring arr = wstring(recentlyRead.size()-2, L' ');
     while(!source.eof() && source.peek() != L'\n')
@@ -41,14 +47,6 @@ RTXReader::die(wstring message)
     wcerr << recentlyRead << endl;
     wcerr << arr << L"^^^" << endl;
   }
-  exit(EXIT_FAILURE);
-}
-
-void
-RTXReader::die(int line, wstring message)
-{
-  wcerr << L"Error in rule beginning on line " << line << L" of ";
-  wcerr << UtfConverter::fromUtf8(sourceFile) << L": " << message << endl;
   exit(EXIT_FAILURE);
 }
 
@@ -235,53 +233,6 @@ RTXReader::parseWeight()
   }
 }
 
-vector<wstring>
-RTXReader::parseIdentGroup(wstring first = L"")
-{
-  vector<wstring> ret;
-  if(first == L"$" || first == L"%")
-  {
-    ret.push_back(first);
-  }
-  else if(first != L"")
-  {
-    ret.push_back(first);
-    if(source.peek() == L'.')
-    {
-      nextToken();
-    }
-    else if(source.peek() == L'@')
-    {
-      ret.push_back(nextToken());
-    }
-    else
-    {
-      return ret;
-    }
-  }
-  while(!source.eof())
-  {
-    if(source.peek() == L'$' || (source.peek() == L'%' && ret.size() == 0))
-    {
-      ret.push_back(nextToken());
-    }
-    ret.push_back(nextToken());
-    if(source.peek() == L'.')
-    {
-      nextToken();
-    }
-    else if(source.peek() == L'@')
-    {
-      ret.push_back(nextToken());
-    }
-    else
-    {
-      break;
-    }
-  }
-  return ret;
-}
-
 void
 RTXReader::parseRule()
 {
@@ -350,6 +301,11 @@ RTXReader::parseRetagRule(wstring srcTag)
     }
   }
   retagRules.push_back(rule);
+  if(altAttrs.find(destTag) == altAttrs.end())
+  {
+    altAttrs[destTag].push_back(destTag);
+  }
+  altAttrs[destTag].push_back(srcTag);
 }
 
 void
@@ -387,23 +343,35 @@ RTXReader::parseAttrRule(wstring categoryName)
   noOverwrite.insert(pair<wstring, vector<wstring>>(categoryName, noOver));
 }
 
-RTXReader::VarUpdate*
-RTXReader::parseVal()
+RTXReader::Clip*
+RTXReader::parseClip(int src = -2)
 {
-  VarUpdate* ret = new VarUpdate;
+  Clip* ret = new Clip;
   eatSpaces();
-  if(isdigit(source.peek()))
+  if(src != -2)
+  {
+    ret->src = src;
+  }
+  else if(isdigit(source.peek()))
   {
     ret->src = parseInt();
     nextToken(L".");
+  }
+  else if(isNextToken(L'$'))
+  {
+    ret->src = -1;
   }
   else
   {
     ret->src = 0;
   }
-  ret->srcvar = parseIdent();
+  ret->part = parseIdent();
   if(isNextToken(L'/'))
   {
+    if(ret->src == 0)
+    {
+      die(L"literal value cannot have a side");
+    }
     ret->side = parseIdent();
   }
   return ret;
@@ -431,7 +399,7 @@ RTXReader::parseCond()
   {
     Cond* left = new Cond;
     left->op = 0;
-    left->val = parseVal();
+    left->val = parseClip();
     ret->left = left;
   }
   while(true)
@@ -477,7 +445,7 @@ RTXReader::parseCond()
     {
       ret->right = new Cond;
       ret->right->op = 0;
-      ret->right->val = parseVal();
+      ret->right->val = parseClip();
     }
     Cond* temp = ret;
     ret = new Cond;
@@ -491,7 +459,7 @@ RTXReader::parsePatternElement(Rule* rule)
   vector<wstring> pat;
   if(isNextToken(L'%'))
   {
-    rule->grab_all = rule->pattern.size();
+    rule->grab_all = rule->pattern.size()+1;
   }
   wstring t1 = nextToken();
   if(t1 == L"$")
@@ -521,18 +489,12 @@ RTXReader::parsePatternElement(Rule* rule)
     wstring cur = nextToken();
     if(cur == L"$")
     {
-      VarUpdate* vu = new VarUpdate;
-      vu->srcvar = parseIdent();
-      if(isNextToken(L'/'))
+      Clip* cl = parseClip(rule->pattern.size()+1);
+      if(rule->vars.find(cl->part) != rule->vars.end())
       {
-        vu->side = parseIdent();
+        die(L"rule has multiple sources for attribute " + cl->part);
       }
-      else
-      {
-        vu->side = L"";
-      }
-      vu->src = rule->patternLength+1;
-      rule->variableGrabs.push_back(vu);
+      rule->vars[cl->part] = cl;
     }
     else
     {
@@ -540,24 +502,15 @@ RTXReader::parsePatternElement(Rule* rule)
     }
   }
   rule->pattern.push_back(pat);
-  rule->patternLength++;
   eatSpaces();
 }
 
 void
-RTXReader::parseOutputElement(Rule* rule, OutputChunk* chunk)
+RTXReader::parseOutputElement()
 {
-  ResultNode* ret = new ResultNode;
-  ret->getall = false;
-  ret->dontoverwrite = false;
-  if(isNextToken(L'%'))
-  {
-    ret->getall = true;
-    if(isNextToken(L'%'))
-    {
-      ret->dontoverwrite = true;
-    }
-  }
+  OutputChunk* ret = new OutputChunk;
+  ret->getall = isNextToken(L'%');
+  ret->isToplevel = false;
   if(source.peek() == L'_')
   {
     if(ret->getall)
@@ -569,7 +522,7 @@ RTXReader::parseOutputElement(Rule* rule, OutputChunk* chunk)
     if(isdigit(source.peek()))
     {
       ret->pos = parseInt();
-      if(ret->pos < 1 || ret->pos >= rule->patternLength)
+      if(ret->pos < 1 || ret->pos >= currentRule->pattern.size())
       {
         die(L"position index of blank out of bounds");
       }
@@ -583,7 +536,7 @@ RTXReader::parseOutputElement(Rule* rule, OutputChunk* chunk)
   {
     ret->mode = L"#";
     ret->pos = parseInt();
-    if(ret->pos < 1 || ret->pos > rule->patternLength)
+    if(ret->pos < 1 || ret->pos > currentRule->pattern.size())
     {
       die(L"output index is out of bounds");
     }
@@ -592,6 +545,10 @@ RTXReader::parseOutputElement(Rule* rule, OutputChunk* chunk)
       nextToken(L"[");
       ret->pattern = parseIdent();
       nextToken(L"]");
+    }
+    else
+    {
+      ret->pattern = currentRule->pattern[ret->pos-1][1];
     }
   }
   else
@@ -605,34 +562,25 @@ RTXReader::parseOutputElement(Rule* rule, OutputChunk* chunk)
     while(true)
     {
       wstring cur = nextToken();
-      VarUpdate* vu = new VarUpdate;
+      wstring var = to_wstring(ret->tags.size());
+      ret->tags.push_back(var);
+      Clip* cl = new Clip;
       if(cur == L"$")
       {
-        vu->src = -1;
-        vu->srcvar = parseIdent();
+        cl->src = -1;
+        cl->side = parseIdent();
       }
       else if(cur == L"[")
       {
-        if(!isdigit(source.peek()))
-        {
-          die(L"expected number after [");
-        }
-        vu->src = parseInt();
-        nextToken(L".");
-        vu->destvar = parseIdent();
-        vu->srcvar = vu->destvar;
-        if(nextToken(L"]", L"/") == L"/")
-        {
-          vu->side = parseIdent();
-          nextToken(L"]");
-        }
+        cl = parseClip();
+        nextToken(L"]");
       }
       else
       {
-        vu->src = 0;
-        vu->srcvar = cur;
+        cl->src = 0;
+        cl->side = cur;
       }
-      ret->updates.push_back(vu);
+      ret->vars[var] = cl;
       if(!isNextToken(L'.'))
       {
         break;
@@ -641,67 +589,76 @@ RTXReader::parseOutputElement(Rule* rule, OutputChunk* chunk)
   }
   if(isNextToken(L'('))
   {
-    VarUpdate* vu = new VarUpdate;
-    vu->dest = ret->pos;
     while(!source.eof() && source.peek() != L')')
     {
       eatSpaces();
-      vu->destvar = parseIdent();
+      wstring var = parseIdent();
       nextToken(L"=");
       eatSpaces();
-      if(isdigit(source.peek()))
+      Clip* cl = parseClip();
+      if(cl->part == L"_")
       {
-        vu->src = parseInt();
-        nextToken(L".");
+        cl->part = L"";
       }
-      else if(isNextToken(L'$'))
-      {
-        vu->src = -1;
-      }
-      else
-      {
-        vu->src = 0;
-      }
-      vu->srcvar = nextToken();
-      if(vu->srcvar == L"_")
-      {
-        vu->srcvar = L"";
-      }
-      else if(isNextToken(L'/'))
-      {
-        vu->side = nextToken();
-      }
-      ret->updates.push_back(vu);
-      eatSpaces();
+      ret->vars[var] = cl;
       if(nextToken(L",", L")") == L")")
       {
         break;
       }
     }
   }
-  chunk->children.push_back(ret);
+  currentChunk->children.push_back(ret);
   eatSpaces();
 }
 
 void
-RTXReader::parseOutputChunk(Rule* rule, bool recursing = false)
+RTXReader::parseOutputChunk(bool recursing = false)
 {
   nextToken(L"{");
   eatSpaces();
   OutputChunk* ch = new OutputChunk;
-  ch->cond = NULL;
+  OutputChunk* was = currentChunk;
+  currentChunk = ch;
+  ch->mode = L"{}";
+  ch->pos = 0;
+  bool hasrec = false;
   while(source.peek() != L'}')
   {
-    parseOutputElement(rule, ch);
+    if(!recursing && source.peek() == L'{')
+    {
+      parseOutputChunk(true);
+      hasrec = true;
+    }
+    else
+    {
+      parseOutputElement();
+    }
   }
   nextToken(L"}");
   eatSpaces();
-  if(source.peek() == L'(')
+  Cond* cnd = NULL;
+  if(!recursing && source.peek() == L'(')
   {
-    ch->cond = parseCond();
+    cnd = parseCond();
   }
   eatSpaces();
-  rule->resultContents.push_back(ch);
+  ch->isToplevel = !recursing;
+  currentChunk = was;
+  if(recursing)
+  {
+    currentChunk->children.push_back(ch);
+  }
+  else if(hasrec)
+  {
+    currentRule->output.push_back(make_pair(ch, cnd));
+  }
+  else
+  {
+    OutputChunk* ret = new OutputChunk;
+    ret->mode = L"{}";
+    ret->children.push_back(ch);
+    currentRule->output.push_back(make_pair(ret, cnd));
+  }
 }
 
 void
@@ -722,8 +679,7 @@ RTXReader::parseReduceRule(wstring output, wstring next)
   while(true)
   {
     rule = new Rule();
-    rule->resultNodes = outNodes;
-    rule->patternLength = 0;
+    currentRule = rule;
     rule->grab_all = -1;
     rule->line = currentLine;
     eatSpaces();
@@ -746,12 +702,13 @@ RTXReader::parseReduceRule(wstring output, wstring next)
       while(!source.eof())
       {
         nextToken(L"$");
-        VarUpdate* vu = new VarUpdate;
-        vu->src = 0;
-        vu->destvar = parseIdent();
+        wstring var = parseIdent();
+        if(rule->vars.find(var) != rule->vars.end())
+        {
+          die(L"rule has multiple sources for attribute " + var);
+        }
         nextToken(L"=");
-        vu->srcvar = parseIdent();
-        rule->variableGrabs.push_back(vu);
+        rule->vars[var] = parseClip();
         if(nextToken(L",", L"]") == L"]")
         {
           break;
@@ -767,7 +724,35 @@ RTXReader::parseReduceRule(wstring output, wstring next)
     eatSpaces();
     while(!source.eof() && source.peek() == L'{')
     {
-      parseOutputChunk(rule);
+      parseOutputChunk();
+      OutputChunk* ch = rule->output.back().first;
+      int n = 0;
+      for(unsigned int i = 0; i < ch->children.size(); i++)
+      {
+        OutputChunk* cur = ch->children[i];
+        if(cur->mode == L"{}" || cur->pattern == outNodes[n])
+        {
+          if(n == outNodes.size())
+          {
+            die(L"too many chunks in output pattern");
+          }
+          cur->pattern = outNodes[n];
+          for(map<wstring, Clip*>::iterator it = rule->vars.begin();
+                  it != rule->vars.end(); ++it)
+          {
+            if(cur->vars.find(it->first) == cur->vars.end())
+            {
+              cur->vars[it->first] = it->second;
+            }
+          }
+          n++;
+        }
+        cur->isToplevel = true;
+      }
+      if(n+1 < outNodes.size())
+      {
+        die(L"not enough chunks in output pattern");
+      }
     }
     reductionRules.push_back(rule);
     if(nextToken(L"|", L";") == L";")
@@ -928,7 +913,7 @@ RTXReader::compileString(wstring s)
 {
   wstring ret;
   ret += STRING;
-  ret += s.size();
+  ret += (wchar_t)s.size();
   ret += s;
   return ret;
 }
@@ -950,11 +935,27 @@ RTXReader::compileTag(wstring s)
 wstring
 RTXReader::compileClip(Clip* c)
 {
+  bool useReplace = !currentChunk->isToplevel;
   wstring cl = (c->part == L"lemcase") ? compileString(L"lem") : compileString(c->part);
   cl += INT;
   cl += c->src;
   wstring ret = cl;
-  if(c->side == L"sl")
+  if(c->src == -1)
+  {
+    for(unsigned int i = 0; i < parentTags.size(); i++)
+    {
+      if(parentTags[i] == c->part)
+      {
+        return compileTag(to_wstring(i+1));
+      }
+    }
+    die(L"parent chunk has no attribute " + c->part);
+  }
+  else if(c->src == 0)
+  {
+    return compileTag(c->part);
+  }
+  else if(c->side == L"sl")
   {
     ret += SOURCECLIP;
   }
@@ -985,7 +986,7 @@ RTXReader::compileClip(Clip* c)
     blank += DUP;
     blank += compileString(L"");
     blank += EQUAL;
-    if(c->useReplace && undeftag.size() > 0)
+    if(useReplace && undeftag.size() > 0)
     {
       blank += OVER;
       blank += compileTag(undeftag);
@@ -997,7 +998,7 @@ RTXReader::compileClip(Clip* c)
     {
       ret += TARGETCLIP;
       ret += blank;
-      if(c->useReplace)
+      if(useReplace)
       {
         ret += (wchar_t)def.size();
         ret += def;
@@ -1010,10 +1011,10 @@ RTXReader::compileClip(Clip* c)
     }
     else
     {
-      int s = (c->useReplace ? def.size() : undef.size());
+      int s = (useReplace ? def.size() : undef.size());
       ret += TARGETCLIP;
       ret += blank;
-      ret += (wchar_t)(5 + 2*cl.size() + 2*blank.size() + s);
+      ret += (wchar_t)(6 + 2*cl.size() + 2*blank.size() + s);
       ret += DROP;
       ret += cl;
       ret += REFERENCECLIP;
@@ -1024,7 +1025,7 @@ RTXReader::compileClip(Clip* c)
       ret += SOURCECLIP;
       ret += blank;
       ret += (wchar_t)s;
-      ret += (c->useReplace ? def : undef);
+      ret += (useReplace ? def : undef);
     }
   }
   if(c->part == L"lemcase")
@@ -1113,7 +1114,7 @@ RTXReader::compileClip(wstring part, int pos, wstring side = L"", bool usereplac
 }
 
 wstring
-RTXReader::processOutput(Rule* rule, ResultNode* r)
+RTXReader::processOutput(OutputChunk* r)
 {
   wstring ret;
   if(r->mode == L"_")
@@ -1122,105 +1123,165 @@ RTXReader::processOutput(Rule* rule, ResultNode* r)
     ret += (wchar_t)r->pos;
     ret += BLANK;
   }
-  else if(r->mode == L"#")
+  else if(r->mode == L"{}" && r->pattern == L"")
   {
-    vector<wstring> defaultOrder;
-    map<wstring, wstring> grab;
-    for(unsigned int i = 0; i < r->updates.size(); i++)
+    OutputChunk* was = currentChunk;
+    currentChunk = r;
+    for(unsigned int i = 0; i < r->children.size(); i++)
     {
-      VarUpdate* up = r->updates[i];
-      if(up->src == -1)
-      {
-        grab[up->destvar] = compileTag(to_wstring(rule->varMap[0][up->srcvar]));
-      }
-      else if(up->src == 0)
-      {
-        grab[up->destvar] = compileTag(up->srcvar);
-      }
-      else
-      {
-        grab[up->destvar] = compileClip(up->srcvar, up->src, up->side);
-      }
-      defaultOrder.push_back(up->destvar);
+      ret += processOutput(r->children[i]);
+      ret += OUTPUT;
     }
-    if(rule->pattern[r->pos-1].size() == 1)
+    currentChunk = was;
+  }
+  else if(r->mode == L"#" || r->mode == L"{}")
+  {
+    wstring pos;
+    if(r->pos != 0)
     {
-      for(unsigned int i = 0; i < defaultOrder.size(); i++)
+      if(currentRule->pattern[r->pos-1].size() < 2)
       {
-        if(defaultOrder[i] == L"lemcase")
+        die(L"could not find tag order for element " + to_wstring(r->pos));
+      }
+      wstring pos = currentRule->pattern[r->pos-1][1];
+    }
+    wstring patname = (r->pattern != L"") ? r->pattern : pos;
+    pos = (pos != L"") ? pos : patname;
+    if(outputRules.find(patname) == outputRules.end())
+    {
+      die(L"could not find output pattern '" + patname + L"'");
+    }
+    vector<wstring> pattern = outputRules[patname];
+
+    if(r->getall)
+    {
+      for(map<wstring, Clip*>::iterator it = currentRule->vars.begin();
+              it != currentRule->vars.end(); ++it)
+      {
+        if(r->vars.find(it->first) == r->vars.end())
         {
-          ret += compileClip(L"lem", r->pos, L"tl");
-          ret += grab[defaultOrder[i]];
-          ret += SETCASE;
-          ret += compileString(L"lem");
+          Clip* cl = new Clip;
+          cl->src = -1;
+          cl->part = it->first;
+          r->vars[it->first] = cl;
+        }
+      }
+    }
+
+    ret += CHUNK;
+    for(unsigned int i = 0; i < pattern.size(); i++)
+    {
+      if(pattern[i] == L"_")
+      {
+        if(r->vars.find(L"lem") != r->vars.end())
+        {
+          ret += compileClip(r->vars[L"lem"]);
+        }
+        else if(r->vars.find(L"lemh") != r->vars.end())
+        {
+          ret += compileClip(r->vars[L"lemh"]);
+        }
+        else if(r->mode == L"{}")
+        {
+          ret += compileString(L"unknown");
         }
         else
         {
-          ret += grab[defaultOrder[i]];
-          ret += compileString(defaultOrder[i]);
+          ret += compileClip(L"lemh", r->pos, L"tl");
         }
-        ret += INT;
-        ret += (wchar_t)r->pos;
-        ret += SETCLIP;
+        if(r->vars.find(L"lemcase") != r->vars.end())
+        {
+          ret += compileClip(r->vars[L"lemcase"]);
+          ret += SETCASE;
+        }
+        ret += APPENDSURFACE;
+        ret += compileTag(pos);
+        ret += APPENDSURFACE;
       }
+      else if(pattern[i][0] == L'<')
+      {
+        ret += compileString(pattern[i]);
+        ret += APPENDSURFACE;
+      }
+      else
+      {
+        vector<wstring> ops = altAttrs[pattern[i]];
+        if(ops.size() == 0)
+        {
+          ops.push_back(pattern[i]);
+        }
+        wstring var;
+        for(unsigned int v = 0; v < ops.size(); v++)
+        {
+          if(r->vars.find(ops[v]) != r->vars.end())
+          {
+            var = ops[v];
+            break;
+          }
+        }
+        if(var == L"")
+        {
+          bool found = false;
+          for(unsigned int t = 0; t < parentTags.size(); t++)
+          {
+            if(parentTags[t] == pattern[i])
+            {
+              ret += compileTag(to_wstring(t+1));
+              found = true;
+              break;
+            }
+          }
+          if(!found)
+          {
+            Clip* cl = new Clip;
+            cl->src = r->pos;
+            cl->part = pattern[i];
+            if(r->pos == 0)
+            {
+              if(currentRule->grab_all == -1)
+              {
+                die(L"cannot find source for tag '" + pattern[i] + L"'");
+              }
+              else
+              {
+                cl->src = currentRule->grab_all;
+              }
+            }
+            ret += compileClip(cl);
+          }
+        }
+        else
+        {
+          ret += compileClip(r->vars[var]);
+        }
+        ret += APPENDSURFACE;
+      }
+    }
+    if(r->vars.find(L"lemq") != r->vars.end())
+    {
+      ret += compileClip(r->vars[L"lemq"]);
+      ret += APPENDSURFACE;
+    }
+    else if(r->pos != 0)
+    {
+      ret += compileClip(L"lemq", r->pos, L"tl");
+      ret += APPENDSURFACE;
+    }
+    if(r->mode == L"#")
+    {
       ret += compileClip(L"whole", r->pos, L"tl");
+      ret += APPENDALLCHILDREN;
     }
     else
     {
-      wstring pos = rule->pattern[r->pos-1][1];
-      wstring patname = pos;
-      if(r->pattern.size() > 0)
+      vector<wstring> was = parentTags;
+      parentTags = pattern;
+      for(unsigned int i = 0; i < r->children.size(); i++)
       {
-        patname = r->pattern;
+        ret += processOutput(r->children[i]);
+        ret += APPENDCHILD;
       }
-      vector<wstring> rl;
-      if(outputRules.find(patname) != outputRules.end())
-      {
-        rl = outputRules[patname];
-      }
-      else
-      {
-        wcerr << L"Could not find tag order for " << patname << endl;
-        exit(1);
-      }
-      ret += CHUNK;
-      for(unsigned int p = 0; p < rl.size(); p++)
-      {
-        if(rl[p] == L"_")
-        {
-          ret += compileClip(L"lemh", r->pos, L"tl");
-          ret += APPENDSURFACE;
-          ret += compileTag(pos);
-          ret += APPENDSURFACE;
-        }
-        else if(rl[p][0] == L'<')
-        {
-          ret += compileString(rl[p]);
-          ret += APPENDSURFACE;
-        }
-        else if(grab.find(rl[p]) != grab.end())
-        {
-          ret += grab[rl[p]];
-          ret += APPENDSURFACE;
-        }
-        else if(r->getall && rule->varMap[0].find(rl[p]) != rule->varMap[0].end())
-        {
-          ret += compileTag(to_wstring(rule->varMap[0][rl[p]]));
-          ret += APPENDSURFACE;
-        }
-        else
-        {
-          ret += compileClip(rl[p], r->pos, L"", true);
-          ret += APPENDSURFACE;
-        }
-      }
-      if(rl.size() != 0)
-      {
-        ret += compileClip(L"lemq", r->pos, L"tl");
-        ret += APPENDSURFACE;
-        ret += compileClip(L"whole", r->pos, L"tl");
-        ret += APPENDALLCHILDREN;
-      }
+      parentTags = was;
     }
   }
   else
@@ -1228,21 +1289,9 @@ RTXReader::processOutput(Rule* rule, ResultNode* r)
     ret += CHUNK;
     ret += compileString(r->lemma);
     ret += APPENDSURFACE;
-    for(unsigned int i = 0; i < r->updates.size(); i++)
+    for(unsigned int i = 0; i < r->tags.size(); i++)
     {
-      VarUpdate* up = r->updates[i];
-      if(up->src == -1)
-      {
-        ret += compileTag(to_wstring(rule->varMap[0][up->srcvar]));
-      }
-      else if(up->src == 0)
-      {
-        ret += compileTag(up->srcvar);
-      }
-      else
-      {
-        ret += compileClip(up->srcvar, up->src, up->side);
-      }
+      ret += compileClip(r->vars[r->tags[i]]);
       ret += APPENDSURFACE;
     }
   }
@@ -1253,16 +1302,25 @@ wstring
 RTXReader::processCond(Cond* cond)
 {
   wstring ret;
+  if(cond == NULL)
+  {
+    ret += PUSHTRUE;
+    return ret;
+  }
   if(cond->op == 0)
   {
-    if(cond->val->src == 0)
+    if(cond->val->src == -1)
     {
-      ret = compileString(cond->val->srcvar);
+      die(L"conditionals cannot refer to output chunk tags");
+    }
+    else if(cond->val->src == 0)
+    {
+      ret = compileString(cond->val->part);
     }
     else
     {
-      ret = compileClip(cond->val->srcvar, cond->val->src, cond->val->side);
-      if(cond->val->srcvar != L"lem")
+      ret = compileClip(cond->val);
+      if(cond->val->part != L"lem")
       {
         ret += DISTAG;
       }
@@ -1280,29 +1338,6 @@ RTXReader::processCond(Cond* cond)
     ret += cond->op;
   }
   return ret;
-}
-
-wstring
-RTXReader::processOutputChunk(Rule* rule, OutputChunk* chunk)
-{
-  wstring body;
-  for(unsigned int i = 0; i < chunk->children.size(); i++)
-  {
-    body += processOutput(rule, chunk->children[i]);
-    body += APPENDCHILD;
-  }
-  if(chunk->cond != NULL)
-  {
-    wstring ret = processCond(chunk->cond);
-    ret += JUMPONFALSE;
-    ret += (wchar_t)(body.size()+2);
-    ret += body;
-    return ret;
-  }
-  else
-  {
-    return body;
-  }
 }
 
 void
@@ -1388,79 +1423,31 @@ RTXReader::processRules()
   for(unsigned int ruleid = 0; ruleid < reductionRules.size(); ruleid++)
   {
     rule = reductionRules[ruleid];
+    currentRule = rule;
     makePattern(ruleid);
     wstring comp;
+    parentTags.clear();
+    for(vector<pair<OutputChunk*, Cond*>>::reverse_iterator it = rule->output.rbegin();
+              it != rule->output.rend(); ++it)
+    {
+      int pl = 0;
+      if(comp.size() > 0)
+      {
+        comp = wstring(1, JUMP) + (wchar_t)comp.size() + comp;
+        pl = 2;
+      }
+      wstring out = processOutput(it->first);
+      wstring cnd;
+      if(it->second != NULL)
+      {
+        cnd = processCond(it->second) + JUMPONFALSE + (wchar_t)(out.size()+pl);
+      }
+      comp = cnd + out + comp;
+    }
     if(rule->cond != NULL)
     {
-      comp += processCond(rule->cond);
-      comp += JUMPONFALSE;
-      comp += (wchar_t)1;
-      comp += REJECTRULE;
+      comp = processCond(rule->cond) + JUMPONFALSE + (wchar_t)1 + REJECTRULE + comp;
     }
-    comp += CHUNK;
-    rule->varMap.push_back(map<wstring, int>());
-    vector<wstring> vars;
-    if(outputRules.find(rule->resultNodes[0]) != outputRules.end())
-    {
-      vars = outputRules[rule->resultNodes[0]];
-    }
-    else
-    {
-      die(rule->line, L"Could not find tag order for " + rule->resultNodes[0]);
-    }
-    for(unsigned int vidx = 0; vidx < vars.size(); vidx++)
-    {
-      wstring v = vars[vidx];
-      if(v == L"_")
-      {
-        comp += compileString(L"unk<" + rule->resultNodes[0] + L">");
-        comp += APPENDSURFACE;
-        continue;
-      }
-      rule->varMap[0][v] = vidx + 1;
-      bool foundvar = false;
-      for(unsigned int g = 0; g < rule->variableGrabs.size(); g++)
-      {
-        if(rule->variableGrabs[g]->destvar == v)
-        {
-          if(rule->variableGrabs[g]->src == 0)
-          {
-            comp += compileTag(rule->variableGrabs[g]->srcvar);
-          }
-          else
-          {
-            comp += compileClip(v, rule->variableGrabs[g]->src, rule->variableGrabs[g]->side);
-          }
-          foundvar = true;
-          break;
-        }
-      }
-      if(!foundvar)
-      {
-        if(rule->grab_all == -1)
-        {
-          wstring unk = L"unk";
-          if(attrDefaults.find(v) != attrDefaults.end())
-          {
-            unk = attrDefaults[v].first;
-          }
-          comp += compileTag(unk); // TODO
-        }
-        else
-        {
-          comp += compileClip(v, rule->grab_all+1);
-        }
-      }
-      comp += APPENDSURFACE;
-    }
-    wstring out;
-    int sz = rule->resultContents.size();
-    for(unsigned int oidx = 0; oidx < sz; oidx++)
-    {
-      out = processOutputChunk(rule, rule->resultContents[sz-oidx-1]) + JUMP + wstring(1, out.size()) + out;
-    }
-    comp += out;
-    comp += OUTPUT;
     rule->compiled = comp;
   }
   if(attrDefaults.size() != 0)
@@ -1485,6 +1472,7 @@ RTXReader::read(const string &fname)
     parseRule();
   }
   source.close();
+  errorsAreSyntax = false;
   processRules();
   for(map<wstring, vector<wstring>>::iterator it=collections.begin(); it != collections.end(); ++it)
   {

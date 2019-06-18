@@ -50,8 +50,7 @@ temps = cni fti ifi imp pii pis inf prs pres past pri pp ger pprs subs;
 
 ! pattern % passes lem, output % does not
 
-NOM -> 1: %n.$lem/sl {%1} |
-       2: %information@n {el@det.def.f.sg _ 1} |
+NOM -> !1: %n.$lem/sl {%1} |
        0: %n {%1} |
        1: %np {%1} |
        0: adj guio %NOM {%3 _ %1} |
@@ -65,7 +64,7 @@ NOM -> 1: %n.$lem/sl {%1} |
            ! but see t1x 11564
        0: NOM %NOM {2 _1 de@pr _ 1} |
        0: n %np {1(gender=2.gender) _1 2} |
-       2: n %n {2 _ de@pr _1 1} |
+       2: n %n {2(lemcase=1.lemcase) _ de@pr _1 1} |
        0: adj n %n {3 _1 de@pr _ 2 _2 1(gender=2.gender/tl, number=2.number/tl)};
 
 ! Lines 4989-5328 (dates)
@@ -122,7 +121,7 @@ AP -> 0: %adj [$gender=GD] {1(number=$number)} (1.gender/tl = mf)
       1: preadv %adj {1 _1 %2} |
          ! "very green" -> "muy verde"
 
-      1: AP.$mode CONJ AP.$mode
+      1: AP CONJ %AP (1.mode = 2.mode)
          {%1 _1 2 _2 %3} |
          ! "[totally green] and [very tall] ->
          ! "[totalmente verde] y [muy alto]
@@ -131,7 +130,7 @@ AP -> 0: %adj [$gender=GD] {1(number=$number)} (1.gender/tl = mf)
          ! " 'blue' " -> " 'azul' "
       
       0: %adj enough@adv {2 _1 %1} |
-      0: np.loc guio vblex.pp {%3 _ en@pr _ 1} |
+      0: np.loc guio vblex.pp [$mode=sint, $gender=m, $number=sg] {%3 _ en@pr _ 1} |
       0: %AP to@pr VERB.inf {%1 _1 de@pr _2 3[verbinf]} |
       1: %num.sp [$mode=num, $gender=mf, $number=sp] {1(gender=1.gender/tl, number=1.number/tl)} |
       0: %num [$mode=num] {1[digit]} ; ! digits ?
@@ -158,7 +157,7 @@ NA -> 0: AP %NA {1 _1 2} (1.mode = num)
          {1 _1 2 _2 3} |
       0: %NA cnjcoo NA {1 _1 2 _2 3} |
 
-      0: NOM NOM.$number.$gender
+      0: NOM %NOM.$number.$gender
          {1 _1 2} (1.nom in np_type |
                    2.nom in np_type |
                    1.lem/sl in tractaments |
@@ -203,8 +202,8 @@ NP -> 1: all@predet %NP.pl.$gender/tl
          ! "such a green ceiling" ->
          ! "un techo tan verde"
       0: AGE %NP {2 _1 de@pr _ 1} |
-      0: $under20@AGE {niño@n.$gender.$number _ de@pr _ 1} |
-      0: AGE {persona@n.f.sg _ de@pr _ 1} |
+      0: $under20@AGE [$gender=GD, $number=ND, $person=p3] {niño@n.$gender.$number _ de@pr _ 1} |
+      0: AGE [$gender=f, $number=sg, $person=p3] {persona@n.f.sg _ de@pr _ 1} |
       0: %NP to@pr VERB.inf {1 _1 para@pr _2 3[verbinf]};
 
 ! TODO: 15232, 15288 - incorporate into other rules
@@ -224,7 +223,8 @@ verbger: _.<ger>;
 ! having all these resulting VERB doesn't control for order
 ! maybe they should be split, but it seems easier to do it this way
 ! and better to err on the side of parsing everything
-VERB -> 0: %vblex.$lem/sl {%1} |
+VERB -> !0: %vblex.$lem/sl {%1} |
+        0: %vblex {%1} |
         1: %vblex.pp {%1[verbpp]} |
         1: %vblex.ger {%1[verbger]} |
         0: %vblex %vblex.inf {%1 _1 2[verbinf]} |

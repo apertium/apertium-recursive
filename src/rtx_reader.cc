@@ -573,7 +573,7 @@ RTXReader::parseOutputElement()
       if(cur == L"$")
       {
         cl->src = -1;
-        cl->side = parseIdent();
+        cl->part = parseIdent();
       }
       else if(cur == L"[")
       {
@@ -583,7 +583,7 @@ RTXReader::parseOutputElement()
       else
       {
         cl->src = 0;
-        cl->side = cur;
+        cl->part = cur;
       }
       ret->vars[var] = cl;
       if(!isNextToken(L'.'))
@@ -686,8 +686,8 @@ RTXReader::parseReduceRule(wstring output, wstring next)
     rule = new Rule();
     currentRule = rule;
     rule->grab_all = -1;
-    rule->line = currentLine;
     eatSpaces();
+    rule->line = currentLine;
     if(isdigit(source.peek()))
     {
       rule->weight = parseWeight();
@@ -1200,7 +1200,14 @@ RTXReader::processOutput(OutputChunk* r)
           ret += SETCASE;
         }
         ret += APPENDSURFACE;
-        ret += compileTag(pos);
+        if(r->pos != 0)
+        {
+          ret += compileTag(currentRule->pattern[r->pos-1][1]);
+        }
+        else
+        {
+          ret += compileTag(pos);
+        }
         ret += APPENDSURFACE;
       }
       else if(pattern[i][0] == L'<')
@@ -1224,7 +1231,14 @@ RTXReader::processOutput(OutputChunk* r)
             break;
           }
         }
-        if(var == L"")
+        if(var == L"" && r->pos != 0)
+        {
+          Clip* cl = new Clip;
+          cl->src = r->pos;
+          cl->part = pattern[i];
+          ret += compileClip(cl);
+        }
+        else if(var == L"")
         {
           bool found = false;
           for(unsigned int t = 0; t < parentTags.size(); t++)

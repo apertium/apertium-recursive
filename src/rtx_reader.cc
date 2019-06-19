@@ -1160,15 +1160,14 @@ RTXReader::processOutput(OutputChunk* r)
 
     if(r->getall)
     {
-      for(map<wstring, Clip*>::iterator it = currentRule->vars.begin();
-              it != currentRule->vars.end(); ++it)
+      for(unsigned int i = 0; i < parentTags.size(); i++)
       {
-        if(r->vars.find(it->first) == r->vars.end())
+        if(r->vars.find(parentTags[i]) == r->vars.end())
         {
           Clip* cl = new Clip;
           cl->src = -1;
-          cl->part = it->first;
-          r->vars[it->first] = cl;
+          cl->part = parentTags[i];
+          r->vars[parentTags[i]] = cl;
         }
       }
     }

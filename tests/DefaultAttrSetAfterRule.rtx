@@ -7,5 +7,5 @@ NP: _.gender.number;
 gender = (GD m) m f mf GD;
 number = sg pl sp;
 
-NA -> adj %n.$gender {%2 _1 %1};
+NA -> adj %n {%2 _1 %1};
 NP -> det %NA {%1 _1 %2};

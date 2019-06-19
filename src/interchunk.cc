@@ -941,19 +941,24 @@ Interchunk::interchunk_do_pass()
   }
   if(layer+1 == parseTower.size())
   {
-    parseTower.push_back(vector<Chunk*>());
+    //parseTower.push_back(vector<Chunk*>());
+    parseTower.push_back(list<Chunk*>());
   }
   if(printingRules) { wcerr << "layer is " << layer << endl; }
   ms.init(me->getInitial());
   int rule = -1;
   int len = 0;
-  for(size_t i = 0; i < parseTower[layer].size(); i++)
+  //for(size_t i = 0; i < parseTower[layer].size(); i++)
+  int i = 0;
+  for(list<Chunk*>::iterator it = parseTower[layer].begin();
+          it != parseTower[layer].end(); ++it)
   {
     if(ms.size() == 0)
     {
       break;
     }
-    applyWord(*parseTower[layer][i]);
+    //applyWord(*parseTower[layer][i]);
+    applyWord(**it);
     int val = getRule();
     if(val != -1)
     {
@@ -961,6 +966,7 @@ Interchunk::interchunk_do_pass()
       if(printingRules) { wcerr << " rule is now " << rule << endl; }
       len = i+1;
     }
+    i++;
   }
   if(rule != -1)
   {
@@ -970,10 +976,18 @@ Interchunk::interchunk_do_pass()
     }
     currentInput.clear();
     currentOutput.clear();
-    currentInput.assign(parseTower[layer].begin(), parseTower[layer].begin()+len);
+    int lim = 0;
+    for(list<Chunk*>::iterator it = parseTower[layer].begin(); lim < len; ++it)
+    {
+      currentInput.push_back(*it);
+      lim++;
+    }
     if(applyRule(rule_map[rule]))
     {
-      parseTower[layer].erase(parseTower[layer].begin(), parseTower[layer].begin()+len);
+      for(int x = 0; x < len; x++)
+      {
+        parseTower[layer].pop_front();
+      }
       parseTower[layer+1].insert(parseTower[layer+1].end(), currentOutput.begin(), currentOutput.end());
       rejectedRules.clear();
       if(layer+2 == parseTower.size())
@@ -992,8 +1006,8 @@ Interchunk::interchunk_do_pass()
   else
   {
     if(printingRules) { wcerr << "shifting" << endl; }
-    parseTower[layer+1].push_back(parseTower[layer][0]);
-    parseTower[layer].erase(parseTower[layer].begin());
+    parseTower[layer+1].push_back(parseTower[layer].front());
+    parseTower[layer].pop_front();
     if(layer+2 == parseTower.size() && parseTower[layer+1].size() == 1)
     {
       shiftCount++;
@@ -1010,7 +1024,7 @@ Interchunk::interchunk(FILE *in, FILE *out)
   {
     interchunk_wrapper_null_flush(in, out);
   }*/
-  parseTower.push_back(vector<Chunk*>());
+  parseTower.push_back(list<Chunk*>());
   while(!allDone)
   {
     for(int i = 0; i < longestPattern*3 && furtherInput; i++)
@@ -1023,9 +1037,10 @@ Interchunk::interchunk(FILE *in, FILE *out)
       {
         while(parseTower.size() > maxLayers)
         {
-          for(unsigned int i = 0; i < parseTower.back().size(); i++)
+          while(parseTower.back().size() > 0)
           {
-            parseTower.back()[i]->output(out);
+            parseTower.back().front()->output(out);
+            parseTower.back().pop_front();
           }
           parseTower.pop_back();
           shiftCount = 0;
@@ -1034,10 +1049,9 @@ Interchunk::interchunk(FILE *in, FILE *out)
     }
     if(shiftCount >= longestPattern)
     {
-      int loc = parseTower.size()-1;
-      parseTower[loc][0]->output(out);
+      parseTower.back().front()->output(out);
       shiftCount--;
-      parseTower[loc].erase(parseTower[loc].begin());
+      parseTower.back().pop_front();
       while(parseTower.size() > 0 && parseTower.back().size() == 0)
       {
         parseTower.pop_back();
@@ -1050,9 +1064,10 @@ Interchunk::interchunk(FILE *in, FILE *out)
   }
   while(parseTower.size() > 0)
   {
-    for(unsigned int i = 0; i < parseTower.back().size(); i++)
+    while(parseTower.back().size() > 0)
     {
-      parseTower.back()[i]->output(out);
+      parseTower.back().front()->output(out);
+      parseTower.pop_back();
     }
     parseTower.pop_back();
   }

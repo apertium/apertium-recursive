@@ -20,6 +20,7 @@
 #include <set>
 #include <vector>
 #include <stack>
+#include <list>
 
 using namespace std;
 
@@ -261,7 +262,7 @@ private:
   stack<StackElement> theStack;
   vector<Chunk*> currentInput;
   vector<Chunk*> currentOutput;
-  vector<vector<Chunk*>> parseTower;
+  vector<list<Chunk*>> parseTower;
 
   FILE *output;
   int any_char;
@@ -291,7 +292,6 @@ private:
   bool applyRule(wstring rule);
   Chunk* readToken(FILE *in);
   void interchunk_wrapper_null_flush(FILE *in, FILE *out);
-  //void interchunk_do_pass();
   bool interchunk_do_pass();
   
   StackElement popStack();

@@ -55,7 +55,7 @@ Interchunk::readData(FILE *in)
     ruleWeights[finals[key]] = finalWeights[key];
   }
 
-  pt = new ParseTable(t, &alphabet, finals);
+  pt = new ParseTable(t, &alphabet, finals, &ruleWeights);
 
   me = new MatchExe(*t, finals);
 
@@ -1080,25 +1080,25 @@ void
 Interchunk::matchNode(Chunk* next)
 {
   vector<pair<int, int>> states;
-  states.push_back(make_pair(0, 0));
   if(stateStack.size() > 0)
   {
     states.insert(states.end(), stateStack.top().begin(), stateStack.top().end());
   }
+  states.push_back(make_pair(0, 0));
   if(printingMatch) { wcerr << endl << "applying transducer to " << states.size() << " states with surface '"; }
   if(next->isBlank)
   {
-    states = pt->matchChunk(states, L" ");
+    states = pt->matchBlank(states);
     if(printingMatch) { wcerr << " "; }
   }
   else if(next->source.size() == 0)
   {
-    states = pt->matchChunk(states, L"^" + next->target + L"$");
+    states = pt->matchChunk(states, next->target);
     if(printingMatch) { wcerr << next->target; }
   }
   else
   {
-    states = pt->matchChunk(states, L"^" + next->source + L"$");
+    states = pt->matchChunk(states, next->source);
     if(printingMatch) { wcerr << next->source; }
   }
   stateStack.push(states);

@@ -6,6 +6,9 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <algorithm>
+
+using namespace std;
 
 class ParseTable
 {
@@ -15,25 +18,103 @@ private:
   int any_tag;
   Transducer* t;
   Alphabet* a;
-  map<int, map<int, set<int>>> trans;
+  map<int, map<int, vector<int>>> trans;
   // final states -> rules
   map<int, int> rules;
-  set<int> stepSingle(int state, int sym)
+  map<int, double> ruleWeights;
+  void appendUnique(vector<pair<int, int>>& dest, const vector<pair<int, int>>& src)
   {
-    /*set<int> ret;
-    pair<multimap<int, pair<int, double>>::iterator, multimap<int, pair<int, double>>::iterator> iter;
-    iter = t->getTransitions()[state].equal_range(sym);
-    for(multimap<int, pair<int, double>>::iterator it = iter.first; it != iter.second; it++)
+    bool found;
+    //for(unsigned int i = 0; i < src.size(); i++)
+    int l2 = dest.size();
+    for(unsigned int i = 0, l1 = src.size(); i < l1; i++)
     {
-      set<int> temp = t->closure(it->second.first);
-      ret.insert(temp.begin(), temp.end());
+      found = false;
+      //for(unsigned int j = 0; j < dest.size(); j++)
+      for(unsigned int j = 0; j < l2; j++)
+      {
+        if(src[i].first == dest[j].first)
+        {
+          found = true;
+          break;
+        }
+      }
+      if(!found)
+      {
+        dest.push_back(src[i]);
+      }
     }
-    return ret;*/
-    return trans[state][sym];
+  }
+  bool pairLT(const pair<int, int>& a, const pair<int, int>& b)
+  {
+    return a.second > b.second;
+    // we want longer paths first
+  }
+  static bool transSort1(const pair<int, vector<int>>& a, const pair<int, vector<int>>& b)
+  {
+    return a.first < b.first;
+  }
+  static bool transSort2(const pair<int, vector<pair<int, vector<int>>>>& a,
+                         const pair<int, vector<pair<int, vector<int>>>>& b)
+  {
+    return a.first < b.first;
+  }
+  vector<pair<int, vector<pair<int, vector<int>>>>> trans_vec;
+  vector<int> final_vec;
+  void stepSingle(int state, int sym, vector<int>& writeTo)
+  {
+    int lstate = 0;
+    int rstate = trans_vec.size()-1;
+    int loc1 = -1;
+    while(lstate <= rstate)
+    {
+      loc1 = (lstate + rstate) / 2;
+      if(trans_vec[loc1].first == state)
+      {
+        break;
+      }
+      else if(trans_vec[loc1].first < state)
+      {
+        lstate = loc1 + 1;
+      }
+      else
+      {
+        rstate = loc1 - 1;
+      }
+    }
+    if(loc1 == -1 || trans_vec[loc1].first != state)
+    {
+      return;
+    }
+    vector<pair<int, vector<int>>>& tmp = trans_vec[loc1].second;
+    lstate = 0;
+    rstate = tmp.size()-1;
+    int loc2 = -1;
+    while(lstate <= rstate)
+    {
+      loc2 = (lstate + rstate) / 2;
+      if(tmp[loc2].first == sym)
+      {
+        writeTo.insert(writeTo.end(), tmp[loc2].second.begin(), tmp[loc2].second.end());
+        return;
+      }
+      else if(tmp[loc2].first < sym)
+      {
+        lstate = loc2 + 1;
+      }
+      else
+      {
+        rstate = loc2 - 1;
+      }
+    }
+  }
+  inline bool isFinal(int state)
+  {
+    return binary_search(final_vec.begin(), final_vec.end(), state);
   }
 public:
-  ParseTable(Transducer* tr, Alphabet* al, map<int, int> rl) :
-      t(tr), a(al), rules(rl)
+  ParseTable(Transducer* tr, Alphabet* al, map<int, int> rl, map<int, double>* rw) :
+      t(tr), a(al), rules(rl), ruleWeights(*rw)
   {
     any_char = (*a)(L"<ANY_CHAR>");
     any_tag = (*a)(L"<ANY_TAG>");
@@ -43,111 +124,114 @@ public:
     for(map<int, multimap<int, pair<int, double>>>::iterator state = ts.begin(), limit1 = ts.end();
             state != limit1; state++)
     {
+      vector<pair<int, vector<int>>>* tv_temp = new vector<pair<int, vector<int>>>();
       for(multimap<int, pair<int, double>>::iterator it = state->second.begin(), limit2 = state->second.end();
             it != limit2; it++)
       {
         temp = tr->closure(it->second.first);
-        trans[state->first][it->first].insert(temp.begin(), temp.end());
+        vector<int>* tv_temp2 = new vector<int>();
+        for(set<int>::iterator ch = temp.begin(); ch != temp.end(); ch++)
+        {
+          if(find(trans[state->first][it->first].begin(), trans[state->first][it->first].end(), *ch)
+              == trans[state->first][it->first].end())
+          {
+            trans[state->first][it->first].push_back(*ch);
+            tv_temp2->push_back(*ch);
+          }
+        }
+        sort(tv_temp2->begin(), tv_temp2->end());
+        tv_temp->push_back(make_pair(it->first, *tv_temp2));
       }
+      sort(tv_temp->begin(), tv_temp->end(), transSort1);
+      trans_vec.push_back(make_pair(state->first, *tv_temp));
     }
-  }
-  set<int> step(set<int> const & start, int sym, int alt = 0)
-  {
-    set<int> ret;
-    //set<int> temp;
-    for(set<int>::iterator it = start.begin(), limit = start.end();
-            it != limit; it++)
+    sort(trans_vec.begin(), trans_vec.end(), transSort2);
+    for(map<int, int>::iterator it = rl.begin(), limit = rl.end(); it != limit; it++)
     {
-      /*temp = stepSingle(*it, sym);
-      ret.insert(temp.begin(), temp.end());
-      if(alt != 0)
+      final_vec.push_back(it->first);
+    }
+    sort(final_vec.begin(), final_vec.end());
+  }
+  vector<pair<int, int>> step(const vector<pair<int, int>>& start, bool incr, int sym, int alt = 0)
+  {
+    vector<pair<int, int>> ret;
+    vector<pair<int, int>> temp1;
+    vector<int> temp2;
+    //vector<int> temp3;
+    int pl = incr ? 1 : 0;
+    //for(unsigned int i = 0; i < start.size(); i++)
+    for(unsigned int i = 0, limit = start.size(); i < limit; i++)
+    {
+      if(i > 0)
       {
-        temp = stepSingle(*it, alt);
-        ret.insert(temp.begin(), temp.end());
-      }*/
-      ret.insert(trans[*it][sym].begin(), trans[*it][sym].end());
-      if(alt != 0)
-      {
-        ret.insert(trans[*it][alt].begin(), trans[*it][alt].end());
+        temp2.clear();
       }
+      stepSingle(start[i].first, sym, temp2);
+      if(alt != 0)
+      {
+        stepSingle(start[i].first, alt, temp2);
+      }
+      temp1.resize(temp2.size());
+      //for(unsigned int j = 0; j < temp2.size(); j++)
+      for(unsigned int j = 0, l2 = temp2.size(); j < l2; j++)
+      {
+        temp1[j] = make_pair(temp2[j], start[i].second+pl);
+      }
+      appendUnique(ret, temp1);
     }
     return ret;
   }
-  bool anyFinal(const set<int>& states)
+  bool anyFinal(const vector<pair<int, int>>& states)
   {
-    for(set<int>::iterator it = states.begin(), limit = states.end();
-            it != limit; it++)
+    for(unsigned int i = 0; i < states.size(); i++)
     {
-      if(t->isFinal(*it))
+      //if(rules.find(states[i].first) != rules.end())
+      if(isFinal(states[i].first))
       {
         return true;
       }
     }
     return false;
   }
-  set<int> getFinals(const set<int>& states)
+  int getRule(const vector<pair<int, int>>& states, const set<int>& skip)
   {
-    set<int> ret;
-    for(set<int>::iterator it = states.begin(); it != states.end(); it++)
-    {
-      if(t->isFinal(*it))
-      {
-        ret.insert(*it);
-      }
-    }
-    return ret;
-  }
-  int getRule(set<int> states, const set<int>& skip)
-  {
-    map<int, double> tempfin = t->getFinals();
-    double weight;
+    int minPath = 0;
     int rule = -1;
-    int r;
-    for(set<int>::iterator it = states.begin(), limit = states.end();
-            it != limit; it++)
+    double weight;
+    for(unsigned int i = 0; i < states.size(); i++)
     {
-      if(tempfin.find(*it) != tempfin.end())
+      if(states[i].second < minPath)
       {
-        r = rules[*it];
-        if(skip.find(r) != skip.end())
-        {
-          continue;
-        }
-        if(rule == -1 || tempfin[*it] > weight)
+        break;
+      }
+      //if(rules.find(states[i].first) != rules.end())
+      if(isFinal(states[i].first))
+      {
+        int r = rules[states[i].first];
+        minPath = states[i].second;
+        if(rule == -1 || ruleWeights[r] < weight ||
+            (ruleWeights[r] == weight && r < rule))
         {
           rule = r;
-          weight = tempfin[*it];
+          weight = ruleWeights[r];
         }
       }
     }
     return rule;
   }
-  int getRule(set<int> states)
+  int getRule(const vector<pair<int, int>>& states)
   {
     set<int> empty;
     return getRule(states, empty);
   }
-  int getRule(vector<pair<int, int>> states)
+  vector<pair<int, int>> match(const vector<pair<int, int>>& states, const wstring& form)
   {
-    set<int> s;
-    for(unsigned int i = 0; i < states.size(); i++)
-    {
-      s.insert(states[i].first);
-    }
-    return getRule(s);
-  }
-  set<int> match(set<int> states, const wstring& form)
-  {
-    set<int> ret = states;
+    vector<pair<int, int>> ret = step(states, false, L'^');
     for(unsigned int i = 0; i < form.size(); i++)
     {
-      if(form[i] == L'^' || form[i] == L'$' || form[i] == L' ')
+      if(form[i] == L'\\')
       {
-        ret = step(ret, form[i]);
-      }
-      else if(form[i] == L'\\')
-      {
-        ret = step(ret, towlower(form[++i]), any_char);
+        ret = step(ret, false, towlower(form[++i]), any_char);
       }
       else if(form[i] == L'<')
       {
@@ -162,58 +246,51 @@ public:
             int tag = (*a)(form.substr(i, j-i+1));
             if(tag)
             {
-              ret = step(ret, tag, any_tag);
+              ret = step(ret, false, tag, any_tag);
             }
             else
             {
-              ret = step(ret, any_tag);
+              ret = step(ret, false, any_tag);
             }
             i = j;
+            break;
           }
         }
       }
       else
       {
-        ret = step(ret, towlower(form[i]), any_char);
+        ret = step(ret, false, towlower(form[i]), any_char);
       }
     }
+    ret = step(ret, true, L'$');
     return ret;
   }
-  vector<pair<int, int>> matchChunk(vector<pair<int, int>> states, wstring chunk)
+  vector<pair<int, int>> matchBlank(const vector<pair<int, int>>& states)
   {
-    map<int, set<int>> state_map;
-    int max = 0;
-    for(unsigned int i = 0; i < states.size(); i++)
+    return step(states, true, L' ');
+  }
+  vector<pair<int, int>> matchChunk(const vector<pair<int, int>>& states, const wstring& chunk)
+  {
+    vector<pair<int, int>> next = match(states, chunk);
+    int lim = 0;
+    for(unsigned int i = 0; i < next.size(); i++)
     {
-      state_map[states[i].second].insert(states[i].first);
-      max = states[i].second > max ? states[i].second : max;
-    }
-    vector<pair<int, int>> ret;
-    for(int i = max; i >= 0; i--)
-    {
-      if(state_map.find(i) != state_map.end())
+      if(next[i].second < lim)
       {
-        set<int> dest = match(state_map[i], chunk);
-        for(set<int>::iterator it = dest.begin(); it != dest.end(); it++)
-        {
-          ret.push_back(make_pair(*it, i+1));
-        }
-        if(anyFinal(dest))
-        {
-          break;
-        }
+        next.resize(i);
+        break;
+      }
+      //if(rules.find(next[i].first) != rules.end())
+      if(isFinal(next[i].first))
+      {
+        lim = next[i].second;
       }
     }
-    return ret;
+    return next;
   }
   bool shouldKeepShifting(vector<pair<int, int>> states, wstring chunk)
   {
-    set<int> s;
-    for(unsigned int i = 0; i < states.size(); i++)
-    {
-      s.insert(states[i].first);
-    }
-    s = step(s, checkSymbol);
+    vector<pair<int, int>> s = step(s, false, checkSymbol);
     if(s.size() == 0)
     {
       return false;

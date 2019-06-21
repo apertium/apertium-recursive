@@ -9,6 +9,7 @@
 #include <cerrno>
 #include <iostream>
 #include <stack>
+#include <deque>
 #include <apertium/string_utils.h>
 //#include <apertium/unlocked_cstdio.h>
 
@@ -38,12 +39,13 @@ Interchunk::readData(FILE *in)
   any_char = alphabet(TRXReader::ANY_CHAR);
   any_tag = alphabet(TRXReader::ANY_TAG);
 
-  Transducer t;
-  t.read(in, alphabet.size());
+  //Transducer t;
+  Transducer* t = new Transducer();
+  t->read(in, alphabet.size());
 
   map<int, int> finals;
 
-  map<int, double> finalWeights = t.getFinals();
+  map<int, double> finalWeights = t->getFinals();
 
   // finals
   for(int i = 0, limit = Compression::multibyte_read(in); i != limit; i++)
@@ -53,7 +55,9 @@ Interchunk::readData(FILE *in)
     ruleWeights[finals[key]] = finalWeights[key];
   }
 
-  me = new MatchExe(t, finals);
+  pt = new ParseTable(t, &alphabet, finals);
+
+  me = new MatchExe(*t, finals);
 
   // attr_items
   bool recompile_attrs = Compression::string_read(in) != string(pcre_version());
@@ -268,9 +272,8 @@ Interchunk::popChunk()
 }
 
 bool
-Interchunk::applyRule(wstring rule)
+Interchunk::applyRule(const wstring& rule)
 {
-  bool in_let_setup = false;
   for(unsigned int i = 0; i < rule.size(); i++)
   {
     switch(rule[i])
@@ -1017,13 +1020,13 @@ Interchunk::interchunk_do_pass()
   }
 }
 
-void
+/*void
 Interchunk::interchunk(FILE *in, FILE *out)
 {
-  /*if(getNullFlush())
+  if(getNullFlush())
   {
     interchunk_wrapper_null_flush(in, out);
-  }*/
+  }
   parseTower.push_back(list<Chunk*>());
   while(!allDone)
   {
@@ -1070,5 +1073,141 @@ Interchunk::interchunk(FILE *in, FILE *out)
       parseTower.pop_back();
     }
     parseTower.pop_back();
+  }
+}*/
+
+void
+Interchunk::matchNode(Chunk* next)
+{
+  vector<pair<int, int>> states;
+  states.push_back(make_pair(0, 0));
+  if(stateStack.size() > 0)
+  {
+    states.insert(states.end(), stateStack.top().begin(), stateStack.top().end());
+  }
+  if(printingMatch) { wcerr << endl << "applying transducer to " << states.size() << " states with surface '"; }
+  if(next->isBlank)
+  {
+    states = pt->matchChunk(states, L" ");
+    if(printingMatch) { wcerr << " "; }
+  }
+  else if(next->source.size() == 0)
+  {
+    states = pt->matchChunk(states, L"^" + next->target + L"$");
+    if(printingMatch) { wcerr << next->target; }
+  }
+  else
+  {
+    states = pt->matchChunk(states, L"^" + next->source + L"$");
+    if(printingMatch) { wcerr << next->source; }
+  }
+  stateStack.push(states);
+  parseStack.push(next);
+  if(printingMatch) { wcerr << "'" << endl << " -> " << states.size() << " states" << endl; }
+}
+
+void
+Interchunk::applyReduction(int rule, int len)
+{
+  currentInput.resize(len);
+  for(int i = 0; i < len; i++)
+  {
+    currentInput[len-i-1] = parseStack.top();
+    parseStack.pop();
+    stateStack.pop();
+  }
+  currentInput.clear();
+  currentOutput.clear();
+  applyRule(rule_map[rule-1]);
+  vector<Chunk*> out;
+  out.insert(out.begin(), currentOutput.begin(), currentOutput.end());
+  currentOutput.clear();
+  // calling checkForReduce() can modify currentOutput, so make a copy
+  for(unsigned int i = 0; i < out.size(); i++)
+  {
+    matchNode(out[i]);
+    checkForReduce();
+  }
+}
+
+void
+Interchunk::checkForReduce()
+{
+  if(stateStack.size() > 0)
+  {
+    int rule = pt->getRule(stateStack.top());
+    if(rule != -1)
+    {
+      if(!outputting)
+      {
+        for(unsigned int i = 0; i < inputBuffer.size(); i++)
+        {
+          if(!inputBuffer[i]->isBlank)
+          {
+            wstring surf = inputBuffer[i]->source;
+            if(surf.size() == 0)
+            {
+              surf = inputBuffer[i]->target;
+            }
+            if(pt->shouldKeepShifting(stateStack.top(), surf))
+            {
+              return;
+            }
+          }
+        }
+      }
+      if(printingRules) { wcerr << "Applying rule " << rule << endl; }
+      applyReduction(rule, stateStack.top().back().second);
+      // longest matches are at the front,
+      // and no path is included that is shorted than the longest rule matched
+    }
+  }
+}
+
+void
+Interchunk::outputAll(FILE* out)
+{
+  outputting = true;
+  stack<Chunk*> temp;
+  while(parseStack.size() > 0)
+  {
+    checkForReduce();
+    temp.push(parseStack.top());
+    parseStack.pop();
+    stateStack.pop();
+  }
+  while(temp.size() > 0)
+  {
+    temp.top()->output(out);
+    temp.pop();
+  }
+}
+
+void
+Interchunk::interchunk(FILE *in, FILE *out)
+{
+  Chunk* next;
+  while(true)
+  {
+    if(inputBuffer.size() == 0 && furtherInput)
+    {
+      inputBuffer.push_back(readToken(in));
+    }
+    next = inputBuffer.front();
+    inputBuffer.pop_front();
+    matchNode(next);
+    if(stateStack.top().size() == 0)
+    {
+      outputAll(out);
+    }
+    else
+    {
+      checkForReduce();
+    }
+    if(inputBuffer.size() == 0 && !furtherInput)
+    {
+      outputAll(out);
+      break;
+    }
   }
 }

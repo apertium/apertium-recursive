@@ -257,6 +257,11 @@ private:
   void makePattern(int ruleid);
   void makeDefaultRule();
   
+  map<wstring, set<int>> firstInput;
+  map<wstring, set<int>> firstOutput;
+  bool isPrefix(Rule* pref, Rule* rule);
+  vector<vector<wstring>> findSuffixes(Rule* rule);
+  
   int longestPattern;
   
   wstring compileString(wstring s);

@@ -11,6 +11,7 @@
 #include <lttoolbox/ltstr.h>
 #include <lttoolbox/match_exe.h>
 #include <lttoolbox/match_state.h>
+#include <parse_table.h>
 
 #include <cstring>
 #include <cstdio>
@@ -21,6 +22,7 @@
 #include <vector>
 #include <stack>
 #include <list>
+#include <deque>
 
 using namespace std;
 
@@ -60,7 +62,7 @@ public:
       delete contents[i];
     }
   }
-  wstring chunkPart(ApertiumRE const &part, wstring side = L"tl")
+  wstring chunkPart(ApertiumRE const &part, const wstring& side = L"tl")
   {
     string chunk;
     if(side == L"tl")
@@ -99,7 +101,7 @@ public:
       target = UtfConverter::fromUtf8(surf);
     }
   }
-  void updateTags(vector<wstring> parentTags)
+  void updateTags(const vector<wstring>& parentTags)
   {
     wstring result;
     wstring cur;
@@ -183,7 +185,7 @@ public:
     }
     return result;
   }
-  void output(vector<wstring> parentTags, FILE* out = NULL)
+  void output(const vector<wstring>& parentTags, FILE* out = NULL)
   {
     updateTags(parentTags);
     if(contents.size() > 0)
@@ -263,6 +265,11 @@ private:
   vector<Chunk*> currentInput;
   vector<Chunk*> currentOutput;
   vector<list<Chunk*>> parseTower;
+  stack<vector<pair<int, int>>> stateStack;
+  stack<Chunk*> parseStack;
+  deque<Chunk*> inputBuffer;
+  bool outputting;
+  ParseTable* pt;
 
   FILE *output;
   int any_char;
@@ -289,10 +296,15 @@ private:
   bool endsWith(wstring const &str1, wstring const &str2) const;
   void applyWord(Chunk& chunk);
   int getRule();
-  bool applyRule(wstring rule);
+  bool applyRule(const wstring& rule);
   Chunk* readToken(FILE *in);
   void interchunk_wrapper_null_flush(FILE *in, FILE *out);
   bool interchunk_do_pass();
+  
+  void matchNode(Chunk* next);
+  void applyReduction(int rule, int len);
+  void checkForReduce();
+  void outputAll(FILE* out);
   
   StackElement popStack();
   bool popBool();

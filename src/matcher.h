@@ -232,7 +232,7 @@ public:
       int node = stack[stackIdx][i];
       if(nodes[node].rule != -1)
       {
-        if(rule == -1 || nodes[node].weight < weight ||
+        if(rule == -1 || nodes[node].weight > weight ||
             (nodes[node].weight == weight && nodes[node].rule < rule))
         {
           rule = nodes[node].rule;

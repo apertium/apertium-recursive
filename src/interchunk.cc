@@ -720,6 +720,7 @@ Interchunk::readToken(FILE *in)
   wstring src;
   wstring dest;
   wstring coref;
+  cur.reserve(256);
   while(true)
   {
     int val = fgetwc_unlocked(in);
@@ -760,18 +761,21 @@ Interchunk::readToken(FILE *in)
     {
       if(pos == 0)
       {
-        src = cur;
+        src.swap(cur);
       }
       else if(pos == 1)
       {
-        dest = cur;
+        dest.swap(cur);
       }
-      else if(pos >= 2 && !noCoref)
+      else if(pos >= 2 && !noCoref && val == L'$')
       {
-        coref = cur;
+        coref.swap(cur);
+      }
+      else
+      {
+        cur.clear();
       }
       pos++;
-      cur.clear();
       if(val == L'$')
       {
         inword = false;
@@ -862,8 +866,7 @@ Interchunk::applyReduction(int rule, int len)
   currentOutput.clear();
   applyRule(rule_map[rule-1]);
   vector<Chunk*> out;
-  out.insert(out.begin(), currentOutput.begin(), currentOutput.end());
-  currentOutput.clear();
+  out.swap(currentOutput);
   // calling checkForReduce() can modify currentOutput, so make a copy
   for(unsigned int i = 0; i < out.size(); i++)
   {

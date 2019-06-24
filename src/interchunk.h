@@ -109,11 +109,54 @@ public:
       target = UtfConverter::fromUtf8(surf);
     }
   }
-  vector<wstring> updateTags(const vector<wstring>& parentTags)
+  vector<wstring> getTags(const vector<wstring>& parentTags)
+  {
+    int last = 0;
+    vector<wstring> ret;
+    for(unsigned int i = 0, limit = target.size(); i < limit; i++)
+    {
+      if(target[i] == L'<')
+      {
+        last = i;
+        bool isNum = true;
+        for(unsigned int j = i+1; j < limit; j++)
+        {
+          if(target[j] == L'>')
+          {
+            if(isNum)
+            {
+              int n = stoi(target.substr(last+1, j-last-1))-1;
+              if(n >= 0 && n < parentTags.size())
+              {
+                ret.push_back(parentTags[n]);
+                last = j+1;
+                break;
+              }
+            }
+            wstring tag = target.substr(last, j-last+1);
+            ret.push_back(tag);
+            last = j+1;
+            break;
+          }
+          if(!isdigit(target[j]))
+          {
+            isNum = false;
+          }
+        }
+      }
+      else if(target[i] == L'\\')
+      {
+        i++;
+      }
+    }
+    return ret;
+  }
+  void updateTags(const vector<wstring>& parentTags)
   {
     int last = 0;
     wstring result;
-    vector<wstring> ret;
+    result.reserve(target.size() + (2*parentTags.size()));
+    // a rough estimate - works if most number tags are 1 digit and most new tags are 3 chars or less
     for(unsigned int i = 0, limit = target.size(); i < limit; i++)
     {
       if(target[i] == L'<')
@@ -131,14 +174,12 @@ public:
               if(n >= 0 && n < parentTags.size())
               {
                 result += parentTags[n];
-                ret.push_back(parentTags[n]);
-                last = j+1;
-                break;
               }
             }
-            wstring tag = target.substr(last, j-last+1);
-            ret.push_back(tag);
-            result += tag;
+            else
+            {
+              result += target.substr(last, j-last+1);
+            }
             last = j+1;
             break;
           }
@@ -158,17 +199,12 @@ public:
       result += target.substr(last);
     }
     target = result;
-    return ret;
   }
   void output(const vector<wstring>& parentTags, FILE* out = NULL)
   {
-    vector<wstring> tags;
-    if(!isBlank)
-    {
-      tags = updateTags(parentTags);
-    }
     if(contents.size() > 0)
     {
+      vector<wstring> tags = getTags(parentTags);
       for(int i = 0; i < contents.size(); i++)
       {
         contents[i]->output(tags, out);
@@ -187,6 +223,7 @@ public:
     }
     else
     {
+      updateTags(parentTags);
       if(out == NULL)
       {
         cout << "^" << UtfConverter::toUtf8(target) << "$";

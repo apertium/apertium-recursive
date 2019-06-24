@@ -12,6 +12,7 @@
 #include <lttoolbox/match_exe.h>
 #include <lttoolbox/match_state.h>
 #include <parse_table.h>
+#include <matcher.h>
 
 #include <cstring>
 #include <cstdio>
@@ -250,12 +251,14 @@ private:
   Alphabet alphabet;
   MatchExe *me;
   MatchState ms;
+  MatchExe2 *mx;
   map<wstring, ApertiumRE, Ltstr> attr_items;
   map<wstring, wstring, Ltstr> variables;
   map<wstring, int, Ltstr> macros;
   map<wstring, set<wstring, Ltstr>, Ltstr> lists;
   map<wstring, set<wstring, Ltstr>, Ltstr> listslow;
   vector<wstring> rule_map;
+  vector<int> pat_size;
   int longestPattern;
   bool furtherInput;
   bool allDone;

@@ -58,6 +58,7 @@ Interchunk::readData(FILE *in)
   pt = new ParseTable(t, &alphabet, finals, &ruleWeights);
 
   me = new MatchExe(*t, finals);
+  mx = new MatchExe2(*t, &alphabet, finals);
 
   // attr_items
   bool recompile_attrs = Compression::string_read(in) != string(pcre_version());
@@ -107,16 +108,19 @@ Interchunk::read(string const &transferfile, string const &datafile)
   longestPattern = 2*fgetwc(in)-1;
   int count = fgetwc(in);
   int len;
+  int patlen;
   wstring cur;
   for(int i = 0; i < count; i++)
   {
     cur.clear();
     len = fgetwc(in);
+    patlen = fgetwc(in);
     for(int j = 0; j < len; j++)
     {
       cur.append(1, fgetwc(in));
     }
     rule_map.push_back(cur);
+    pat_size.push_back(patlen);
   }
   fclose(in);
 
@@ -1076,7 +1080,7 @@ Interchunk::interchunk(FILE *in, FILE *out)
   }
 }*/
 
-void
+/*void
 Interchunk::matchNode(Chunk* next)
 {
   vector<pair<int, int>> states;
@@ -1104,6 +1108,24 @@ Interchunk::matchNode(Chunk* next)
   stateStack.push(states);
   parseStack.push(next);
   if(printingMatch) { wcerr << "'" << endl << " -> " << states.size() << " states" << endl; }
+}*/
+
+void
+Interchunk::matchNode(Chunk* next)
+{
+  if(next->isBlank)
+  {
+    mx->matchBlank();
+  }
+  else if(next->source.size() == 0)
+  {
+    mx->matchChunk(next->target);
+  }
+  else
+  {
+    mx->matchChunk(next->source);
+  }
+  parseStack.push(next);
 }
 
 void
@@ -1114,8 +1136,9 @@ Interchunk::applyReduction(int rule, int len)
   {
     currentInput[len-i-1] = parseStack.top();
     parseStack.pop();
-    stateStack.pop();
+    //stateStack.pop();
   }
+  mx->popStack(len);
   currentInput.clear();
   currentOutput.clear();
   applyRule(rule_map[rule-1]);
@@ -1133,9 +1156,11 @@ Interchunk::applyReduction(int rule, int len)
 void
 Interchunk::checkForReduce()
 {
-  if(stateStack.size() > 0)
+  //if(stateStack.size() > 0)
+  if(mx->stackSize() > 0)
   {
-    int rule = pt->getRule(stateStack.top());
+    //int rule = pt->getRule(stateStack.top());
+    int rule = mx->getRule();
     if(rule != -1)
     {
       if(!outputting)
@@ -1149,7 +1174,8 @@ Interchunk::checkForReduce()
             {
               surf = inputBuffer[i]->target;
             }
-            if(pt->shouldKeepShifting(stateStack.top(), surf))
+            //if(pt->shouldKeepShifting(stateStack.top(), surf))
+            if(mx->shouldShift(surf))
             {
               return;
             }
@@ -1157,7 +1183,8 @@ Interchunk::checkForReduce()
         }
       }
       if(printingRules) { wcerr << "Applying rule " << rule << endl; }
-      applyReduction(rule, stateStack.top().back().second);
+      applyReduction(rule, pat_size[rule-1]);
+      //applyReduction(rule, stateStack.top().back().second);
       // longest matches are at the front,
       // and no path is included that is shorted than the longest rule matched
     }
@@ -1174,7 +1201,8 @@ Interchunk::outputAll(FILE* out)
     checkForReduce();
     temp.push(parseStack.top());
     parseStack.pop();
-    stateStack.pop();
+    //stateStack.pop();
+    mx->popStack(1);
   }
   while(temp.size() > 0)
   {
@@ -1189,14 +1217,19 @@ Interchunk::interchunk(FILE *in, FILE *out)
   Chunk* next;
   while(true)
   {
-    if(inputBuffer.size() == 0 && furtherInput)
+    /*if(inputBuffer.size() == 0 && furtherInput)
+    {
+      inputBuffer.push_back(readToken(in));
+    }*/
+    while(furtherInput && inputBuffer.size() < 5)
     {
       inputBuffer.push_back(readToken(in));
     }
     next = inputBuffer.front();
     inputBuffer.pop_front();
     matchNode(next);
-    if(stateStack.top().size() == 0)
+    //if(stateStack.top().size() == 0)
+    if(mx->stateSize() == 0)
     {
       outputAll(out);
     }

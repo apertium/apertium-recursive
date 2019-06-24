@@ -1530,6 +1530,7 @@ RTXReader::makeDefaultRule()
   const int symbol = td.countToFinalSymbol(reductionRules.size());
   loc = td.getTransducer().insertSingleTransduction(symbol, loc, rule->weight);
   td.getTransducer().setFinal(loc);
+  rule->pattern.resize(1);
 }
 
 void
@@ -1647,6 +1648,7 @@ RTXReader::write(const string &fname, const string &bytename)
   for(unsigned int i = 0; i < reductionRules.size(); i++)
   {
     fputwc(reductionRules[i]->compiled.size(), out2);
+    fputwc((reductionRules[i]->pattern.size() * 2) - 1, out2);
     for(unsigned int c = 0; c < reductionRules[i]->compiled.size(); c++)
     {
       fputwc(reductionRules[i]->compiled[c], out2);

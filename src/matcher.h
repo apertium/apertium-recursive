@@ -73,6 +73,8 @@ private:
   int first[RTXStackSize];
   int last[RTXStackSize];
   int stackIdx;
+  int available[RTXStackSize];
+  int availableIdx;
   int initial;
   
 public:
@@ -113,6 +115,12 @@ public:
     any_char = (*a)(L"<ANY_CHAR>");
     any_tag = (*a)(L"<ANY_TAG>");
     check_sym = (*a)(L"<LOOK:AHEAD>");
+
+    availableIdx = -1;
+    for(int i = 0; i < RTXStackSize; i++)
+    {
+      available[++availableIdx] = RTXStackSize - i - 1;
+    }
   }
   void popStack(int const n)
   {
@@ -122,10 +130,20 @@ public:
   {
     return stackIdx + 1;
   }
+  void returnState(int n)
+  {
+    available[++availableIdx] = n;
+  }
   int stateSize()
   {
     int f = first[stackIdx];
     int l = last[stackIdx];
+    return (l >= f) ? (l - f) : (l + RTXStateSize - f);
+  }
+  int stateSize(int state)
+  {
+    int f = first[state];
+    int l = last[state];
     return (l >= f) ? (l - f) : (l + RTXStateSize - f);
   }
   // src = source MatchNode2
@@ -164,30 +182,38 @@ public:
       first[src] = loclast;
     }
   }
-  int pushStack(int sym)
+  int newState()
   {
-    first[stackIdx+1] = 0;
-    last[stackIdx+1] = 0;
-    if(stackIdx >= 0)
+    int ret = available[availableIdx--];
+    first[ret] = 0;
+    last[ret] = 0;
+    return ret;
+  }
+  int pushStack(int src, int sym)
+  {
+    int state = newState();
+    first[state] = 0;
+    last[state] = 0;
+    if(src != -1)
     {
-      step(stackIdx, stackIdx+1, sym);
+      step(src, state, sym);
     }
-    stackIdx++;
-    applySymbol(initial, sym, stackIdx);
+    applySymbol(initial, sym, state);
+    return state;
   }
-  void matchBlank()
+  int matchBlank(int src)
   {
-    pushStack(L' ');
+    return pushStack(src, L' ');
   }
-  void matchChunk(wstring ch)
+  int matchChunk(int src, wstring ch)
   {
-    pushStack(L'^');
+    int state = pushStack(src, L'^');
     for(unsigned int i = 0; i < ch.size(); i++)
     {
       switch(ch[i])
       {
         case L'\\':
-          step(stackIdx, stackIdx, towlower(ch[++i]), any_char);
+          step(state, state, towlower(ch[++i]), any_char);
           break;
         case L'<':
           for(unsigned int j = i+1; j < ch.size(); j++)
@@ -197,11 +223,11 @@ public:
               int symbol = (*alpha)(ch.substr(i, j-i+1));
               if(symbol)
               {
-                step(stackIdx, stackIdx, symbol, any_tag);
+                step(state, state, symbol, any_tag);
               }
               else
               {
-                step(stackIdx, stackIdx, any_tag);
+                step(state, state, any_tag);
               }
               i = j;
               break;
@@ -209,43 +235,45 @@ public:
           }
           break;
         default:
-          step(stackIdx, stackIdx, towlower(ch[i]), any_char);
+          step(state, state, towlower(ch[i]), any_char);
           break;
       }
     }
-    step(stackIdx, stackIdx, L'$');
+    step(state, state, L'$');
+    return state;
   }
-  bool shouldShift(wstring chunk)
+  bool shouldShift(int src, wstring chunk)
   {
-    pushStack(check_sym);
-    matchChunk(chunk);
-    bool ret = (first[stackIdx] != last[stackIdx]);
-    popStack(2);
+    int s1 = pushStack(src, check_sym);
+    int s2 = matchChunk(s1, chunk);
+    bool ret = (first[s2] != last[s2]);
+    returnState(s1);
+    returnState(s2);
     return ret;
   }
-  int getRule(set<int> skip)
+  int getRule(int state, set<int> skip)
   {
     int rule = -1;
     double weight;
-    for(int i = first[stackIdx]; i != last[stackIdx]; i = (i+1)%RTXStateSize)
+    for(int i = first[state], end = last[state]; i != end; i = (i+1)%RTXStateSize)
     {
-      int node = stack[stackIdx][i];
+      int node = stack[state][i];
       if(nodes[node].rule != -1)
       {
-        if(rule == -1 || nodes[node].weight > weight ||
-            (nodes[node].weight == weight && nodes[node].rule < rule))
-        {
-          rule = nodes[node].rule;
-          weight = nodes[node].weight;
-        }
+        if(skip.find(nodes[node].rule) != skip.end()) continue;
+        if(rule != -1 && nodes[node].weight < weight) continue;
+        if(rule != -1 && nodes[node].rule > rule) continue;
+
+        rule = nodes[node].rule;
+        weight = nodes[node].weight;
       }
     }
     return rule;
   }
-  int getRule()
+  int getRule(int state)
   {
     set<int> empty;
-    return getRule(empty);
+    return getRule(state, empty);
   }
 };
 

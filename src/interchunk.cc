@@ -834,96 +834,64 @@ Interchunk::interchunk_wrapper_null_flush(FILE *in, FILE *out)
   null_flush = true;
 }
 
-void
-Interchunk::matchNode(Chunk* next)
+vector<ParseNode*>
+Interchunk::checkForReduce(ParseNode* node)
 {
-  if(next->isBlank)
+  vector<ParseNode*> ret;
+  for(unsigned int i = 0, limit = inputBuffer.size(); i < limit; i++)
   {
-    mx->matchBlank();
-  }
-  else if(next->source.size() == 0)
-  {
-    mx->matchChunk(next->target);
-  }
-  else
-  {
-    mx->matchChunk(next->source);
-  }
-  parseStack.push(next);
-}
-
-void
-Interchunk::applyReduction(int rule, int len)
-{
-  currentInput.resize(len);
-  for(int i = 0; i < len; i++)
-  {
-    currentInput[len-i-1] = parseStack.top();
-    parseStack.pop();
-  }
-  mx->popStack(len);
-  currentInput.clear();
-  currentOutput.clear();
-  applyRule(rule_map[rule-1]);
-  vector<Chunk*> out;
-  out.swap(currentOutput);
-  // calling checkForReduce() can modify currentOutput, so make a copy
-  for(unsigned int i = 0; i < out.size(); i++)
-  {
-    matchNode(out[i]);
-    checkForReduce();
-  }
-}
-
-void
-Interchunk::checkForReduce()
-{
-  if(mx->stackSize() > 0)
-  {
-    int rule = mx->getRule();
-    if(rule != -1)
+    if(!inputBuffer[i]->isBlank)
     {
-      if(!outputting)
+      if(mx->shouldShift(node->state, inputBuffer[i]->matchSurface()))
       {
-        for(unsigned int i = 0; i < inputBuffer.size(); i++)
-        {
-          if(!inputBuffer[i]->isBlank)
-          {
-            wstring surf = inputBuffer[i]->source;
-            if(surf.size() == 0)
-            {
-              surf = inputBuffer[i]->target;
-            }
-            if(mx->shouldShift(surf))
-            {
-              return;
-            }
-          }
-        }
+        ret.push_back(new ParseNode(node));
       }
-      if(printingRules) { wcerr << "Applying rule " << rule << endl; }
-      applyReduction(rule, pat_size[rule-1]);
     }
   }
-}
-
-void
-Interchunk::outputAll(FILE* out)
-{
-  outputting = true;
-  stack<Chunk*> temp;
-  while(parseStack.size() > 0)
+  set<int> rejected;
+  int rule = mx->getRule(node->state);
+  while(rule != -1)
   {
-    checkForReduce();
-    temp.push(parseStack.top());
-    parseStack.pop();
-    mx->popStack(1);
+    int len = pat_size[rule-1];
+    currentInput.resize(len);
+    node->getChunks(currentInput, len-1);
+    currentOutput.clear();
+    if(printingRules) { wcerr << "Applying rule " << rule << endl; }
+    if(applyRule(rule_map[rule-1]))
+    {
+      if(currentOutput.size() == 1)
+      {
+        ParseNode* back = node->popNodes(len);
+        ParseNode* cur;
+        if(back == NULL)
+        {
+          cur = new ParseNode(mx, currentOutput[0]);
+        }
+        else
+        {
+          cur = new ParseNode(back, currentOutput[0]);
+        }
+        delete node;
+        vector<ParseNode*> app = checkForReduce(cur);
+        ret.insert(ret.begin(), app.begin(), app.end());
+      }
+      else
+      {
+        // TODO: somewhat tricky loops
+      }
+      break;
+    }
+    else
+    {
+      rejected.insert(rule);
+      rule = mx->getRule(node->state, rejected);
+    }
   }
-  while(temp.size() > 0)
+  if(rule == -1 && ret.size() == 0)
   {
-    temp.top()->output(out);
-    temp.pop();
+    ret.push_back(node);
   }
+  return ret;
 }
 
 void
@@ -938,19 +906,62 @@ Interchunk::interchunk(FILE *in, FILE *out)
     }
     next = inputBuffer.front();
     inputBuffer.pop_front();
-    matchNode(next);
-    if(mx->stateSize() == 0)
+    if(parseGraph.size() == 0)
     {
-      outputAll(out);
+      parseGraph = checkForReduce(new ParseNode(mx, next));
     }
     else
     {
-      checkForReduce();
+      vector<ParseNode*> temp1, temp2;
+      for(unsigned int i = 0, limit = parseGraph.size(); i < limit; i++)
+      {
+        temp1 = checkForReduce(new ParseNode(parseGraph[i], next));
+        temp2.insert(temp2.end(), temp1.begin(), temp1.end());
+      }
+      parseGraph.swap(temp2);
     }
-    if(inputBuffer.size() == 0 && !furtherInput)
+    bool output = inputBuffer.size() == 0 && !furtherInput;
+    ParseNode* min = NULL;
+    ParseNode* cur = NULL;
+    vector<ParseNode*> temp;
+    temp.reserve(parseGraph.size());
+    int len = INT_MAX;
+    for(unsigned int i = 0, limit = parseGraph.size(); i < limit; i++)
     {
-      outputAll(out);
-      break;
+      cur = parseGraph[i];
+      if(output || mx->stateSize(cur->state) == 0)
+      {
+        if(cur->length < len)
+        {
+          len = cur->length;
+          if(min != NULL)
+          {
+            delete min;
+          }
+          min = cur;
+        }
+        else
+        {
+          delete cur;
+        }
+      }
+      else
+      {
+        temp.push_back(cur);
+      }
     }
+    temp.swap(parseGraph);
+    if(parseGraph.size() == 0 && min != NULL)
+    {
+      vector<Chunk*> ls;
+      ls.resize(min->length);
+      min->getChunks(ls, min->length-1);
+      for(unsigned int i = 0, limit = ls.size(); i < limit; i++)
+      {
+        ls[i]->output(out);
+      }
+    }
+    if(min != NULL) delete min;
+    if(output) break;
   }
 }

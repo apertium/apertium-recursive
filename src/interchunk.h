@@ -241,6 +241,14 @@ public:
     vector<wstring> tags;
     output(tags, out);
   }
+  wstring matchSurface()
+  {
+    if(source.size() == 0)
+    {
+      return target;
+    }
+    return source;
+  }
 };
 
 struct StackElement
@@ -250,6 +258,83 @@ struct StackElement
   int i;
   wstring s;
   Chunk* c;
+};
+
+class ParseNode
+{
+public:
+  int state;
+  Chunk* chunk;
+  int length;
+  ParseNode* prev;
+  int refcount;
+  MatchExe2* mx;
+  ParseNode(MatchExe2* m, Chunk* ch)
+  : chunk(ch), length(1), prev(NULL), refcount(0), mx(m)
+  {
+    if(chunk->isBlank)
+    {
+      state = mx->matchBlank(-1);
+    }
+    else
+    {
+      state = mx->matchChunk(-1, chunk->matchSurface());
+    }
+  }
+  ParseNode(ParseNode* last, Chunk* next)
+  {
+    mx = last->mx;
+    prev = last;
+    prev->refcount++;
+    length = prev->length+1;
+    refcount = 0;
+    chunk = next;
+    if(next->isBlank)
+    {
+      state = mx->matchBlank(prev->state);
+    }
+    else
+    {
+      state = mx->matchChunk(prev->state, chunk->matchSurface());
+    }
+  }
+  ParseNode(ParseNode* other)
+  {
+    state = other->state;
+    chunk = other->chunk;
+    length = other->length;
+    prev = other->prev;
+    if(prev != NULL)
+    {
+      prev->refcount++;
+    }
+    refcount = other->refcount;
+    mx = other->mx;
+  }
+  ~ParseNode()
+  {
+    mx->returnState(state);
+    if(prev != NULL)
+    {
+      prev->refcount--;
+      if(prev->refcount == 0)
+      {
+        delete prev;
+      }
+    }
+  }
+  void getChunks(vector<Chunk*>& chls, int count)
+  {
+    if(count < 0) return;
+    chls[count] = chunk;
+    prev->getChunks(chls, count-1);
+  }
+  ParseNode* popNodes(int n)
+  {
+    if(n == 1 && prev == NULL) return NULL;
+    if(n == 0) return this;
+    return prev->popNodes(n-1);
+  }
 };
 
 class Interchunk
@@ -279,6 +364,7 @@ private:
   stack<Chunk*> parseStack;
   deque<Chunk*> inputBuffer;
   bool outputting;
+  vector<ParseNode*> parseGraph;
 
   FILE *output;
   int any_char;
@@ -312,7 +398,8 @@ private:
   
   void matchNode(Chunk* next);
   void applyReduction(int rule, int len);
-  void checkForReduce();
+  //void checkForReduce();
+  vector<ParseNode*> checkForReduce(ParseNode* node);
   void outputAll(FILE* out);
   
   bool popBool();

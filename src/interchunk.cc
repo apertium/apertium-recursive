@@ -838,6 +838,7 @@ vector<ParseNode*>
 Interchunk::checkForReduce(ParseNode* node)
 {
   vector<ParseNode*> ret;
+  mx->resetRejected();
   int rule = mx->getRule(node->state);
   if(rule != -1)
   {
@@ -853,7 +854,6 @@ Interchunk::checkForReduce(ParseNode* node)
       }
     }
   }
-  set<int> rejected;
   while(rule != -1)
   {
     int len = pat_size[rule-1];
@@ -887,8 +887,8 @@ Interchunk::checkForReduce(ParseNode* node)
     }
     else
     {
-      rejected.insert(rule);
-      rule = mx->getRule(node->state, rejected);
+      mx->rejectRule(rule);
+      rule = mx->getRule(node->state);
     }
   }
   if(rule == -1 && ret.size() == 0)

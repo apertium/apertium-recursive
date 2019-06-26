@@ -76,6 +76,8 @@ private:
   int available[RTXStackSize];
   int availableIdx;
   int initial;
+  int rejected[RTXStackSize];
+  int rejectedCount;
   
 public:
   MatchExe2(Transducer& t, Alphabet* a, map<int, int> const& rules)
@@ -116,7 +118,7 @@ public:
     any_tag = (*a)(L"<ANY_TAG>");
     check_sym = (*a)(L"<LOOK:AHEAD>");
 
-    availableIdx = -1;
+    availableIdx = 0;
     for(int i = 0; i < RTXStackSize; i++)
     {
       available[++availableIdx] = RTXStackSize - i - 1;
@@ -192,8 +194,6 @@ public:
   int pushStack(int src, int sym)
   {
     int state = newState();
-    first[state] = 0;
-    last[state] = 0;
     if(src != -1)
     {
       step(src, state, sym);
@@ -204,8 +204,6 @@ public:
   int pushStackNoInit(int src, int sym)
   {
     int state = newState();
-    first[state] = 0;
-    last[state] = 0;
     if(src != -1)
     {
       step(src, state, sym);
@@ -269,29 +267,38 @@ public:
     returnState(s);
     return ret;
   }
-  int getRule(int state, set<int> skip)
+  int getRule(int state)
   {
     int rule = -1;
     double weight;
+    int rj = 0;
     for(int i = first[state], end = last[state]; i != end; i = (i+1)%RTXStateSize)
     {
-      int node = stack[state][i];
-      if(nodes[node].rule != -1)
+      int n = stack[state][i];
+      MatchNode2& node = nodes[n];
+      if(node.rule != -1)
       {
-        if(skip.find(nodes[node].rule) != skip.end()) continue;
-        if(rule != -1 && nodes[node].weight < weight) continue;
-        if(rule != -1 && nodes[node].rule > rule) continue;
+        if(rj < rejectedCount && rejected[rj] == node.rule)
+        {
+          rj++;
+          continue;
+        }
+        if(rule != -1 && node.weight < weight) continue;
+        if(rule != -1 && node.rule > rule) continue;
 
-        rule = nodes[node].rule;
-        weight = nodes[node].weight;
+        rule = node.rule;
+        weight = node.weight;
       }
     }
     return rule;
   }
-  int getRule(int state)
+  void resetRejected()
   {
-    set<int> empty;
-    return getRule(state, empty);
+    rejectedCount = 0;
+  }
+  void rejectRule(int rule)
+  {
+    rejected[rejectedCount++] = rule;
   }
 };
 

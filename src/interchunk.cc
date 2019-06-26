@@ -838,18 +838,22 @@ vector<ParseNode*>
 Interchunk::checkForReduce(ParseNode* node)
 {
   vector<ParseNode*> ret;
-  for(unsigned int i = 0, limit = inputBuffer.size(); i < limit; i++)
+  int rule = mx->getRule(node->state);
+  if(rule != -1)
   {
-    if(!inputBuffer[i]->isBlank)
+    for(unsigned int i = 0, limit = inputBuffer.size(); i < limit; i++)
     {
-      if(mx->shouldShift(node->state, inputBuffer[i]->matchSurface()))
+      if(!inputBuffer[i]->isBlank)
       {
-        ret.push_back(new ParseNode(node));
+        if(mx->shouldShift(node->state, inputBuffer[i]->matchSurface()))
+        {
+          ret.push_back(new ParseNode(node));
+          break;
+        }
       }
     }
   }
   set<int> rejected;
-  int rule = mx->getRule(node->state);
   while(rule != -1)
   {
     int len = pat_size[rule-1];

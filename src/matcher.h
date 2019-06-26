@@ -201,13 +201,33 @@ public:
     applySymbol(initial, sym, state);
     return state;
   }
+  int pushStackNoInit(int src, int sym)
+  {
+    int state = newState();
+    first[state] = 0;
+    last[state] = 0;
+    if(src != -1)
+    {
+      step(src, state, sym);
+    }
+    return state;
+  }
   int matchBlank(int src)
   {
     return pushStack(src, L' ');
   }
-  int matchChunk(int src, wstring ch)
+  int matchChunk(int src, wstring ch, bool isShiftCheck = false)
   {
-    int state = pushStack(src, L'^');
+    int state;
+    if(isShiftCheck)
+    {
+      state = pushStackNoInit(src, check_sym);
+      step(state, state, L'^');
+    }
+    else
+    {
+      state = pushStack(src, L'^');
+    }
     for(unsigned int i = 0; i < ch.size(); i++)
     {
       switch(ch[i])
@@ -244,11 +264,9 @@ public:
   }
   bool shouldShift(int src, wstring chunk)
   {
-    int s1 = pushStack(src, check_sym);
-    int s2 = matchChunk(s1, chunk);
-    bool ret = (first[s2] != last[s2]);
-    returnState(s1);
-    returnState(s2);
+    int s = matchChunk(src, chunk, true);
+    bool ret = (first[s] != last[s]);
+    returnState(s);
     return ret;
   }
   int getRule(int state, set<int> skip)

@@ -56,7 +56,7 @@ Interchunk::readData(FILE *in)
   }
 
   me = new MatchExe(*t, finals);
-  mx = new MatchExe2(*t, &alphabet, finals);
+  mx = new MatchExe2(*t, &alphabet, finals, pat_size);
 
   // attr_items
   bool recompile_attrs = Compression::string_read(in) != string(pcre_version());
@@ -840,20 +840,11 @@ Interchunk::checkForReduce(ParseNode* node)
   vector<ParseNode*> ret;
   mx->resetRejected();
   int rule = mx->getRule(node->state);
-  if(rule != -1)
+  if(rule != -1 && mx->shouldShift(node->state))
   {
-    for(unsigned int i = 0, limit = inputBuffer.size(); i < limit; i++)
-    {
-      if(!inputBuffer[i]->isBlank)
-      {
-        if(mx->shouldShift(node->state, inputBuffer[i]->matchSurface()))
-        {
-          ret.push_back(new ParseNode(node));
-          break;
-        }
-      }
-    }
+    ret.push_back(new ParseNode(node));
   }
+  double weight = node->weight;
   while(rule != -1)
   {
     int len = pat_size[rule-1];
@@ -869,11 +860,11 @@ Interchunk::checkForReduce(ParseNode* node)
         ParseNode* cur;
         if(back == NULL)
         {
-          cur = new ParseNode(mx, currentOutput[0]);
+          cur = new ParseNode(mx, currentOutput[0], weight + ruleWeights[rule-1]);
         }
         else
         {
-          cur = new ParseNode(back, currentOutput[0]);
+          cur = new ParseNode(back, currentOutput[0], weight + ruleWeights[rule-1]);
         }
         delete node;
         vector<ParseNode*> app = checkForReduce(cur);
@@ -901,15 +892,9 @@ Interchunk::checkForReduce(ParseNode* node)
 void
 Interchunk::interchunk(FILE *in, FILE *out)
 {
-  Chunk* next;
+  Chunk* next = readToken(in);
   while(true)
   {
-    while(furtherInput && inputBuffer.size() < 5)
-    {
-      inputBuffer.push_back(readToken(in));
-    }
-    next = inputBuffer.front();
-    inputBuffer.pop_front();
     if(parseGraph.size() == 0)
     {
       parseGraph = checkForReduce(new ParseNode(mx, next));
@@ -924,20 +909,22 @@ Interchunk::interchunk(FILE *in, FILE *out)
       }
       parseGraph.swap(temp2);
     }
-    bool output = inputBuffer.size() == 0 && !furtherInput;
+    next = readToken(in);
     ParseNode* min = NULL;
     ParseNode* cur = NULL;
     vector<ParseNode*> temp;
     temp.reserve(parseGraph.size());
     int len = INT_MAX;
+    double weight;
     for(unsigned int i = 0, limit = parseGraph.size(); i < limit; i++)
     {
       cur = parseGraph[i];
-      if(output || mx->stateSize(cur->state) == 0)
+      if(!furtherInput || mx->stateSize(cur->state) == 0)
       {
-        if(cur->length < len)
+        if(cur->length < len || (cur->length == len && cur->weight > weight))
         {
           len = cur->length;
+          weight = cur->weight;
           if(min != NULL)
           {
             delete min;
@@ -966,6 +953,11 @@ Interchunk::interchunk(FILE *in, FILE *out)
       }
     }
     if(min != NULL) delete min;
-    if(output) break;
+    if(!furtherInput)
+    {
+      // if stream is empty, next is definitely a blank
+      next->output(out);
+      break;
+    }
   }
 }

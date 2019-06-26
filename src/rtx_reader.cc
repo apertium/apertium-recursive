@@ -773,71 +773,6 @@ RTXReader::parseReduceRule(wstring output, wstring next)
   }
 }
 
-bool
-RTXReader::isPrefix(Rule* pref, Rule* rule)
-{
-  if(pref->pattern.size() >= rule->pattern.size())
-  {
-    return false;
-  }
-  for(unsigned int i = 0; i < pref->pattern.size(); i++)
-  {
-    for(unsigned int t = 1; t < pref->pattern[i].size() && t < rule->pattern[i].size(); t++)
-    {
-      if(pref->pattern[i][t] == L"*" || rule->pattern[i][t] == L"*")
-      {
-        break;
-      }
-      if(pref->pattern[i][t] != rule->pattern[i][t])
-      {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-vector<vector<wstring>>
-RTXReader::findSuffixes(Rule* rule)
-{
-  vector<vector<wstring>> ret;
-  vector<wstring> todo;
-  set<wstring> done;
-  set<int> done_rules;
-  set<int> rules = firstInput[rule->pattern[0][1]];
-  Rule* other;
-  for(set<int>::iterator it = rules.begin(); it != rules.end(); it++)
-  {
-    other = reductionRules[*it];
-    if(isPrefix(rule, other))
-    {
-      ret.push_back(other->pattern[rule->pattern.size()]);
-      todo.push_back(ret.back()[1]);
-    }
-  }
-  wstring cur;
-  while(todo.size() > 0)
-  {
-    cur = todo.back();
-    todo.pop_back();
-    if(done.find(cur) == done.end())
-    {
-      rules = firstOutput[cur];
-      for(set<int>::iterator it = rules.begin(); it != rules.end(); it++)
-      {
-        if(done_rules.find(*it) == done_rules.end())
-        {
-          other = reductionRules[*it];
-          ret.push_back(other->pattern[0]);
-          todo.push_back(other->pattern[0][1]);
-          done_rules.insert(*it);
-        }
-      }
-    }
-  }
-  return ret;
-}
-
 int
 RTXReader::insertLemma(int const base, wstring const &lemma)
 {
@@ -978,33 +913,6 @@ RTXReader::makePattern(int ruleid)
     loc = insertTags(loc, tags);
     td.getTransducer().linkStates(loc, loc, td.getAlphabet()(ANY_TAG));
     loc = td.getTransducer().insertSingleTransduction(L'$', loc);
-  }
-  vector<vector<wstring>> check = findSuffixes(rule);
-  if(check.size() > 0)
-  {
-    td.getAlphabet().includeSymbol(L"<LOOK:AHEAD>");
-    int ch = td.getTransducer().insertSingleTransduction(td.getAlphabet()(L"<LOOK:AHEAD>"), loc);
-    ch = td.getTransducer().insertSingleTransduction(L'^', ch);
-    int fin;
-    for(unsigned int i = 0; i < check.size(); i++)
-    {
-      int end = insertLemma(ch, check[0][0]);
-      wstring tags = check[0][1];
-      for(unsigned int t = 2; t < check[0].size(); t++)
-      {
-        tags += L"." + check[0][t];
-      }
-      end = insertTags(end, tags);
-      if(i == 0)
-      {
-        fin = td.getTransducer().insertSingleTransduction(L'$', end);
-      }
-      else
-      {
-        td.getTransducer().linkStates(end, fin, L'$');
-      }
-    }
-    td.getTransducer().setFinal(fin);
   }
   const int symbol = td.countToFinalSymbol(ruleid+1);
   loc = td.getTransducer().insertSingleTransduction(symbol, loc, rule->weight);

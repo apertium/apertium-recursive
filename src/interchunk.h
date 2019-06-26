@@ -269,8 +269,9 @@ public:
   ParseNode* prev;
   int refcount;
   MatchExe2* mx;
-  ParseNode(MatchExe2* m, Chunk* ch)
-  : chunk(ch), length(1), prev(NULL), refcount(0), mx(m)
+  double weight;
+  ParseNode(MatchExe2* m, Chunk* ch, double w = 0.0)
+  : chunk(ch), length(1), prev(NULL), refcount(0), mx(m), weight(w)
   {
     if(chunk->isBlank)
     {
@@ -281,7 +282,7 @@ public:
       state = mx->matchChunk(-1, chunk->matchSurface());
     }
   }
-  ParseNode(ParseNode* last, Chunk* next)
+  ParseNode(ParseNode* last, Chunk* next, double w = 0.0)
   {
     mx = last->mx;
     prev = last;
@@ -289,6 +290,7 @@ public:
     length = prev->length+1;
     refcount = 0;
     chunk = next;
+    weight = w == 0 ? prev->weight : w;
     if(next->isBlank)
     {
       state = mx->matchBlank(prev->state);
@@ -304,6 +306,7 @@ public:
     chunk = other->chunk;
     length = other->length;
     prev = other->prev;
+    weight = other->weight;
     if(prev != NULL)
     {
       prev->refcount++;

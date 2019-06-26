@@ -22,15 +22,11 @@ private:
 public:
   int rule;
   double weight;
+  int length;
   MatchNode2(int const sz)
   : size(sz), rule(-1)
   {
     trans = new Transition[sz];
-  }
-  void setFinal(int const rl, double const wgt)
-  {
-    rule = rule;
-    weight = wgt;
   }
   void addTransition(int const tag, int const dest, int const pos)
   {
@@ -72,82 +68,12 @@ private:
   int stack[RTXStackSize][RTXStateSize];
   int first[RTXStackSize];
   int last[RTXStackSize];
-  int stackIdx;
   int available[RTXStackSize];
   int availableIdx;
   int initial;
   int rejected[RTXStackSize];
   int rejectedCount;
-  
-public:
-  MatchExe2(Transducer& t, Alphabet* a, map<int, int> const& rules)
-  : alpha(a)
-  {
-    map<int, multimap<int, pair<int, double> > >& trns = t.getTransitions();
-    nodes.reserve(trns.size());
-    for(map<int, multimap<int, pair<int, double> > >::const_iterator it = trns.begin(),
-          limit = trns.end(); it != limit; it++)
-    {
-      MatchNode2 mynode(it->second.size());
-      nodes.push_back(mynode);
-    }
 
-    for(map<int, int>::const_iterator it = rules.begin(), limit = rules.end();
-          it != limit; it++)
-    {
-      //nodes[it->first].setFinal(it->second, t.getFinals().at(it->first));
-      nodes[it->first].rule = it->second;
-      nodes[it->first].weight = t.getFinals().at(it->first);
-    }
-
-    initial = t.getInitial();
-
-    for(map<int, multimap<int, pair<int, double> > >::const_iterator it = trns.begin(),
-          limit = trns.end(); it != limit; it++)
-    {
-      MatchNode2 &mynode = nodes[it->first];
-      int i = 0;
-      for(multimap<int, pair<int, double> >::const_iterator it2 = it->second.begin(),
-            limit2 = it->second.end(); it2 != limit2; it2++)
-      {
-        mynode.addTransition(it2->first, it2->second.first, i++);
-      }
-    }
-
-    any_char = (*a)(L"<ANY_CHAR>");
-    any_tag = (*a)(L"<ANY_TAG>");
-    check_sym = (*a)(L"<LOOK:AHEAD>");
-
-    availableIdx = 0;
-    for(int i = 0; i < RTXStackSize; i++)
-    {
-      available[++availableIdx] = RTXStackSize - i - 1;
-    }
-  }
-  void popStack(int const n)
-  {
-    stackIdx -= n;
-  }
-  int stackSize()
-  {
-    return stackIdx + 1;
-  }
-  void returnState(int n)
-  {
-    available[++availableIdx] = n;
-  }
-  int stateSize()
-  {
-    int f = first[stackIdx];
-    int l = last[stackIdx];
-    return (l >= f) ? (l - f) : (l + RTXStateSize - f);
-  }
-  int stateSize(int state)
-  {
-    int f = first[state];
-    int l = last[state];
-    return (l >= f) ? (l - f) : (l + RTXStateSize - f);
-  }
   // src = source MatchNode2
   // dest = stack location
   void applySymbol(int const src, int const symbol, int const dest)
@@ -186,7 +112,8 @@ public:
   }
   int newState()
   {
-    int ret = available[availableIdx--];
+    int ret = available[availableIdx];
+    availableIdx--;
     first[ret] = 0;
     last[ret] = 0;
     return ret;
@@ -210,22 +137,70 @@ public:
     }
     return state;
   }
+
+public:
+  MatchExe2(Transducer& t, Alphabet* a, map<int, int> const& rules, vector<int> pattern_size)
+  : alpha(a)
+  {
+    map<int, multimap<int, pair<int, double> > >& trns = t.getTransitions();
+    nodes.reserve(trns.size());
+    for(map<int, multimap<int, pair<int, double> > >::const_iterator it = trns.begin(),
+          limit = trns.end(); it != limit; it++)
+    {
+      MatchNode2 mynode(it->second.size());
+      nodes.push_back(mynode);
+    }
+
+    for(map<int, int>::const_iterator it = rules.begin(), limit = rules.end();
+          it != limit; it++)
+    {
+      nodes[it->first].rule = it->second;
+      nodes[it->first].weight = t.getFinals().at(it->first);
+      nodes[it->first].length = pattern_size[it->second-1];
+    }
+
+    initial = t.getInitial();
+
+    for(map<int, multimap<int, pair<int, double> > >::const_iterator it = trns.begin(),
+          limit = trns.end(); it != limit; it++)
+    {
+      MatchNode2 &mynode = nodes[it->first];
+      int i = 0;
+      for(multimap<int, pair<int, double> >::const_iterator it2 = it->second.begin(),
+            limit2 = it->second.end(); it2 != limit2; it2++)
+      {
+        mynode.addTransition(it2->first, it2->second.first, i++);
+      }
+    }
+
+    any_char = (*a)(L"<ANY_CHAR>");
+    any_tag = (*a)(L"<ANY_TAG>");
+
+    availableIdx = -1;
+    for(int i = 0; i < RTXStackSize; i++)
+    {
+      available[++availableIdx] = RTXStackSize - i - 1;
+    }
+    availableIdx--;
+  }
+  void returnState(int n)
+  {
+    availableIdx++;
+    available[availableIdx] = n;
+  }
+  int stateSize(int state)
+  {
+    int f = first[state];
+    int l = last[state];
+    return (l >= f) ? (l - f) : (l + RTXStateSize - f);
+  }
   int matchBlank(int src)
   {
     return pushStack(src, L' ');
   }
-  int matchChunk(int src, wstring ch, bool isShiftCheck = false)
+  int matchChunk(int src, wstring ch)
   {
-    int state;
-    if(isShiftCheck)
-    {
-      state = pushStackNoInit(src, check_sym);
-      step(state, state, L'^');
-    }
-    else
-    {
-      state = pushStack(src, L'^');
-    }
+    int state = pushStack(src, L'^');
     for(unsigned int i = 0; i < ch.size(); i++)
     {
       switch(ch[i])
@@ -260,9 +235,9 @@ public:
     step(state, state, L'$');
     return state;
   }
-  bool shouldShift(int src, wstring chunk)
+  bool shouldShift(int src)
   {
-    int s = matchChunk(src, chunk, true);
+    int s = pushStackNoInit(src, L' ');
     bool ret = (first[s] != last[s]);
     returnState(s);
     return ret;
@@ -271,18 +246,31 @@ public:
   {
     int rule = -1;
     double weight;
-    int rj = 0;
+    int len = 0;
     for(int i = first[state], end = last[state]; i != end; i = (i+1)%RTXStateSize)
     {
       int n = stack[state][i];
       MatchNode2& node = nodes[n];
       if(node.rule != -1)
       {
-        if(rj < rejectedCount && rejected[rj] == node.rule)
+        bool rej = false;
+        for(int rj = 0; rj < rejectedCount; rj++)
         {
-          rj++;
+          if(rejected[rj] == node.rule)
+          {
+            rej = true;
+            break;
+          }
+        }
+        if(rej) continue;
+        if(node.length > len)
+        {
+          rule = node.rule;
+          weight = node.weight;
+          len = node.length;
           continue;
         }
+        if(rule != -1 && node.length < len) continue;
         if(rule != -1 && node.weight < weight) continue;
         if(rule != -1 && node.rule > rule) continue;
 

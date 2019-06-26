@@ -1,0 +1,10 @@
+n: _.gender.number;
+adj: _.gender.number;
+NP: _;
+
+gender = m f mf;
+number = sg pl sp;
+
+NP -> n {1(number=pl)} |
+      adj n n {2(number=sp) _1 1(number=pl, gender=f) _2 3(number=sg)} |
+      adj n {2(number=sp) _1 1(number=sp, gender=m)};

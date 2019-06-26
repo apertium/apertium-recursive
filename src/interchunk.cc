@@ -9,6 +9,7 @@
 #include <cerrno>
 #include <iostream>
 #include <stack>
+#include <deque>
 #include <apertium/string_utils.h>
 //#include <apertium/unlocked_cstdio.h>
 
@@ -38,12 +39,13 @@ Interchunk::readData(FILE *in)
   any_char = alphabet(TRXReader::ANY_CHAR);
   any_tag = alphabet(TRXReader::ANY_TAG);
 
-  Transducer t;
-  t.read(in, alphabet.size());
+  //Transducer t;
+  Transducer* t = new Transducer();
+  t->read(in, alphabet.size());
 
   map<int, int> finals;
 
-  map<int, double> finalWeights = t.getFinals();
+  map<int, double> finalWeights = t->getFinals();
 
   // finals
   for(int i = 0, limit = Compression::multibyte_read(in); i != limit; i++)
@@ -53,7 +55,8 @@ Interchunk::readData(FILE *in)
     ruleWeights[finals[key]] = finalWeights[key];
   }
 
-  me = new MatchExe(t, finals);
+  me = new MatchExe(*t, finals);
+  mx = new MatchExe2(*t, &alphabet, finals);
 
   // attr_items
   bool recompile_attrs = Compression::string_read(in) != string(pcre_version());
@@ -103,16 +106,19 @@ Interchunk::read(string const &transferfile, string const &datafile)
   longestPattern = 2*fgetwc(in)-1;
   int count = fgetwc(in);
   int len;
+  int patlen;
   wstring cur;
   for(int i = 0; i < count; i++)
   {
     cur.clear();
     len = fgetwc(in);
+    patlen = fgetwc(in);
     for(int j = 0; j < len; j++)
     {
       cur.append(1, fgetwc(in));
     }
     rule_map.push_back(cur);
+    pat_size.push_back(patlen);
   }
   fclose(in);
 
@@ -199,108 +205,114 @@ Interchunk::caseOf(wstring const &s)
   return copycase(s, wstring(L"aa"));
 }
 
-StackElement
-Interchunk::popStack()
-{
-  StackElement ret = theStack.top();
-  theStack.pop();
-  return ret;
-}
-
-bool
+inline bool
 Interchunk::popBool()
 {
-  StackElement ret = popStack();
-  if(ret.mode == 0)
+  if(theStack[stackIdx].mode == 0)
   {
-    return ret.b;
+    return theStack[stackIdx--].b;
   }
   else
   {
-    wcerr << "tried to pop bool but mode is " << ret.mode << endl;
+    wcerr << "tried to pop bool but mode is " << theStack[stackIdx].mode << endl;
     exit(1);
   }
 }
 
-int
+inline int
 Interchunk::popInt()
 {
-  StackElement ret = popStack();
-  if(ret.mode == 1)
+  if(theStack[stackIdx].mode == 1)
   {
-    return ret.i;
+    return theStack[stackIdx--].i;
   }
   else
   {
-    wcerr << "tried to pop int but mode is " << ret.mode << endl;
+    wcerr << "tried to pop int but mode is " << theStack[stackIdx].mode << endl;
     exit(1);
   }
 }
 
-wstring
+inline wstring
 Interchunk::popString()
 {
-  StackElement ret = popStack();
-  if(ret.mode == 2)
+  if(theStack[stackIdx].mode == 2)
   {
-    return ret.s;
+    return theStack[stackIdx--].s;
   }
   else
   {
-    wcerr << "tried to pop wstring but mode is " << ret.mode << endl;
+    wcerr << "tried to pop wstring but mode is " << theStack[stackIdx].mode << endl;
     exit(1);
   }
 }
 
-Chunk*
+inline Chunk*
 Interchunk::popChunk()
 {
-  StackElement ret = popStack();
-  if(ret.mode == 3)
+  if(theStack[stackIdx].mode == 3)
   {
-    return ret.c;
+    return theStack[stackIdx--].c;
   }
   else
   {
-    wcerr << "tried to pop Chunk but mode is " << ret.mode << endl;
+    wcerr << "tried to pop Chunk but mode is " << theStack[stackIdx].mode << endl;
     exit(1);
+  }
+}
+
+inline void
+Interchunk::stackCopy(int src, int dest)
+{
+  theStack[dest].mode = theStack[src].mode;
+  switch(theStack[src].mode)
+  {
+    case 0:
+      theStack[dest].b = theStack[src].b;
+      break;
+    case 1:
+      theStack[dest].i = theStack[src].i;
+      break;
+    case 2:
+      theStack[dest].s = theStack[src].s;
+      break;
+    case 3:
+      theStack[dest].c = theStack[src].c;
+      break;
+    default:
+      wcerr << "Unknown StackElement mode " << theStack[src].mode;
+      break;
   }
 }
 
 bool
-Interchunk::applyRule(wstring rule)
+Interchunk::applyRule(const wstring& rule)
 {
-  bool in_let_setup = false;
+  stackIdx = 0;
   for(unsigned int i = 0; i < rule.size(); i++)
   {
     switch(rule[i])
     {
       case DROP:
         if(printingSteps) { wcerr << "drop" << endl; }
-        popStack();
+        stackIdx--;
         break;
       case DUP:
         if(printingSteps) { wcerr << "dup" << endl; }
-        theStack.push(theStack.top());
+        stackCopy(stackIdx, stackIdx+1);
+        stackIdx++;
         break;
       case OVER:
         if(printingSteps) { wcerr << "over" << endl; }
-      {
-        StackElement a = popStack();
-        StackElement b = popStack();
-        theStack.push(b);
-        theStack.push(a);
-        theStack.push(b);
-        if(printingSteps) { wcerr << " -> " << b.mode << " " << a.mode << " " << b.mode << endl; }
-      }
+        stackCopy(stackIdx-1, stackIdx+1);
+        stackIdx++;
         break;
       case SWAP:
         if(printingSteps) { wcerr << "swap" << endl; }
       {
-        StackElement a = popStack();
-        StackElement b = popStack();
-        theStack.push(a);
-        theStack.push(b);
+        stackCopy(stackIdx, stackIdx+1);
+        stackCopy(stackIdx-1, stackIdx);
+        stackCopy(stackIdx+1, stackIdx-1);
       }
         break;
       case STRING:
@@ -309,7 +321,7 @@ Interchunk::applyRule(wstring rule)
         int ct = rule[++i];
         pushStack(rule.substr(i+1, ct));
         i += ct;
-        if(printingSteps) { wcerr << " -> " << theStack.top().s << endl; }
+        if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
       }
         break;
       case INT:
@@ -368,40 +380,38 @@ Interchunk::applyRule(wstring rule)
         break;
       case NOT:
         if(printingSteps) { wcerr << "not" << endl; }
-        theStack.top().b = !theStack.top().b;
+        theStack[stackIdx].b = !theStack[stackIdx].b;
         break;
       case EQUAL:
       case EQUALCL:
         if(printingSteps) { wcerr << "equal" << endl; }
       {
-        StackElement _a = popStack();
         wstring a;
-        if(_a.mode == 2)
+        if(theStack[stackIdx].mode == 2)
         {
-          a = _a.s;
+          a = theStack[stackIdx--].s;
         }
-        else if(_a.mode == 3)
+        else if(theStack[stackIdx].mode == 3)
         {
-          a = _a.c->target;
+          a = theStack[stackIdx--].c->target;
         }
         else
         {
-          wcerr << "not sure how to do equality on mode " << _a.mode << endl;
+          wcerr << "not sure how to do equality on mode " << theStack[stackIdx].mode << endl;
           exit(1);
         }
-        StackElement _b = popStack();
         wstring b;
-        if(_b.mode == 2)
+        if(theStack[stackIdx].mode == 2)
         {
-          b = _b.s;
+          b = theStack[stackIdx--].s;
         }
-        else if(_b.mode == 3)
+        else if(theStack[stackIdx].mode == 3)
         {
-          b = _b.c->target;
+          b = theStack[stackIdx--].c->target;
         }
         else
         {
-          wcerr << "not sure how to do equality on mode " << _b.mode << endl;
+          wcerr << "not sure how to do equality on mode " << theStack[stackIdx].mode << endl;
           exit(1);
         }
         if(rule[i] == EQUALCL)
@@ -410,7 +420,6 @@ Interchunk::applyRule(wstring rule)
           b = StringUtils::tolower(b);
         }
         pushStack(a == b);
-        if(printingSteps) { wcerr << " -> " << theStack.top().b << endl; }
       }
         break;
       case ISPREFIX:
@@ -560,7 +569,7 @@ Interchunk::applyRule(wstring rule)
       {
         int pos = 2*(popInt()-1);
         wstring part = popString();
-        pushStack(currentInput[pos]->chunkPart(attr_items[part], L"sl"));
+        pushStack(currentInput[pos]->chunkPart(attr_items[part], SourceClip));
       }
         break;
       case TARGETCLIP:
@@ -583,7 +592,7 @@ Interchunk::applyRule(wstring rule)
         }
         else
         {
-          pushStack(currentInput[pos]->chunkPart(attr_items[part], L"tl"));
+          pushStack(currentInput[pos]->chunkPart(attr_items[part], TargetClip));
         }
       }
         break;
@@ -592,7 +601,7 @@ Interchunk::applyRule(wstring rule)
       {
         int pos = 2*(popInt()-1);
         wstring part = popString();
-        pushStack(currentInput[pos]->chunkPart(attr_items[part], L"ref"));
+        pushStack(currentInput[pos]->chunkPart(attr_items[part], ReferenceClip));
       }
         break;
       case SETCLIP:
@@ -606,7 +615,7 @@ Interchunk::applyRule(wstring rule)
         }
         else
         {
-          theStack.top().c->setChunkPart(attr_items[part], popString());
+          theStack[stackIdx].c->setChunkPart(attr_items[part], popString());
         }
       }
         break;
@@ -646,14 +655,14 @@ Interchunk::applyRule(wstring rule)
         if(printingSteps) { wcerr << "appendchild" << endl; }
       {
         Chunk* kid = popChunk();
-        theStack.top().c->contents.push_back(kid);
+        theStack[stackIdx].c->contents.push_back(kid);
       }
         break;
       case APPENDSURFACE:
         if(printingSteps) { wcerr << "appendsurface" << endl; }
       {
         wstring s = popString();
-        theStack.top().c->target += s;
+        theStack[stackIdx].c->target += s;
       }
         break;
       case APPENDALLCHILDREN:
@@ -662,7 +671,7 @@ Interchunk::applyRule(wstring rule)
         Chunk* ch = popChunk();
         for(unsigned int k = 0; k < ch->contents.size(); k++)
         {
-          theStack.top().c->contents.push_back(ch->contents[k]);
+          theStack[stackIdx].c->contents.push_back(ch->contents[k]);
         }
       }
         break;
@@ -711,6 +720,7 @@ Interchunk::readToken(FILE *in)
   wstring src;
   wstring dest;
   wstring coref;
+  cur.reserve(256);
   while(true)
   {
     int val = fgetwc_unlocked(in);
@@ -751,18 +761,21 @@ Interchunk::readToken(FILE *in)
     {
       if(pos == 0)
       {
-        src = cur;
+        src.swap(cur);
       }
       else if(pos == 1)
       {
-        dest = cur;
+        dest.swap(cur);
       }
-      else if(pos >= 2 && !noCoref)
+      else if(pos >= 2 && !noCoref && val == L'$')
       {
-        coref = cur;
+        coref.swap(cur);
+      }
+      else
+      {
+        cur.clear();
       }
       pos++;
-      cur.clear();
       if(val == L'$')
       {
         inword = false;
@@ -821,254 +834,138 @@ Interchunk::interchunk_wrapper_null_flush(FILE *in, FILE *out)
   null_flush = true;
 }
 
-void
-Interchunk::applyWord(Chunk& word)
+vector<ParseNode*>
+Interchunk::checkForReduce(ParseNode* node)
 {
-  if(printingMatch) { wcerr << "applyWord(" << word.target << ")" << endl; }
-  if(word.isBlank)
-  {
-    if(printingMatch) { wcerr << "stepping blank, size " << ms.size(); }
-    ms.step(L' ');
-    if(printingMatch) { wcerr << " -> " << ms.size() << endl; }
-    return;
-  }
-  wstring word_str;
-  if(word.source.size() > 0)
-  {
-    word_str = word.source;
-  }
-  else
-  {
-    word_str = word.target;
-  }
-  if(printingMatch) { wcerr << "stepping ^, size " << ms.size(); }
-  ms.step(L'^');
-  if(printingMatch) { wcerr << " -> " << ms.size() << endl; }
-  for(unsigned int i = 0, limit = word_str.size(); i < limit; i++)
-  {
-    switch(word_str[i])
-    {
-      case L'\\':
-        i++;
-        ms.step(towlower(word_str[i]), any_char);
-        break;
-
-      case L'<':
-        if(printingMatch) { wcerr << "stepping tag, size " << ms.size(); }
-        for(unsigned int j = i+1; j != limit; j++)
-        {
-          if(word_str[j] == L'>')
-          {
-            int symbol = alphabet(word_str.substr(i, j-i+1));
-            if(symbol)
-            {
-              ms.step(symbol, any_tag);
-            }
-            else
-            {
-              ms.step(any_tag);
-            }
-            i = j;
-            break;
-          }
-        }
-        if(printingMatch) { wcerr << " -> " << ms.size() << endl; }
-        break;
-
-      case L'{':  // ignore the unmodifiable part of the chunk
-        if(printingMatch) { wcerr << "stepping $, size " << ms.size(); }
-        ms.step(L'$');
-        if(printingMatch) { wcerr << " -> " << ms.size() << endl; }
-        return;
-
-      default:
-        if(printingMatch) { wcerr << "stepping char, size " << ms.size(); }
-        ms.step(towlower(word_str[i]), any_char);
-        if(printingMatch) { wcerr << " -> " << ms.size() << endl; }
-        break;
-    }
-  }
-  if(printingMatch) { wcerr << "stepping $, size " << ms.size(); }
-  ms.step(L'$');
-  if(printingMatch) { wcerr << " -> " << ms.size() << endl; }
-}
-
-int
-Interchunk::getRule()
-{
-  set<int> skip = rejectedRules;
-  int rule = ms.classifyFinals(me->getFinals(), skip);
-  if(rule == -1)
-  {
-    return -1;
-  }
-  double weight = ruleWeights[rule-1];
-  int temp = rule;
-  while(true)
-  {
-    skip.insert(temp);
-    temp = ms.classifyFinals(me->getFinals(), skip);
-    if(temp == -1)
-    {
-      break;
-    }
-    else if(ruleWeights[temp] > weight)
-    {
-      weight = ruleWeights[temp];
-      rule = temp;
-    }
-  }
-  return rule;
-}
-
-bool
-Interchunk::interchunk_do_pass()
-{
-  int layer = -1;
-  int minLayer = furtherInput ? longestPattern : 0;
-  for(unsigned int l = 0; l < parseTower.size(); l++)
-  {
-    if(parseTower[l].size() > minLayer)
-    {
-      layer = l;
-      break;
-    }
-  }
-  if(layer == -1)
-  {
-    allDone = !furtherInput;
-    return false;
-  }
-  if(layer+1 == parseTower.size())
-  {
-    //parseTower.push_back(vector<Chunk*>());
-    parseTower.push_back(list<Chunk*>());
-  }
-  if(printingRules) { wcerr << "layer is " << layer << endl; }
-  ms.init(me->getInitial());
-  int rule = -1;
-  int len = 0;
-  //for(size_t i = 0; i < parseTower[layer].size(); i++)
-  int i = 0;
-  for(list<Chunk*>::iterator it = parseTower[layer].begin();
-          it != parseTower[layer].end(); ++it)
-  {
-    if(ms.size() == 0)
-    {
-      break;
-    }
-    //applyWord(*parseTower[layer][i]);
-    applyWord(**it);
-    int val = getRule();
-    if(val != -1)
-    {
-      rule = val-1;
-      if(printingRules) { wcerr << " rule is now " << rule << endl; }
-      len = i+1;
-    }
-    i++;
-  }
+  vector<ParseNode*> ret;
+  int rule = mx->getRule(node->state);
   if(rule != -1)
   {
-    if(printingRules)
+    for(unsigned int i = 0, limit = inputBuffer.size(); i < limit; i++)
     {
-      wcerr << endl << "applying rule " << rule+1 << endl;
+      if(!inputBuffer[i]->isBlank)
+      {
+        if(mx->shouldShift(node->state, inputBuffer[i]->matchSurface()))
+        {
+          ret.push_back(new ParseNode(node));
+          break;
+        }
+      }
     }
-    currentInput.clear();
+  }
+  set<int> rejected;
+  while(rule != -1)
+  {
+    int len = pat_size[rule-1];
+    currentInput.resize(len);
+    node->getChunks(currentInput, len-1);
     currentOutput.clear();
-    int lim = 0;
-    for(list<Chunk*>::iterator it = parseTower[layer].begin(); lim < len; ++it)
+    if(printingRules) { wcerr << "Applying rule " << rule << endl; }
+    if(applyRule(rule_map[rule-1]))
     {
-      currentInput.push_back(*it);
-      lim++;
-    }
-    if(applyRule(rule_map[rule]))
-    {
-      for(int x = 0; x < len; x++)
+      if(currentOutput.size() == 1)
       {
-        parseTower[layer].pop_front();
+        ParseNode* back = node->popNodes(len);
+        ParseNode* cur;
+        if(back == NULL)
+        {
+          cur = new ParseNode(mx, currentOutput[0]);
+        }
+        else
+        {
+          cur = new ParseNode(back, currentOutput[0]);
+        }
+        delete node;
+        vector<ParseNode*> app = checkForReduce(cur);
+        ret.insert(ret.begin(), app.begin(), app.end());
       }
-      parseTower[layer+1].insert(parseTower[layer+1].end(), currentOutput.begin(), currentOutput.end());
-      rejectedRules.clear();
-      if(layer+2 == parseTower.size())
+      else
       {
-        shiftCount = 0;
+        // TODO: somewhat tricky loops
       }
+      break;
     }
     else
     {
-      rejectedRules.insert(rule+1);
+      rejected.insert(rule);
+      rule = mx->getRule(node->state, rejected);
     }
-    currentInput.clear();
-    currentOutput.clear();
-    return true;
   }
-  else
+  if(rule == -1 && ret.size() == 0)
   {
-    if(printingRules) { wcerr << "shifting" << endl; }
-    parseTower[layer+1].push_back(parseTower[layer].front());
-    parseTower[layer].pop_front();
-    if(layer+2 == parseTower.size() && parseTower[layer+1].size() == 1)
-    {
-      shiftCount++;
-    }
-    rejectedRules.clear();
-    return (shiftCount < longestPattern);
+    ret.push_back(node);
   }
+  return ret;
 }
 
 void
 Interchunk::interchunk(FILE *in, FILE *out)
 {
-  /*if(getNullFlush())
+  Chunk* next;
+  while(true)
   {
-    interchunk_wrapper_null_flush(in, out);
-  }*/
-  parseTower.push_back(list<Chunk*>());
-  while(!allDone)
-  {
-    for(int i = 0; i < longestPattern*3 && furtherInput; i++)
+    while(furtherInput && inputBuffer.size() < 5)
     {
-      parseTower[0].push_back(readToken(in));
+      inputBuffer.push_back(readToken(in));
     }
-    while(interchunk_do_pass())
+    next = inputBuffer.front();
+    inputBuffer.pop_front();
+    if(parseGraph.size() == 0)
     {
-      if(maxLayers > 0 && parseTower.size() > maxLayers)
+      parseGraph = checkForReduce(new ParseNode(mx, next));
+    }
+    else
+    {
+      vector<ParseNode*> temp1, temp2;
+      for(unsigned int i = 0, limit = parseGraph.size(); i < limit; i++)
       {
-        while(parseTower.size() > maxLayers)
+        temp1 = checkForReduce(new ParseNode(parseGraph[i], next));
+        temp2.insert(temp2.end(), temp1.begin(), temp1.end());
+      }
+      parseGraph.swap(temp2);
+    }
+    bool output = inputBuffer.size() == 0 && !furtherInput;
+    ParseNode* min = NULL;
+    ParseNode* cur = NULL;
+    vector<ParseNode*> temp;
+    temp.reserve(parseGraph.size());
+    int len = INT_MAX;
+    for(unsigned int i = 0, limit = parseGraph.size(); i < limit; i++)
+    {
+      cur = parseGraph[i];
+      if(output || mx->stateSize(cur->state) == 0)
+      {
+        if(cur->length < len)
         {
-          while(parseTower.back().size() > 0)
+          len = cur->length;
+          if(min != NULL)
           {
-            parseTower.back().front()->output(out);
-            parseTower.back().pop_front();
+            delete min;
           }
-          parseTower.pop_back();
-          shiftCount = 0;
+          min = cur;
+        }
+        else
+        {
+          delete cur;
         }
       }
-    }
-    if(shiftCount >= longestPattern)
-    {
-      parseTower.back().front()->output(out);
-      shiftCount--;
-      parseTower.back().pop_front();
-      while(parseTower.size() > 0 && parseTower.back().size() == 0)
+      else
       {
-        parseTower.pop_back();
-      }
-      if(parseTower.size() == 0)
-      {
-        allDone = !furtherInput;
+        temp.push_back(cur);
       }
     }
-  }
-  while(parseTower.size() > 0)
-  {
-    while(parseTower.back().size() > 0)
+    temp.swap(parseGraph);
+    if(parseGraph.size() == 0 && min != NULL)
     {
-      parseTower.back().front()->output(out);
-      parseTower.pop_back();
+      vector<Chunk*> ls;
+      ls.resize(min->length);
+      min->getChunks(ls, min->length-1);
+      for(unsigned int i = 0, limit = ls.size(); i < limit; i++)
+      {
+        ls[i]->output(out);
+      }
     }
-    parseTower.pop_back();
+    if(min != NULL) delete min;
+    if(output) break;
   }
 }

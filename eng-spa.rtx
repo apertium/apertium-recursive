@@ -121,10 +121,10 @@ AP -> 0: %adj [$gender=GD] {1(number=$number)} (1.gender/tl = mf)
       1: preadv %adj {1 _1 %2} |
          ! "very green" -> "muy verde"
 
-      1: AP CONJ %AP (1.mode = 2.mode)
-         {%1 _1 2 _2 %3} |
-         ! "[totally green] and [very tall] ->
-         ! "[totalmente verde] y [muy alto]
+      !1: AP CONJ %AP (1.mode = 2.mode)
+      !   {%1 _1 2 _2 %3} |
+      !   ! "[totally green] and [very tall] ->
+      !   ! "[totalmente verde] y [muy alto]
 
       1: apos %AP apos {1 _1 %2 _2 3} |
          ! " 'blue' " -> " 'azul' "

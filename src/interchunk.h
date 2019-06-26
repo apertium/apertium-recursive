@@ -11,6 +11,8 @@
 #include <lttoolbox/ltstr.h>
 #include <lttoolbox/match_exe.h>
 #include <lttoolbox/match_state.h>
+#include <parse_table.h>
+#include <matcher.h>
 
 #include <cstring>
 #include <cstdio>
@@ -21,8 +23,16 @@
 #include <vector>
 #include <stack>
 #include <list>
+#include <deque>
 
 using namespace std;
+
+enum ClipType
+{
+  SourceClip,
+  TargetClip,
+  ReferenceClip
+};
 
 class Chunk
 {
@@ -60,20 +70,20 @@ public:
       delete contents[i];
     }
   }
-  wstring chunkPart(ApertiumRE const &part, wstring side = L"tl")
+  wstring chunkPart(ApertiumRE const &part, const ClipType side)
   {
     string chunk;
-    if(side == L"tl")
+    switch(side)
     {
-      chunk = UtfConverter::toUtf8(target);
-    }
-    else if(side == L"sl")
-    {
-      chunk = UtfConverter::toUtf8(source);
-    }
-    else
-    {
-      chunk = UtfConverter::toUtf8(coref);
+      case SourceClip:
+        chunk = UtfConverter::toUtf8(source);
+        break;
+      case TargetClip:
+        chunk = UtfConverter::toUtf8(target);
+        break;
+      case ReferenceClip:
+        chunk = UtfConverter::toUtf8(coref);
+        break;
     }
     string result = part.match(chunk);
     if(result.size() == 0)
@@ -99,96 +109,102 @@ public:
       target = UtfConverter::fromUtf8(surf);
     }
   }
-  void updateTags(vector<wstring> parentTags)
+  vector<wstring> getTags(const vector<wstring>& parentTags)
   {
-    wstring result;
-    wstring cur;
-    bool indigittag = false;
-    for(size_t i = 0; i < target.size(); i++)
+    int last = 0;
+    vector<wstring> ret;
+    for(unsigned int i = 0, limit = target.size(); i < limit; i++)
     {
-      if(!indigittag)
+      if(target[i] == L'<')
       {
-        result += target[i];
-        if(target[i] == L'\\')
+        last = i;
+        bool isNum = true;
+        for(unsigned int j = i+1; j < limit; j++)
         {
-          result += target[++i];
-        }
-        else if(target[i] == L'<')
-        {
-          indigittag = true;
-          result = result.substr(0, result.size()-1);
-        }
-      }
-      else if(target[i] == L'>')
-      {
-        int idx = stoi(cur)-1;
-        if(idx < parentTags.size())
-        {
-          result += parentTags[idx];
-          result += L'>';
-        }
-        cur.clear();
-        indigittag = false;
-      }
-      else if(!isdigit(target[i]))
-      {
-        result += L'<';
-        result += cur;
-        cur.clear();
-        result += target[i];
-        indigittag = false;
-      }
-      else
-      {
-        cur += target[i];
-      }
-    }
-    target = result;
-  }
-  vector<wstring> getTags()
-  {
-    vector<wstring> result;
-    wstring cur;
-    bool intag = false;
-    for(int i = 0; i < target.size(); i++)
-    {
-      if(intag)
-      {
-        if(target[i] == L'\\')
-        {
-          cur += target[i];
-          cur += target[++i];
-        }
-        else if(target[i] == L'>')
-        {
-          if(cur.size() > 0)
+          if(target[j] == L'>')
           {
-            result.push_back(cur);
-            cur.clear();
+            if(isNum)
+            {
+              int n = stoi(target.substr(last+1, j-last-1))-1;
+              if(n >= 0 && n < parentTags.size())
+              {
+                ret.push_back(parentTags[n]);
+                last = j+1;
+                break;
+              }
+            }
+            wstring tag = target.substr(last, j-last+1);
+            ret.push_back(tag);
+            last = j+1;
+            break;
+          }
+          if(!isdigit(target[j]))
+          {
+            isNum = false;
           }
         }
-        else
-        {
-          cur += target[i];
-        }
-      }
-      else if(target[i] == L'<')
-      {
-        intag = true;
       }
       else if(target[i] == L'\\')
       {
         i++;
       }
     }
-    return result;
+    return ret;
   }
-  void output(vector<wstring> parentTags, FILE* out = NULL)
+  void updateTags(const vector<wstring>& parentTags)
   {
-    updateTags(parentTags);
+    int last = 0;
+    wstring result;
+    result.reserve(target.size() + (2*parentTags.size()));
+    // a rough estimate - works if most number tags are 1 digit and most new tags are 3 chars or less
+    for(unsigned int i = 0, limit = target.size(); i < limit; i++)
+    {
+      if(target[i] == L'<')
+      {
+        result += target.substr(last, i-last);
+        last = i;
+        bool isNum = true;
+        for(unsigned int j = i+1; j < limit; j++)
+        {
+          if(target[j] == L'>')
+          {
+            if(isNum)
+            {
+              int n = stoi(target.substr(last+1, j-last-1))-1;
+              if(n >= 0 && n < parentTags.size())
+              {
+                result += parentTags[n];
+              }
+            }
+            else
+            {
+              result += target.substr(last, j-last+1);
+            }
+            last = j+1;
+            break;
+          }
+          if(!isdigit(target[j]))
+          {
+            isNum = false;
+          }
+        }
+      }
+      else if(target[i] == L'\\')
+      {
+        i++;
+      }
+    }
+    if(last != target.size()-1)
+    {
+      result += target.substr(last);
+    }
+    target = result;
+  }
+  void output(const vector<wstring>& parentTags, FILE* out = NULL)
+  {
     if(contents.size() > 0)
     {
-      vector<wstring> tags = getTags();
+      vector<wstring> tags = getTags(parentTags);
       for(int i = 0; i < contents.size(); i++)
       {
         contents[i]->output(tags, out);
@@ -207,6 +223,7 @@ public:
     }
     else
     {
+      updateTags(parentTags);
       if(out == NULL)
       {
         cout << "^" << UtfConverter::toUtf8(target) << "$";
@@ -224,21 +241,100 @@ public:
     vector<wstring> tags;
     output(tags, out);
   }
+  wstring matchSurface()
+  {
+    if(source.size() == 0)
+    {
+      return target;
+    }
+    return source;
+  }
 };
 
-class StackElement
+struct StackElement
 {
-public:
   int mode;
   bool b;
   int i;
   wstring s;
   Chunk* c;
-  
-  StackElement(bool _b) : mode(0), b(_b) {};
-  StackElement(int _i) : mode(1), i(_i) {};
-  StackElement(wstring _s) : mode(2), s(_s) {};
-  StackElement(Chunk* _c) : mode(3), c(_c) {};
+};
+
+class ParseNode
+{
+public:
+  int state;
+  Chunk* chunk;
+  int length;
+  ParseNode* prev;
+  int refcount;
+  MatchExe2* mx;
+  ParseNode(MatchExe2* m, Chunk* ch)
+  : chunk(ch), length(1), prev(NULL), refcount(0), mx(m)
+  {
+    if(chunk->isBlank)
+    {
+      state = mx->matchBlank(-1);
+    }
+    else
+    {
+      state = mx->matchChunk(-1, chunk->matchSurface());
+    }
+  }
+  ParseNode(ParseNode* last, Chunk* next)
+  {
+    mx = last->mx;
+    prev = last;
+    prev->refcount++;
+    length = prev->length+1;
+    refcount = 0;
+    chunk = next;
+    if(next->isBlank)
+    {
+      state = mx->matchBlank(prev->state);
+    }
+    else
+    {
+      state = mx->matchChunk(prev->state, chunk->matchSurface());
+    }
+  }
+  ParseNode(ParseNode* other)
+  {
+    state = other->state;
+    chunk = other->chunk;
+    length = other->length;
+    prev = other->prev;
+    if(prev != NULL)
+    {
+      prev->refcount++;
+    }
+    refcount = other->refcount;
+    mx = other->mx;
+  }
+  ~ParseNode()
+  {
+    mx->returnState(state);
+    if(prev != NULL)
+    {
+      prev->refcount--;
+      if(prev->refcount == 0)
+      {
+        delete prev;
+      }
+    }
+  }
+  void getChunks(vector<Chunk*>& chls, int count)
+  {
+    if(count < 0) return;
+    chls[count] = chunk;
+    prev->getChunks(chls, count-1);
+  }
+  ParseNode* popNodes(int n)
+  {
+    if(n == 1 && prev == NULL) return NULL;
+    if(n == 0) return this;
+    return prev->popNodes(n-1);
+  }
 };
 
 class Interchunk
@@ -248,21 +344,27 @@ private:
   Alphabet alphabet;
   MatchExe *me;
   MatchState ms;
+  MatchExe2 *mx;
   map<wstring, ApertiumRE, Ltstr> attr_items;
   map<wstring, wstring, Ltstr> variables;
   map<wstring, int, Ltstr> macros;
   map<wstring, set<wstring, Ltstr>, Ltstr> lists;
   map<wstring, set<wstring, Ltstr>, Ltstr> listslow;
   vector<wstring> rule_map;
+  vector<int> pat_size;
   int longestPattern;
   bool furtherInput;
   bool allDone;
   map<int, double> ruleWeights;
   set<int> rejectedRules;
-  stack<StackElement> theStack;
+  StackElement theStack[32];
+  int stackIdx;
   vector<Chunk*> currentInput;
   vector<Chunk*> currentOutput;
-  vector<list<Chunk*>> parseTower;
+  stack<Chunk*> parseStack;
+  deque<Chunk*> inputBuffer;
+  bool outputting;
+  vector<ParseNode*> parseGraph;
 
   FILE *output;
   int any_char;
@@ -289,36 +391,42 @@ private:
   bool endsWith(wstring const &str1, wstring const &str2) const;
   void applyWord(Chunk& chunk);
   int getRule();
-  bool applyRule(wstring rule);
+  bool applyRule(const wstring& rule);
   Chunk* readToken(FILE *in);
   void interchunk_wrapper_null_flush(FILE *in, FILE *out);
   bool interchunk_do_pass();
   
-  StackElement popStack();
+  void matchNode(Chunk* next);
+  void applyReduction(int rule, int len);
+  //void checkForReduce();
+  vector<ParseNode*> checkForReduce(ParseNode* node);
+  void outputAll(FILE* out);
+  
   bool popBool();
   int popInt();
   wstring popString();
   Chunk* popChunk();
-  void pushStack(bool b)
+  inline void pushStack(bool b)
   {
-    StackElement el(b);
-    theStack.push(el);
+    theStack[++stackIdx].mode = 0;
+    theStack[stackIdx].b = b;
   }
-  void pushStack(int i)
+  inline void pushStack(int i)
   {
-    StackElement el(i);
-    theStack.push(el);
+    theStack[++stackIdx].mode = 1;
+    theStack[stackIdx].i = i;
   }
-  void pushStack(wstring s)
+  inline void pushStack(wstring s)
   {
-    StackElement el(s);
-    theStack.push(el);
+    theStack[++stackIdx].mode = 2;
+    theStack[stackIdx].s = s;
   }
-  void pushStack(Chunk* c)
+  inline void pushStack(Chunk* c)
   {
-    StackElement el(c);
-    theStack.push(el);
+    theStack[++stackIdx].mode = 3;
+    theStack[stackIdx].c = c;
   }
+  void stackCopy(int src, int dest);
   
 public:
   Interchunk();

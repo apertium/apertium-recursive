@@ -339,7 +339,7 @@ public:
   }
   bool isDone()
   {
-    return (first < last ? last - first : last + RTXStateSize - first) == 0;
+    return (first == last);
   }
 };
 

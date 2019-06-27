@@ -72,7 +72,7 @@ private:
   Chunk* readToken(FILE *in);
   void process_wrapper_null_flush(FILE *in, FILE *out);
   
-  vector<ParseNode*> checkForReduce(ParseNode* node);
+  void checkForReduce(vector<ParseNode*>& result, ParseNode* node);
   
   bool popBool();
   int popInt();

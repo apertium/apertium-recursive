@@ -22,16 +22,16 @@ public:
   bool isBlank;
   vector<Chunk*> contents;
   Chunk()
-  : refcount(0), isBlank(false)
+  : refcount(1), isBlank(false)
   {}
   Chunk(wstring blankContent)
-  : refcount(0), target(blankContent), isBlank(true)
+  : refcount(1), target(blankContent), isBlank(true)
   {}
   Chunk(wstring src, wstring dest, wstring cor)
-  : refcount(0), source(src), target(dest), coref(cor), isBlank(false)
+  : refcount(1), source(src), target(dest), coref(cor), isBlank(false)
   {}
   Chunk(wstring dest, vector<Chunk*>& children)
-  : refcount(0), target(dest), isBlank(false), contents(children)
+  : refcount(1), target(dest), isBlank(false), contents(children)
   {}
   ~Chunk()
   {
@@ -56,7 +56,7 @@ public:
   {
     Chunk* ret = new Chunk();
     ret->isBlank = isBlank;
-    ret->refcount = 0;
+    ret->refcount = 1;
     ret->source = source;
     ret->target = target;
     ret->coref = coref;
@@ -246,6 +246,11 @@ public:
       return target;
     }
     return source;
+  }
+  void appendChild(Chunk* kid)
+  {
+    kid->refcount++;
+    contents.push_back(kid);
   }
 };
 

@@ -283,6 +283,9 @@ RTXProcessor::stackCopy(int src, int dest)
 bool
 RTXProcessor::applyRule(const wstring& rule)
 {
+  // applyRule does not release any chunks
+  // it doesn't increment reference counters either
+  // TODO: this may cause memory leaks
   stackIdx = 0;
   for(unsigned int i = 0; i < rule.size(); i++)
   {
@@ -388,8 +391,7 @@ RTXProcessor::applyRule(const wstring& rule)
         }
         else if(theStack[stackIdx].mode == 3)
         {
-          a = theStack[stackIdx].c->target;
-          theStack[stackIdx--].c->release();
+          a = theStack[stackIdx--].c->target;
         }
         else
         {
@@ -403,8 +405,7 @@ RTXProcessor::applyRule(const wstring& rule)
         }
         else if(theStack[stackIdx].mode == 3)
         {
-          b = theStack[stackIdx].c->target;
-          theStack[stackIdx--].c->release();
+          b = theStack[stackIdx--].c->target;
         }
         else
         {
@@ -559,6 +560,7 @@ RTXProcessor::applyRule(const wstring& rule)
       case OUTPUT:
         if(printingSteps) { wcerr << "out" << endl; }
         currentOutput.push_back(popChunk());
+        currentOutput.back()->source.clear(); // don't want multiply-matching rules
         if(printingSteps) { wcerr << " -> " << currentOutput.back()->target << endl; }
         break;
       case SOURCECLIP:
@@ -576,8 +578,8 @@ RTXProcessor::applyRule(const wstring& rule)
         wstring part = popString();
         if(part == L"whole")
         {
-          pushStack(currentInput[pos]->copy());
-          theStack[stackIdx].c->source.clear();
+          pushStack(currentInput[pos]);
+          //currentInput[pos]->refcount++;
         }
         else if(part == L"chcontent")
         {
@@ -667,9 +669,7 @@ RTXProcessor::applyRule(const wstring& rule)
         for(unsigned int k = 0; k < ch->contents.size(); k++)
         {
           theStack[stackIdx].c->contents.push_back(ch->contents[k]);
-          ch->contents[k]->refcount++;
         }
-        ch->release();
       }
         break;
       case BLANK:
@@ -682,7 +682,7 @@ RTXProcessor::applyRule(const wstring& rule)
         }
         else
         {
-          pushStack(currentInput[loc]->copy());
+          pushStack(currentInput[loc]);
         }
       }
         break;
@@ -831,16 +831,11 @@ RTXProcessor::process_wrapper_null_flush(FILE *in, FILE *out)
   null_flush = true;
 }
 
-vector<ParseNode*>
-RTXProcessor::checkForReduce(ParseNode* node)
+void
+RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
 {
-  vector<ParseNode*> ret;
   mx->resetRejected();
   int rule = node->getRule();
-  if(rule != -1 && node->shouldShift())
-  {
-    ret.push_back(new ParseNode(node));
-  }
   double weight = node->weight;
   while(rule != -1)
   {
@@ -851,10 +846,6 @@ RTXProcessor::checkForReduce(ParseNode* node)
     if(printingRules) { wcerr << "Applying rule " << rule << endl; }
     if(applyRule(rule_map[rule-1]))
     {
-      for(unsigned int i = 0, limit = currentInput.size(); i < limit; i++)
-      {
-        currentInput[i]->release();
-      }
       if(currentOutput.size() == 1)
       {
         ParseNode* back = node->popNodes(len);
@@ -867,14 +858,17 @@ RTXProcessor::checkForReduce(ParseNode* node)
         {
           cur = new ParseNode(back, currentOutput[0], weight + ruleWeights[rule-1]);
         }
-        node->release();
-        vector<ParseNode*> app = checkForReduce(cur);
-        ret.insert(ret.begin(), app.begin(), app.end());
+        checkForReduce(result, cur);
       }
       else
       {
         // TODO: somewhat tricky loops
       }
+      /*for(unsigned int i = 0, limit = currentInput.size(); i < limit; i++)
+      {
+        currentInput[i]->release();
+        currentInput[i] = NULL;
+      }*/
       break;
     }
     else
@@ -883,11 +877,15 @@ RTXProcessor::checkForReduce(ParseNode* node)
       rule = node->getRule();
     }
   }
-  if(rule == -1 && ret.size() == 0)
+  if(rule == -1 || node->shouldShift())
   {
-    ret.push_back(node);
+    result.push_back(node);
   }
-  return ret;
+  else
+  {
+    node->release();
+    node = NULL;
+  }
 }
 
 void
@@ -898,17 +896,21 @@ RTXProcessor::process(FILE *in, FILE *out)
   {
     if(parseGraph.size() == 0)
     {
-      parseGraph = checkForReduce(new ParseNode(mx, next));
+      checkForReduce(parseGraph, new ParseNode(mx, next));
     }
     else
     {
-      vector<ParseNode*> temp1, temp2;
+      vector<ParseNode*> temp;
       for(unsigned int i = 0, limit = parseGraph.size(); i < limit; i++)
       {
-        temp1 = checkForReduce(new ParseNode(parseGraph[i], next));
-        temp2.insert(temp2.end(), temp1.begin(), temp1.end());
+        checkForReduce(temp, new ParseNode(parseGraph[i], next));
       }
-      parseGraph.swap(temp2);
+      parseGraph.swap(temp);
+      for(unsigned int i = 0, limit = temp.size(); i < limit; i++)
+      {
+        temp[i]->release();
+        temp[i] = NULL;
+      }
     }
     next = readToken(in);
     ParseNode* min = NULL;
@@ -928,13 +930,15 @@ RTXProcessor::process(FILE *in, FILE *out)
           weight = cur->weight;
           if(min != NULL)
           {
-            delete min;
+            min->release();
+            min = NULL;
           }
           min = cur;
         }
         else
         {
-          delete cur;
+          cur->release();
+          cur = NULL;
         }
       }
       else
@@ -953,7 +957,11 @@ RTXProcessor::process(FILE *in, FILE *out)
         ls[i]->output(out);
       }
     }
-    if(min != NULL) delete min;
+    if(min != NULL)
+    {
+      min->release();
+      min = NULL;
+    }
     if(!furtherInput)
     {
       // if stream is empty, next is definitely a blank

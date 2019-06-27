@@ -248,10 +248,8 @@ public:
   MatchExe2* mx;
   double weight;
   ParseNode(MatchExe2* m, Chunk* ch, double w = 0.0)
-  : chunk(ch), length(1), prev(NULL), refcount(0), mx(m), weight(w)
+  : first(0), last(0), chunk(ch), length(1), prev(NULL), refcount(1), mx(m), weight(w)
   {
-    first = 0;
-    last = 0;
     ch->refcount++;
     if(chunk->isBlank)
     {
@@ -263,19 +261,15 @@ public:
     }
   }
   ParseNode(ParseNode* prevNode, Chunk* next, double w = 0.0)
+  : first(0), last(0), chunk(next), prev(prevNode), refcount(1)
   {
-    first = 0;
-    last = 0;
     for(int i = prevNode->first; i != prevNode->last; i = (i+1)%RTXStateSize)
     {
       state[last++] = prevNode->state[i];
     }
     mx = prevNode->mx;
-    prev = prevNode;
     prev->refcount++;
     length = prev->length+1;
-    refcount = 0;
-    chunk = next;
     chunk->refcount++;
     weight = (w == 0) ? prev->weight : w;
     if(next->isBlank)
@@ -304,7 +298,7 @@ public:
     {
       prev->refcount++;
     }
-    refcount = other->refcount;
+    refcount = 1;
     mx = other->mx;
   }
   ~ParseNode()
@@ -325,8 +319,8 @@ public:
   }
   void getChunks(vector<Chunk*>& chls, int count)
   {
-    if(count < 0) return;
     chls[count] = chunk->copy();
+    if(count == 0) return;
     prev->getChunks(chls, count-1);
   }
   ParseNode* popNodes(int n)

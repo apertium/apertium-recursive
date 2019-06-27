@@ -3,11 +3,13 @@
 
 #include <lttoolbox/transducer.h>
 #include <lttoolbox/alphabet.h>
+#include <chunk.h>
 
 using namespace std;
 
 #define RTXStateSize 128
-#define RTXStackSize 1024
+//#define RTXStackSize 4096
+#define RTXStackSize 10000000
 
 class MatchNode2
 {
@@ -70,6 +72,7 @@ private:
   int last[RTXStackSize];
   int available[RTXStackSize];
   int availableIdx;
+  int resetFrom;
   int initial;
   int rejected[RTXStackSize];
   int rejectedCount;
@@ -114,6 +117,7 @@ private:
   {
     int ret = available[availableIdx];
     availableIdx--;
+    if(availableIdx < resetFrom) resetFrom--;
     first[ret] = 0;
     last[ret] = 0;
     return ret;
@@ -176,16 +180,22 @@ public:
     any_char = (*a)(L"<ANY_CHAR>");
     any_tag = (*a)(L"<ANY_TAG>");
 
-    availableIdx = -1;
-    for(int i = 0; i < RTXStackSize; i++)
+    resetFrom = 0;
+    returnAllStates();
+  }
+  void returnAllStates()
+  {
+    for(int i = resetFrom; i < RTXStackSize; i++)
     {
-      available[++availableIdx] = RTXStackSize - i - 1;
+      available[i] = RTXStackSize - i - 1;
     }
-    availableIdx--;
+    availableIdx = RTXStackSize - 1;
+    resetFrom = RTXStackSize - 1;
   }
   void returnState(int n)
   {
     availableIdx++;
+    if(availableIdx == RTXStackSize) availableIdx--;
     available[availableIdx] = n;
   }
   int stateSize(int state)
@@ -287,6 +297,86 @@ public:
   void rejectRule(int rule)
   {
     rejected[rejectedCount++] = rule;
+  }
+};
+
+class ParseNode
+{
+public:
+  int state;
+  Chunk* chunk;
+  int length;
+  ParseNode* prev;
+  int refcount;
+  MatchExe2* mx;
+  double weight;
+  ParseNode(MatchExe2* m, Chunk* ch, double w = 0.0)
+  : chunk(ch), length(1), prev(NULL), refcount(0), mx(m), weight(w)
+  {
+    if(chunk->isBlank)
+    {
+      state = mx->matchBlank(-1);
+    }
+    else
+    {
+      state = mx->matchChunk(-1, chunk->matchSurface());
+    }
+  }
+  ParseNode(ParseNode* last, Chunk* next, double w = 0.0)
+  {
+    mx = last->mx;
+    prev = last;
+    prev->refcount++;
+    length = prev->length+1;
+    refcount = 0;
+    chunk = next;
+    weight = (w == 0) ? prev->weight : w;
+    if(next->isBlank)
+    {
+      state = mx->matchBlank(prev->state);
+    }
+    else
+    {
+      state = mx->matchChunk(prev->state, chunk->matchSurface());
+    }
+  }
+  ParseNode(ParseNode* other)
+  {
+    state = other->state;
+    chunk = other->chunk;
+    length = other->length;
+    prev = other->prev;
+    weight = other->weight;
+    if(prev != NULL)
+    {
+      prev->refcount++;
+    }
+    refcount = other->refcount;
+    mx = other->mx;
+  }
+  ~ParseNode()
+  {
+    mx->returnState(state);
+    if(prev != NULL)
+    {
+      prev->refcount--;
+      if(prev->refcount == 0)
+      {
+        delete prev;
+      }
+    }
+  }
+  void getChunks(vector<Chunk*>& chls, int count)
+  {
+    if(count < 0) return;
+    chls[count] = chunk;
+    prev->getChunks(chls, count-1);
+  }
+  ParseNode* popNodes(int n)
+  {
+    if(n == 1 && prev == NULL) return NULL;
+    if(n == 0) return this;
+    return prev->popNodes(n-1);
   }
 };
 

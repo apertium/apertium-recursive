@@ -1,0 +1,7 @@
+^John<np><sg>$ ^read<vblex><pres><p3><sg>$ ^a lot<adv>$^.<sent>$
+^John<np><sg>$ ^read<vblex><pres><p3><sg>$ ^your<det><pos><mf><sg>$ ^book<n><sg>$^.<sent>$
+^John<np><sg>$ ^want<vblex><pres><p3><sg>$ ^read<vblex><inf>$ ^a lot<adv>$^.<sent>$
+^John<np><sg>$ ^usually<adv>$ ^read<vblex><pres><p3><sg>$ ^a lot<adv>$^.<sent>$
+^John<np><sg>$ ^used# to<vblex><past><p3><sg>$ ^read<vblex><inf>$ ^a lot<adv>$^.<sent>$
+^your<det><pos><mf><sg>$ ^brother<n><sg>$ ^read<vblex><pres><p3><sg>$ ^your<det><pos><mf><sg>$ ^book<n><sg>$^.<sent>$
+^your<det><pos><mf><sg>$ ^brother<n><sg>$ ^read<vblex><past><p3><sg>$ ^your<det><pos><mf><sg>$ ^book<n><sg>$^.<sent>$

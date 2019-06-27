@@ -1,0 +1,31 @@
+n: _.number;
+np: _.number;
+adj: _.gender.number;
+vblex: _.tense.person.number;
+vbinf: _.inf;
+det: _.<pos>.gender.number;
+adv: _;
+NP: _.number;
+V: _.person.number;
+VP: _.person.number;
+S: _;
+
+gender = m f mf;
+number = sg pl sp;
+person = p1 p2 p3;
+tense = pres past;
+
+NP -> %np {1} |
+      det.pos %n {1(number=2.number) _1 2};
+V -> !%vblex {1} |
+     !0: %vblex vblex.inf {1 _1 2[vbinf]} |
+     !1: %soler@vblex vblex.inf {usually@adv _1 %2} (1.tense = pres)
+     !                          {used#\ to@vblex.past _1 2[vbinf]};
+     %vblex vblex.inf {usually@adv _1 %2} (1.lem/sl = soler) !((1.tense = pres) & (1.lem/sl = soler))
+                      {1 _1 2[vbinf]};
+VP -> %V {1} |
+      %V adv {1 _1 2} |
+      %V NP {1 _1 2};
+S -> NP VP.p3 (1.number = 2.number) {1 _1 2} |
+     VP.p3.sg {prpers@prn.subj.p3.m.sg _ 1} |
+     VP {prpers@prn.subj.[1.person].mf.[1.number] _ 1};

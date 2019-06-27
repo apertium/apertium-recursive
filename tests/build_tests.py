@@ -9,7 +9,7 @@ class CompilerTest:
     byte_file = ''
     def test_compiles(self):
         with self.assertRaises(subprocess.CalledProcessError):
-            subprocess.check_output(['../src/rtx-comp2', self.rules_file, self.bin_file, self.byte_file],
+            subprocess.check_output(['../src/rtx-comp', self.rules_file, self.bin_file, self.byte_file],
                                     stderr=subprocess.STDOUT, universal_newlines=True)
 
 class InterpreterTest:
@@ -19,11 +19,12 @@ class InterpreterTest:
     input = ''
     output = ''
     def setUp(self):
-        subprocess.check_output(['../src/rtx-comp2', self.rules_file, self.bin_file, self.byte_file],
+        subprocess.check_output(['../src/rtx-comp', self.rules_file, self.bin_file, self.byte_file],
                                 stderr=subprocess.STDOUT, universal_newlines=True)
     def test_output(self):
-        actual = subprocess.check_output(['../src/rec-inter', self.byte_file, self.bin_file],
+        actual = subprocess.check_output(['../src/rtx-proc', self.byte_file, self.bin_file],
                                          input=self.input, encoding='utf-8', universal_newlines=True)
+        self.maxDiff = None
         self.assertEqual(self.output, actual)
 
 

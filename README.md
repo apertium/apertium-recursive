@@ -13,13 +13,13 @@ Running
 
 ```bash
 # compile the rules file
-src/rtx-comp2 rule-file pattern-file bytecode-file
+src/rtx-comp rule-file pattern-file bytecode-file
 
 # run the the rules
-src/rec-inter bytecode-file pattern-file < input
+src/rtx-proc bytecode-file pattern-file < input
 
 # decompile the rules and examine the bytecode
-src/decomp bytecode-file text-file
+src/rtx-decomp bytecode-file text-file
 ```
 
 Options for ```rec-inter```:

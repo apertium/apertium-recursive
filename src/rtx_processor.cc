@@ -1,43 +1,36 @@
-#include <interchunk.h>
+#include <rtx_processor.h>
 #include <bytecode.h>
 #include <apertium/trx_reader.h>
 #include <apertium/utf_converter.h>
 #include <lttoolbox/compression.h>
-#include <lttoolbox/xml_parse_util.h>
 
 #include <cctype>
 #include <cerrno>
 #include <iostream>
-#include <stack>
-#include <deque>
 #include <apertium/string_utils.h>
 //#include <apertium/unlocked_cstdio.h>
 
 using namespace Apertium;
 using namespace std;
 
-Interchunk::Interchunk()
+RTXProcessor::RTXProcessor()
 {
   furtherInput = true;
   inword = false;
   allDone = false;
-  maxLayers = -1;
-  shiftCount = 0;
   printingSteps = false;
   printingRules = false;
   printingMatch = false;
 }
 
-Interchunk::~Interchunk()
+RTXProcessor::~RTXProcessor()
 {
 }
 
 void
-Interchunk::readData(FILE *in)
+RTXProcessor::readData(FILE *in)
 {
   alphabet.read(in);
-  any_char = alphabet(TRXReader::ANY_CHAR);
-  any_tag = alphabet(TRXReader::ANY_TAG);
 
   //Transducer t;
   Transducer* t = new Transducer();
@@ -55,7 +48,6 @@ Interchunk::readData(FILE *in)
     ruleWeights[finals[key]] = finalWeights[key];
   }
 
-  me = new MatchExe(*t, finals);
   mx = new MatchExe2(*t, &alphabet, finals, pat_size);
 
   // attr_items
@@ -99,7 +91,7 @@ Interchunk::readData(FILE *in)
 }
 
 void
-Interchunk::read(string const &transferfile, string const &datafile)
+RTXProcessor::read(string const &transferfile, string const &datafile)
 {
   // rules
   FILE *in = fopen(transferfile.c_str(), "rb");
@@ -134,7 +126,7 @@ Interchunk::read(string const &transferfile, string const &datafile)
 }
 
 bool
-Interchunk::beginsWith(wstring const &s1, wstring const &s2) const
+RTXProcessor::beginsWith(wstring const &s1, wstring const &s2) const
 {
   int const limit = s2.size(), constraint = s1.size();
 
@@ -154,7 +146,7 @@ Interchunk::beginsWith(wstring const &s1, wstring const &s2) const
 }
 
 bool
-Interchunk::endsWith(wstring const &s1, wstring const &s2) const
+RTXProcessor::endsWith(wstring const &s1, wstring const &s2) const
 {
   int const limit = s2.size(), constraint = s1.size();
 
@@ -174,7 +166,7 @@ Interchunk::endsWith(wstring const &s1, wstring const &s2) const
 }
 
 wstring
-Interchunk::copycase(wstring const &source_word, wstring const &target_word)
+RTXProcessor::copycase(wstring const &source_word, wstring const &target_word)
 {
   wstring result;
 
@@ -200,13 +192,13 @@ Interchunk::copycase(wstring const &source_word, wstring const &target_word)
 }
 
 wstring
-Interchunk::caseOf(wstring const &s)
+RTXProcessor::caseOf(wstring const &s)
 {
   return copycase(s, wstring(L"aa"));
 }
 
 inline bool
-Interchunk::popBool()
+RTXProcessor::popBool()
 {
   if(theStack[stackIdx].mode == 0)
   {
@@ -220,7 +212,7 @@ Interchunk::popBool()
 }
 
 inline int
-Interchunk::popInt()
+RTXProcessor::popInt()
 {
   if(theStack[stackIdx].mode == 1)
   {
@@ -234,7 +226,7 @@ Interchunk::popInt()
 }
 
 inline wstring
-Interchunk::popString()
+RTXProcessor::popString()
 {
   if(theStack[stackIdx].mode == 2)
   {
@@ -248,7 +240,7 @@ Interchunk::popString()
 }
 
 inline Chunk*
-Interchunk::popChunk()
+RTXProcessor::popChunk()
 {
   if(theStack[stackIdx].mode == 3)
   {
@@ -262,7 +254,7 @@ Interchunk::popChunk()
 }
 
 inline void
-Interchunk::stackCopy(int src, int dest)
+RTXProcessor::stackCopy(int src, int dest)
 {
   theStack[dest].mode = theStack[src].mode;
   switch(theStack[src].mode)
@@ -286,7 +278,7 @@ Interchunk::stackCopy(int src, int dest)
 }
 
 bool
-Interchunk::applyRule(const wstring& rule)
+RTXProcessor::applyRule(const wstring& rule)
 {
   stackIdx = 0;
   for(unsigned int i = 0; i < rule.size(); i++)
@@ -713,7 +705,7 @@ Interchunk::applyRule(const wstring& rule)
 }
 
 Chunk *
-Interchunk::readToken(FILE *in)
+RTXProcessor::readToken(FILE *in)
 {
   int pos = 0;
   wstring cur;
@@ -797,32 +789,32 @@ Interchunk::readToken(FILE *in)
 }
 
 bool
-Interchunk::getNullFlush(void)
+RTXProcessor::getNullFlush(void)
 {
   return null_flush;
 }
 
 void
-Interchunk::setNullFlush(bool null_flush)
+RTXProcessor::setNullFlush(bool null_flush)
 {
   this->null_flush = null_flush;
 }
 
 void
-Interchunk::setTrace(bool trace)
+RTXProcessor::setTrace(bool trace)
 {
   this->trace = trace;
 }
 
 void
-Interchunk::interchunk_wrapper_null_flush(FILE *in, FILE *out)
+RTXProcessor::process_wrapper_null_flush(FILE *in, FILE *out)
 {
   null_flush = false;
   internal_null_flush = true;
 
   while(!feof(in))
   {
-    interchunk(in, out);
+    process(in, out);
     fputwc_unlocked(L'\0', out);
     int code = fflush(out);
     if(code != 0)
@@ -835,7 +827,7 @@ Interchunk::interchunk_wrapper_null_flush(FILE *in, FILE *out)
 }
 
 vector<ParseNode*>
-Interchunk::checkForReduce(ParseNode* node)
+RTXProcessor::checkForReduce(ParseNode* node)
 {
   vector<ParseNode*> ret;
   mx->resetRejected();
@@ -890,7 +882,7 @@ Interchunk::checkForReduce(ParseNode* node)
 }
 
 void
-Interchunk::interchunk(FILE *in, FILE *out)
+RTXProcessor::process(FILE *in, FILE *out)
 {
   Chunk* next = readToken(in);
   while(true)
@@ -915,7 +907,7 @@ Interchunk::interchunk(FILE *in, FILE *out)
     vector<ParseNode*> temp;
     temp.reserve(parseGraph.size());
     int len = INT_MAX;
-    double weight;
+    double weight = 0.0;
     for(unsigned int i = 0, limit = parseGraph.size(); i < limit; i++)
     {
       cur = parseGraph[i];
@@ -953,6 +945,12 @@ Interchunk::interchunk(FILE *in, FILE *out)
       }
     }
     if(min != NULL) delete min;
+    if(parseGraph.size() == 0)
+    {
+      mx->returnAllStates();
+      // this shouldn't be necessary, but it would seem there's a leak somewhere
+      // (probably some ParseNodes aren't getting deleted)
+    }
     if(!furtherInput)
     {
       // if stream is empty, next is definitely a blank

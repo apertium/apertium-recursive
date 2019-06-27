@@ -1,0 +1,7 @@
+^Juan<np><m><sg>/John<np><sg>$ ^leer<vblex><pres><p3><sg>/read<vblex><pres><p3><sg>$ ^mucho<adv>/a lot<adv>$^.<sent>/.<sent>$
+^Juan<np><m><sg>/John<np><sg>$ ^leer<vblex><pres><p3><sg>/read<vblex><pres><p3><sg>$ ^tío<det><pos><mf><sg>/your<det><pos><mf><sg>$ ^libro<n><m><sg>/book<n><sg>$^.<sent>/.<sent>$
+^Juan<np><m><sg>/John<np><sg>$ ^quiere<vblex><pres><p3><sg>/want<vblex><pres><p3><sg>$ ^leer<vblex><inf>/read<vblex><inf>$ ^mucho<adv>/a lot<adv>$^.<sent>/.<sent>$
+^Juan<np><m><sg>/John<np><sg>$ ^soler<vblex><pres><p3><sg>/used# to<vblex><pres><p3><sg>$ ^leer<vblex><inf>/read<vblex><inf>$ ^mucho<adv>/a lot<adv>$^.<sent>/.<sent>$
+^Juan<np><m><sg>/John<np><sg>$ ^soler<vblex><past><p3><sg>/used# to<vblex><past><p3><sg>$ ^leer<vblex><inf>/read<vblex><inf>$ ^mucho<adv>/a lot<adv>$^.<sent>/.<sent>$
+^tío<det><pos><mf><sg>/your<det><pos><mf><sg>$ ^hermano<n><m><sg>/brother<n><sg>$ ^leer<vblex><pres><p3><sg>/read<vblex><pres><p3><sg>$ ^tío<det><pos><mf><sg>/your<det><pos><mf><sg>$ ^libro<n><m><sg>/book<n><sg>$^.<sent>/.<sent>$
+^tío<det><pos><mf><sg>/your<det><pos><mf><sg>$ ^hermano<n><m><sg>/brother<n><sg>$ ^leer<vblex><past><p3><sg>/read<vblex><past><p3><sg>$ ^tío<det><pos><mf><sg>/your<det><pos><mf><sg>$ ^libro<n><m><sg>/book<n><sg>$^.<sent>/.<sent>$

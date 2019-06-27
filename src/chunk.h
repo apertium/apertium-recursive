@@ -15,38 +15,58 @@ enum ClipType
 class Chunk
 {
 public:
+  int refcount;
   wstring source;
   wstring target;
   wstring coref;
   bool isBlank;
   vector<Chunk*> contents;
   Chunk()
-  {
-  }
+  : refcount(0), isBlank(false)
+  {}
   Chunk(wstring blankContent)
-  {
-    target = blankContent;
-    isBlank = true;
-  }
+  : refcount(0), target(blankContent), isBlank(true)
+  {}
   Chunk(wstring src, wstring dest, wstring cor)
-  {
-    source = src;
-    target = dest;
-    coref = cor;
-    isBlank = false;
-  }
-  Chunk(wstring dest, vector<Chunk*> children)
-  {
-    target = dest;
-    contents = children;
-    isBlank = false;
-  }
+  : refcount(0), source(src), target(dest), coref(cor), isBlank(false)
+  {}
+  Chunk(wstring dest, vector<Chunk*>& children)
+  : refcount(0), target(dest), isBlank(false), contents(children)
+  {}
   ~Chunk()
   {
     for(unsigned int i = 0; i < contents.size(); i++)
     {
-      delete contents[i];
+      contents[i]->refcount--;
+      if(contents[i]->refcount == 0)
+      {
+        delete contents[i];
+      }
     }
+  }
+  void release()
+  {
+    refcount--;
+    if(refcount == 0)
+    {
+      delete this;
+    }
+  }
+  Chunk* copy()
+  {
+    Chunk* ret = new Chunk();
+    ret->isBlank = isBlank;
+    ret->refcount = 0;
+    ret->source = source;
+    ret->target = target;
+    ret->coref = coref;
+    ret->contents.reserve(contents.size());
+    for(unsigned int i = 0, limit = contents.size(); i < limit; i++)
+    {
+      ret->contents.push_back(contents[i]);
+      contents[i]->refcount++;
+    }
+    return ret;
   }
   wstring chunkPart(ApertiumRE const &part, const ClipType side)
   {

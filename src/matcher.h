@@ -8,8 +8,7 @@
 using namespace std;
 
 #define RTXStateSize 128
-//#define RTXStackSize 4096
-#define RTXStackSize 10000000
+#define RTXStackSize 4096
 
 class MatchNode2
 {
@@ -65,81 +64,38 @@ private:
   vector<MatchNode2> nodes;
   int any_char;
   int any_tag;
-  int check_sym;
   Alphabet* alpha;
-  int stack[RTXStackSize][RTXStateSize];
-  int first[RTXStackSize];
-  int last[RTXStackSize];
-  int available[RTXStackSize];
-  int availableIdx;
-  int resetFrom;
   int initial;
   int rejected[RTXStackSize];
   int rejectedCount;
 
-  // src = source MatchNode2
-  // dest = stack location
-  void applySymbol(int const src, int const symbol, int const dest)
+  void applySymbol(int const srcNode, int const symbol, int* state, int& last)
   {
-    int res = nodes[src].search(symbol);
+    int res = nodes[srcNode].search(symbol);
     if(res != -1)
     {
-      stack[dest][last[dest]] = res;
-      last[dest] = (last[dest] + 1) % RTXStateSize;
+      state[last] = res;
+      last = (last+1) % RTXStateSize;
     }
   }
-  void step(int const src, int const dest, int const symbol)
+  void step(int* state, int& first, int& last, int const symbol)
   {
-    int loclast = last[src];
-    for(int i = first[src]; i != loclast; i = (i+1)%RTXStateSize)
+    int loclast = last;
+    for(int i = first; i != loclast; i = (i+1)%RTXStateSize)
     {
-      applySymbol(stack[src][i], symbol, dest);
+      applySymbol(state[i], symbol, state, last);
     }
-    if(src == dest)
-    {
-      first[src] = loclast;
-    }
+    first = loclast;
   }
-  void step(int const src, int const dest, int const symbol, int const alt)
+  void step(int* state, int& first, int& last, int const symbol, int const alt)
   {
-    int loclast = last[src];
-    for(int i = first[src]; i != loclast; i = (i+1)%RTXStateSize)
+    int loclast = last;
+    for(int i = first; i != loclast; i = (i+1)%RTXStateSize)
     {
-      applySymbol(stack[src][i], symbol, dest);
-      applySymbol(stack[src][i], alt, dest);
+      applySymbol(state[i], symbol, state, last);
+      applySymbol(state[i], alt, state, last);
     }
-    if(src == dest)
-    {
-      first[src] = loclast;
-    }
-  }
-  int newState()
-  {
-    int ret = available[availableIdx];
-    availableIdx--;
-    if(availableIdx < resetFrom) resetFrom--;
-    first[ret] = 0;
-    last[ret] = 0;
-    return ret;
-  }
-  int pushStack(int src, int sym)
-  {
-    int state = newState();
-    if(src != -1)
-    {
-      step(src, state, sym);
-    }
-    applySymbol(initial, sym, state);
-    return state;
-  }
-  int pushStackNoInit(int src, int sym)
-  {
-    int state = newState();
-    if(src != -1)
-    {
-      step(src, state, sym);
-    }
-    return state;
+    first = loclast;
   }
 
 public:
@@ -179,44 +135,21 @@ public:
 
     any_char = (*a)(L"<ANY_CHAR>");
     any_tag = (*a)(L"<ANY_TAG>");
-
-    resetFrom = 0;
-    returnAllStates();
   }
-  void returnAllStates()
+  void matchBlank(int* state, int& first, int& last)
   {
-    for(int i = resetFrom; i < RTXStackSize; i++)
-    {
-      available[i] = RTXStackSize - i - 1;
-    }
-    availableIdx = RTXStackSize - 1;
-    resetFrom = RTXStackSize - 1;
+    step(state, first, last, L' ');
   }
-  void returnState(int n)
+  void matchChunk(int* state, int& first, int& last, wstring ch)
   {
-    availableIdx++;
-    if(availableIdx == RTXStackSize) availableIdx--;
-    available[availableIdx] = n;
-  }
-  int stateSize(int state)
-  {
-    int f = first[state];
-    int l = last[state];
-    return (l >= f) ? (l - f) : (l + RTXStateSize - f);
-  }
-  int matchBlank(int src)
-  {
-    return pushStack(src, L' ');
-  }
-  int matchChunk(int src, wstring ch)
-  {
-    int state = pushStack(src, L'^');
-    for(unsigned int i = 0; i < ch.size(); i++)
+    step(state, first, last, L'^');
+    applySymbol(initial, L'^', state, last);
+    for(unsigned int i = 0, limit = ch.size(); i < limit; i++)
     {
       switch(ch[i])
       {
         case L'\\':
-          step(state, state, towlower(ch[++i]), any_char);
+          step(state, first, last, towlower(ch[++i]), any_char);
           break;
         case L'<':
           for(unsigned int j = i+1; j < ch.size(); j++)
@@ -226,11 +159,11 @@ public:
               int symbol = (*alpha)(ch.substr(i, j-i+1));
               if(symbol)
               {
-                step(state, state, symbol, any_tag);
+                step(state, first, last, symbol, any_tag);
               }
               else
               {
-                step(state, state, any_tag);
+                step(state, first, last, any_tag);
               }
               i = j;
               break;
@@ -238,29 +171,31 @@ public:
           }
           break;
         default:
-          step(state, state, towlower(ch[i]), any_char);
+          step(state, first, last, towlower(ch[i]), any_char);
           break;
       }
     }
-    step(state, state, L'$');
-    return state;
+    step(state, first, last, L'$');
   }
-  bool shouldShift(int src)
+  bool shouldShift(int* state, int first, int last)
   {
-    int s = pushStackNoInit(src, L' ');
-    bool ret = (first[s] != last[s]);
-    returnState(s);
-    return ret;
+    for(int i = first; i != last; i = (i+1)%RTXStateSize)
+    {
+      if(nodes[state[i]].search(L' ') != -1)
+      {
+        return true;
+      }
+    }
+    return false;
   }
-  int getRule(int state)
+  int getRule(int* state, int first, int last)
   {
     int rule = -1;
     double weight;
     int len = 0;
-    for(int i = first[state], end = last[state]; i != end; i = (i+1)%RTXStateSize)
+    for(int i = first; i != last; i = (i+1)%RTXStateSize)
     {
-      int n = stack[state][i];
-      MatchNode2& node = nodes[n];
+      MatchNode2& node = nodes[state[i]];
       if(node.rule != -1)
       {
         bool rej = false;
@@ -303,7 +238,9 @@ public:
 class ParseNode
 {
 public:
-  int state;
+  int state[RTXStateSize];
+  int first;
+  int last;
   Chunk* chunk;
   int length;
   ParseNode* prev;
@@ -313,37 +250,53 @@ public:
   ParseNode(MatchExe2* m, Chunk* ch, double w = 0.0)
   : chunk(ch), length(1), prev(NULL), refcount(0), mx(m), weight(w)
   {
+    first = 0;
+    last = 0;
+    ch->refcount++;
     if(chunk->isBlank)
     {
-      state = mx->matchBlank(-1);
+      mx->matchBlank(state, first, last);
     }
     else
     {
-      state = mx->matchChunk(-1, chunk->matchSurface());
+      mx->matchChunk(state, first, last, chunk->matchSurface());
     }
   }
-  ParseNode(ParseNode* last, Chunk* next, double w = 0.0)
+  ParseNode(ParseNode* prevNode, Chunk* next, double w = 0.0)
   {
-    mx = last->mx;
-    prev = last;
+    first = 0;
+    last = 0;
+    for(int i = prevNode->first; i != prevNode->last; i = (i+1)%RTXStateSize)
+    {
+      state[last++] = prevNode->state[i];
+    }
+    mx = prevNode->mx;
+    prev = prevNode;
     prev->refcount++;
     length = prev->length+1;
     refcount = 0;
     chunk = next;
+    chunk->refcount++;
     weight = (w == 0) ? prev->weight : w;
     if(next->isBlank)
     {
-      state = mx->matchBlank(prev->state);
+      mx->matchBlank(state, first, this->last);
     }
     else
     {
-      state = mx->matchChunk(prev->state, chunk->matchSurface());
+      mx->matchChunk(state, first, this->last, chunk->matchSurface());
     }
   }
   ParseNode(ParseNode* other)
   {
-    state = other->state;
-    chunk = other->chunk;
+    first = 0;
+    last = 0;
+    for(int i = other->first; i != other->last; i = (i+1)%RTXStateSize)
+    {
+      state[last++] = other->state[i];
+    }
+    chunk = other->chunk->copy();
+    chunk->refcount++;
     length = other->length;
     prev = other->prev;
     weight = other->weight;
@@ -356,20 +309,24 @@ public:
   }
   ~ParseNode()
   {
-    mx->returnState(state);
     if(prev != NULL)
     {
-      prev->refcount--;
-      if(prev->refcount == 0)
-      {
-        delete prev;
-      }
+      prev->release();
+    }
+    chunk->release();
+  }
+  void release()
+  {
+    refcount--;
+    if(refcount == 0)
+    {
+      delete this;
     }
   }
   void getChunks(vector<Chunk*>& chls, int count)
   {
     if(count < 0) return;
-    chls[count] = chunk;
+    chls[count] = chunk->copy();
     prev->getChunks(chls, count-1);
   }
   ParseNode* popNodes(int n)
@@ -377,6 +334,18 @@ public:
     if(n == 1 && prev == NULL) return NULL;
     if(n == 0) return this;
     return prev->popNodes(n-1);
+  }
+  int getRule()
+  {
+    return mx->getRule(state, first, last);
+  }
+  bool shouldShift()
+  {
+    return mx->shouldShift(state, first, last);
+  }
+  bool isDone()
+  {
+    return (first < last ? last - first : last + RTXStateSize - first) == 0;
   }
 };
 

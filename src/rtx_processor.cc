@@ -652,7 +652,8 @@ RTXProcessor::applyRule(const wstring& rule)
       case CHUNK:
         if(printingSteps) { wcerr << "chunk" << endl; }
       {
-        Chunk* ch = new Chunk();
+        //Chunk* ch = new Chunk();
+        Chunk* ch = pool.newChunk();
         ch->isBlank = false;
         pushStack(ch);
       }
@@ -662,7 +663,6 @@ RTXProcessor::applyRule(const wstring& rule)
       {
         Chunk* kid = popChunk();
         theStack[stackIdx].c->contents.push_back(kid);
-        kid->refcount++;
       }
         break;
       case APPENDSURFACE:
@@ -688,7 +688,11 @@ RTXProcessor::applyRule(const wstring& rule)
         int loc = 2*(popInt()-1) + 1;
         if(loc == -1)
         {
-          pushStack(new Chunk(L" "));
+          //pushStack(new Chunk(L" "));
+          Chunk* ch = pool.newChunk();
+          ch->target = L" ";
+          ch->isBlank = true;
+          pushStack(ch);
         }
         else
         {
@@ -748,7 +752,10 @@ RTXProcessor::readToken(FILE *in)
     if(feof(in) || (internal_null_flush && val == 0))
     {
       furtherInput = false;
-      Chunk* ret = new Chunk(cur);
+      //Chunk* ret = new Chunk(cur);
+      Chunk* ret = pool.newChunk();
+      ret->target = cur;
+      ret->isBlank = true;
       return ret;
     }
     else if(val == L'\\')
@@ -800,14 +807,22 @@ RTXProcessor::readToken(FILE *in)
       if(val == L'$')
       {
         inword = false;
-        Chunk* ret = new Chunk(src, dest, coref);
+        //Chunk* ret = new Chunk(src, dest, coref);
+        Chunk* ret = pool.newChunk();
+        ret->source = src;
+        ret->target = dest;
+        ret->coref = coref;
+        ret->isBlank = false;
         return ret;
       }
     }
     else if(!inword && val == L'^')
     {
       inword = true;
-      Chunk* ret = new Chunk(cur);
+      //Chunk* ret = new Chunk(cur);
+      Chunk* ret = pool.newChunk();
+      ret->target = cur;
+      ret->isBlank = true;
       return ret;
     }
     else
@@ -945,16 +960,17 @@ RTXProcessor::process(FILE *in, FILE *out)
   Chunk* next = readToken(in);
   while(true)
   {
+    mx->prepareChunk(next->source);
     if(parseGraph.size() == 0)
     {
-      checkForReduce(parseGraph, new ParseNode(mx, next));
+      checkForReduce(parseGraph, new ParseNode(mx, next, true));
     }
     else
     {
       vector<ParseNode*> temp;
       for(unsigned int i = 0, limit = parseGraph.size(); i < limit; i++)
       {
-        checkForReduce(temp, new ParseNode(parseGraph[i], next));
+        checkForReduce(temp, new ParseNode(parseGraph[i], next, true));
       }
       parseGraph.swap(temp);
       for(unsigned int i = 0, limit = temp.size(); i < limit; i++)
@@ -1002,6 +1018,18 @@ RTXProcessor::process(FILE *in, FILE *out)
     {
       min->getChunks(outputQueue, min->length-1);
       outputAll(out);
+      min->release();
+      min = NULL;
+      wstring s = next->source;
+      wstring t = next->target;
+      wstring r = next->coref;
+      bool b = next->isBlank;
+      pool.reset();
+      next = pool.newChunk();
+      next->source = s;
+      next->target = t;
+      next->coref = r;
+      next->isBlank = b;
     }
     if(min != NULL)
     {

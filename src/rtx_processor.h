@@ -51,6 +51,8 @@ private:
   Chunk* parentChunk;
   list<Chunk*> outputQueue;
   vector<ParseNode*> parseGraph;
+  ChunkPool pool;
+  wstring blankBuffer;
 
   FILE *output;
 

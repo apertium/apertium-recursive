@@ -15,7 +15,6 @@ enum ClipType
 class Chunk
 {
 public:
-  int refcount;
   wstring source;
   wstring target;
   wstring coref;
@@ -23,41 +22,21 @@ public:
   vector<Chunk*> contents;
   int rule;
   Chunk()
-  : refcount(1), isBlank(false), rule(-1)
+  : isBlank(false), rule(-1)
   {}
   Chunk(wstring blankContent)
-  : refcount(1), target(blankContent), isBlank(true), rule(-1)
+  : target(blankContent), isBlank(true), rule(-1)
   {}
   Chunk(wstring src, wstring dest, wstring cor)
-  : refcount(1), source(src), target(dest), coref(cor), isBlank(false), rule(-1)
+  : source(src), target(dest), coref(cor), isBlank(false), rule(-1)
   {}
   Chunk(wstring dest, vector<Chunk*>& children, int r = -1)
-  : refcount(1), target(dest), isBlank(false), contents(children), rule(r)
+  : target(dest), isBlank(false), contents(children), rule(r)
   {}
-  ~Chunk()
-  {
-    for(unsigned int i = 0; i < contents.size(); i++)
-    {
-      contents[i]->refcount--;
-      if(contents[i]->refcount == 0)
-      {
-        delete contents[i];
-      }
-    }
-  }
-  void release()
-  {
-    refcount--;
-    if(refcount == 0)
-    {
-      delete this;
-    }
-  }
   Chunk* copy()
   {
     Chunk* ret = new Chunk();
     ret->isBlank = isBlank;
-    ret->refcount = 1;
     ret->source = source;
     ret->target = target;
     ret->coref = coref;
@@ -65,7 +44,6 @@ public:
     for(unsigned int i = 0, limit = contents.size(); i < limit; i++)
     {
       ret->contents.push_back(contents[i]);
-      contents[i]->refcount++;
     }
     return ret;
   }
@@ -250,8 +228,72 @@ public:
   }
   void appendChild(Chunk* kid)
   {
-    kid->refcount++;
     contents.push_back(kid);
+  }
+};
+
+#define RTXBUCKETSIZE 1024
+
+class ChunkPool
+{
+private:
+  struct Bucket
+  {
+    Chunk array[RTXBUCKETSIZE];
+    int inUse;
+    int wasUsed;
+  };
+  vector<Bucket*> bucketList;
+  int idx;
+  Bucket* cur;
+  inline void getNextBucket()
+  {
+    idx++;
+    if(idx == bucketList.size())
+    {
+      cur = new Bucket;
+      cur->inUse = 0;
+      cur->wasUsed = 0;
+      bucketList.push_back(cur);
+    }
+    else
+    {
+      cur = bucketList[idx];
+      cur->inUse = 0;
+    }
+  }
+public:
+  ChunkPool()
+  {
+    Bucket* b = new Bucket;
+    b->inUse = 0;
+    b->wasUsed = 0;
+    bucketList.push_back(b);
+    cur = b;
+  }
+  void reset()
+  {
+    idx = 0;
+    bucketList[0]->inUse = 0;
+    cur = bucketList[idx];
+  }
+  Chunk* newChunk()
+  {
+    if(cur->inUse == RTXBUCKETSIZE)
+    {
+      getNextBucket();
+    }
+    Chunk* ch = &cur->array[cur->inUse++];
+    if(cur->inUse > cur->wasUsed)
+    {
+      cur->wasUsed++;
+    }
+    else
+    {
+      ch->~Chunk();
+    }
+    ch = new(ch) Chunk();
+    return ch;
   }
 };
 

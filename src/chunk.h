@@ -21,17 +21,18 @@ public:
   wstring coref;
   bool isBlank;
   vector<Chunk*> contents;
+  int rule;
   Chunk()
-  : refcount(1), isBlank(false)
+  : refcount(1), isBlank(false), rule(-1)
   {}
   Chunk(wstring blankContent)
-  : refcount(1), target(blankContent), isBlank(true)
+  : refcount(1), target(blankContent), isBlank(true), rule(-1)
   {}
   Chunk(wstring src, wstring dest, wstring cor)
-  : refcount(1), source(src), target(dest), coref(cor), isBlank(false)
+  : refcount(1), source(src), target(dest), coref(cor), isBlank(false), rule(-1)
   {}
-  Chunk(wstring dest, vector<Chunk*>& children)
-  : refcount(1), target(dest), isBlank(false), contents(children)
+  Chunk(wstring dest, vector<Chunk*>& children, int r = -1)
+  : refcount(1), target(dest), isBlank(false), contents(children), rule(r)
   {}
   ~Chunk()
   {

@@ -48,7 +48,7 @@ void writeRule(wstring rule, FILE* out)
         {
           fputwc(rule[++i], out);
         }
-        wstring s = rule.substr(i+1, len);
+        //wstring s = rule.substr(i+1, len);
         fwprintf(out, L"\"\n");
       }
         break;
@@ -172,6 +172,12 @@ void writeRule(wstring rule, FILE* out)
       case DISTAG:
         fwprintf(out, L"DISTAG\n");
         break;
+      case GETRULE:
+        fwprintf(out, L"GETRULE\n");
+        break;
+      case SETRULE:
+        fwprintf(out, L"SETRULE\n");
+        break;
       default:
         fwprintf(out, L"Unknown instruction: %s", rule.substr(i, 1));
     }
@@ -241,14 +247,30 @@ int main(int argc, char *argv[])
 
   int longestPattern = fgetwc(in);
   int count = fgetwc(in);
+  fwprintf(out, L"Input rules:\n");
   fwprintf(out, L"Longest pattern: %d chunks\nNumber of rules: %d\n\n", longestPattern, count);
-  int len;
+  int len, patlen;
   wstring cur;
   for(int i = 0; i < count; i++)
   {
     cur.clear();
     len = fgetwc(in);
-    fwprintf(out, L"Rule %d (%d bytes)\n", i+1, len);
+    patlen = fgetwc(in);
+    fwprintf(out, L"Rule %d (%d bytes, pattern %d chunks)\n", i+1, len, patlen);
+    for(int j = 0; j < len; j++)
+    {
+      cur.append(1, fgetwc(in));
+    }
+    writeRule(cur, out);
+  }
+
+  count = fgetwc(in);
+  fwprintf(out, L"Output rules:\nNumber of rules: %d\n\n", count);
+  for(int i = 0; i < count; i++)
+  {
+    cur.clear();
+    len = fgetwc(in);
+    fwprintf(out, L"Rule %d (%d bytes)\n", i, len);
     for(int j = 0; j < len; j++)
     {
       cur.append(1, fgetwc(in));

@@ -115,6 +115,18 @@ RTXProcessor::read(string const &transferfile, string const &datafile)
     rule_map.push_back(cur);
     pat_size.push_back(patlen);
   }
+  count = fgetwc(in);
+  for(int i = 0; i < count; i++)
+  {
+    cur.clear();
+    len = getwc(in);
+    cur.reserve(len);
+    for(int j = 0; j < len; j++)
+    {
+      cur.append(1, fgetwc(in));
+    }
+    output_rules.push_back(cur);
+  }
   fclose(in);
 
   // datafile
@@ -568,7 +580,8 @@ RTXProcessor::applyRule(const wstring& rule)
       {
         int pos = 2*(popInt()-1);
         wstring part = popString();
-        pushStack(currentInput[pos]->chunkPart(attr_items[part], SourceClip));
+        Chunk* ch = (pos == -2) ? parentChunk : currentInput[pos];
+        pushStack(ch->chunkPart(attr_items[part], SourceClip));
       }
         break;
       case TARGETCLIP:
@@ -576,19 +589,15 @@ RTXProcessor::applyRule(const wstring& rule)
       {
         int pos = 2*(popInt()-1);
         wstring part = popString();
-        if(part == L"whole")
+        Chunk* ch = (pos == -2) ? parentChunk : currentInput[pos];
+        if(part == L"whole" || part == L"chcontent")
         {
-          pushStack(currentInput[pos]);
-          //currentInput[pos]->refcount++;
-        }
-        else if(part == L"chcontent")
-        {
-          Chunk* ch = new Chunk(L"", currentInput[pos]->contents);
           pushStack(ch);
+          //currentInput[pos]->refcount++;
         }
         else
         {
-          pushStack(currentInput[pos]->chunkPart(attr_items[part], TargetClip));
+          pushStack(ch->chunkPart(attr_items[part], TargetClip));
         }
       }
         break;
@@ -597,7 +606,8 @@ RTXProcessor::applyRule(const wstring& rule)
       {
         int pos = 2*(popInt()-1);
         wstring part = popString();
-        pushStack(currentInput[pos]->chunkPart(attr_items[part], ReferenceClip));
+        Chunk* ch = (pos == -2) ? parentChunk : currentInput[pos];
+        pushStack(ch->chunkPart(attr_items[part], ReferenceClip));
       }
         break;
       case SETCLIP:
@@ -699,6 +709,20 @@ RTXProcessor::applyRule(const wstring& rule)
           s = s.substr(1, s.size()-2);
         }
         pushStack(s);
+      }
+        break;
+      case GETRULE:
+        if(printingSteps) { wcerr << "getrule" << endl; }
+      {
+        int pos = 2*(popInt()-1);
+        pushStack(currentInput[pos]->rule);
+      }
+        break;
+      case SETRULE:
+        if(printingSteps) { wcerr << "setrule" << endl; }
+      {
+        int rl = popInt();
+        theStack[stackIdx].c->rule = rl;
       }
         break;
       default:
@@ -889,6 +913,33 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
 }
 
 void
+RTXProcessor::outputAll(FILE* out)
+{
+  while(outputQueue.size() > 0)
+  {
+    Chunk* ch = outputQueue.front();
+    outputQueue.pop_front();
+    if(ch->rule == -1)
+    {
+      ch->output(out);
+    }
+    else
+    {
+      parentChunk = ch;
+      currentInput = ch->contents;
+      currentOutput.clear();
+      if(printingRules) { wcerr << "Applying output rule " << ch->rule << endl; }
+      applyRule(output_rules[ch->rule]);
+      for(vector<Chunk*>::reverse_iterator it = currentOutput.rbegin(),
+              limit = currentOutput.rend(); it != limit; it++)
+      {
+        outputQueue.push_front(*it);
+      }
+    }
+  }
+}
+
+void
 RTXProcessor::process(FILE *in, FILE *out)
 {
   Chunk* next = readToken(in);
@@ -949,13 +1000,8 @@ RTXProcessor::process(FILE *in, FILE *out)
     temp.swap(parseGraph);
     if(parseGraph.size() == 0 && min != NULL)
     {
-      vector<Chunk*> ls;
-      ls.resize(min->length);
-      min->getChunks(ls, min->length-1);
-      for(unsigned int i = 0, limit = ls.size(); i < limit; i++)
-      {
-        ls[i]->output(out);
-      }
+      min->getChunks(outputQueue, min->length-1);
+      outputAll(out);
     }
     if(min != NULL)
     {

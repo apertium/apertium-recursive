@@ -38,6 +38,7 @@ private:
   map<wstring, set<wstring, Ltstr>, Ltstr> lists;
   map<wstring, set<wstring, Ltstr>, Ltstr> listslow;
   vector<wstring> rule_map;
+  vector<wstring> output_rules;
   vector<int> pat_size;
   int longestPattern;
   bool furtherInput;
@@ -47,6 +48,8 @@ private:
   int stackIdx;
   vector<Chunk*> currentInput;
   vector<Chunk*> currentOutput;
+  Chunk* parentChunk;
+  list<Chunk*> outputQueue;
   vector<ParseNode*> parseGraph;
 
   FILE *output;
@@ -73,6 +76,7 @@ private:
   void process_wrapper_null_flush(FILE *in, FILE *out);
   
   void checkForReduce(vector<ParseNode*>& result, ParseNode* node);
+  void outputAll(FILE* out);
   
   bool popBool();
   int popInt();

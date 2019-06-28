@@ -87,5 +87,7 @@ static const wchar_t BLANK  = L'b';
 static const wchar_t CONCAT     = L'+';
 static const wchar_t REJECTRULE = L'X';
 static const wchar_t DISTAG     = L'D';
+static const wchar_t GETRULE    = L'^';
+static const wchar_t SETRULE    = L'%';
 
 #endif

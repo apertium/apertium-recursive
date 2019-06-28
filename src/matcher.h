@@ -4,6 +4,7 @@
 #include <lttoolbox/transducer.h>
 #include <lttoolbox/alphabet.h>
 #include <chunk.h>
+#include <list>
 
 using namespace std;
 
@@ -317,9 +318,15 @@ public:
       delete this;
     }
   }
+  void getChunks(list<Chunk*>& chls, int count)
+  {
+    chls.push_front(chunk);
+    if(count == 0) return;
+    prev->getChunks(chls, count-1);
+  }
   void getChunks(vector<Chunk*>& chls, int count)
   {
-    chls[count] = chunk->copy();
+    chls[count] = chunk;
     if(count == 0) return;
     prev->getChunks(chls, count-1);
   }

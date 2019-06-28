@@ -21,6 +21,7 @@ RTXCompiler::RTXCompiler()
   currentRule = NULL;
   currentChunk = NULL;
   errorsAreSyntax = true;
+  inOutputRule = false;
 }
 
 wstring const RTXCompiler::SPECIAL_CHARS = L"!@$%()={}[]|/:;<>,.~→";
@@ -945,23 +946,13 @@ RTXCompiler::compileTag(wstring s)
 wstring
 RTXCompiler::compileClip(Clip* c)
 {
-  bool useReplace = (currentChunk == NULL) ? false : !currentChunk->isToplevel;
+  int src = (c->src == -1) ? 0 : c->src;
+  bool useReplace = inOutputRule;
   wstring cl = (c->part == L"lemcase") ? compileString(L"lem") : compileString(c->part);
   cl += INT;
-  cl += c->src;
+  cl += src;
   wstring ret = cl;
-  if(c->src == -1)
-  {
-    for(unsigned int i = 0; i < parentTags.size(); i++)
-    {
-      if(parentTags[i] == c->part)
-      {
-        return compileTag(to_wstring(i+1));
-      }
-    }
-    die(L"parent chunk has no attribute " + c->part);
-  }
-  else if(c->src == 0)
+  if(c->src == 0)
   {
     return compileTag(c->part);
   }
@@ -981,17 +972,7 @@ RTXCompiler::compileClip(Clip* c)
   {
     wstring undeftag;
     wstring deftag;
-    wstring undef;
-    wstring def;
-    if(attrDefaults.find(c->part) != attrDefaults.end())
-    {
-      undeftag = attrDefaults[c->part].first;
-      deftag = attrDefaults[c->part].second;
-      undef += DROP;
-      undef += compileTag(undeftag);
-      def += DROP;
-      def += compileTag(deftag);
-    }
+    wstring thedefault;
     wstring blank;
     blank += DUP;
     blank += compileString(L"");
@@ -1003,39 +984,44 @@ RTXCompiler::compileClip(Clip* c)
       blank += EQUAL;
       blank += OR;
     }
+    if(attrDefaults.find(c->part) != attrDefaults.end())
+    {
+      undeftag = attrDefaults[c->part].first;
+      deftag = attrDefaults[c->part].second;
+      thedefault += DROP;
+      thedefault += compileTag(useReplace ? deftag : undeftag);
+      if(useReplace)
+      {
+        blank += OVER;
+        blank += compileTag(undeftag);
+        blank += EQUAL;
+        blank += OR;
+      }
+    }
     blank += JUMPONFALSE;
     if(c->fromChunk)
     {
       ret += TARGETCLIP;
       ret += blank;
-      if(useReplace)
-      {
-        ret += (wchar_t)def.size();
-        ret += def;
-      }
-      else
-      {
-        ret += (wchar_t)undef.size();
-        ret += undef;
-      }
+      ret += (wchar_t)thedefault.size();
+      ret += thedefault;
     }
     else
     {
-      int s = (useReplace ? def.size() : undef.size());
       ret += TARGETCLIP;
       ret += blank;
-      ret += (wchar_t)(6 + 2*cl.size() + 2*blank.size() + s);
+      ret += (wchar_t)(6 + 2*cl.size() + 2*blank.size() + thedefault.size());
       ret += DROP;
       ret += cl;
       ret += REFERENCECLIP;
       ret += blank;
-      ret += (wchar_t)(3 + cl.size() + blank.size() + s);
+      ret += (wchar_t)(3 + cl.size() + blank.size() + thedefault.size());
       ret += DROP;
       ret += cl;
       ret += SOURCECLIP;
       ret += blank;
-      ret += (wchar_t)s;
-      ret += (useReplace ? def : undef);
+      ret += (wchar_t)thedefault.size();
+      ret += thedefault;
     }
   }
   if(c->part == L"lemcase")
@@ -1048,79 +1034,11 @@ RTXCompiler::compileClip(Clip* c)
 wstring
 RTXCompiler::compileClip(wstring part, int pos, wstring side = L"", bool usereplace = false)
 {
-  wstring c = compileString(part);
-  if(part == L"lemcase")
-  {
-    c = compileString(L"lem");
-  }
-  c += INT;
-  c += pos;
-  wstring ret = c;
-  if(side == L"sl")
-  {
-    ret += SOURCECLIP;
-  }
-  else if(side == L"tl")
-  {
-    ret += TARGETCLIP;
-  }
-  else if(side == L"ref")
-  {
-    ret += REFERENCECLIP;
-  }
-  else if(!usereplace || attrDefaults.find(part) == attrDefaults.end())
-  {
-    wstring def;
-    if(attrDefaults.find(part) != attrDefaults.end())
-    {
-      wstring tg = compileTag(attrDefaults[part].first);
-      def += DUP;
-      def += compileString(L"");
-      def += EQUAL;
-      def += JUMPONFALSE;
-      def += (wchar_t)(tg.size() + 1);
-      def += DROP;
-      def += tg;
-    }
-    ret += TARGETCLIP;
-    ret += DUP;
-    ret += compileString(L"");
-    ret += EQUAL;
-    ret += JUMPONFALSE;
-    ret += (2*c.size() + def.size() + 10);
-    ret += DROP;
-    ret += c;
-    ret += REFERENCECLIP;
-    ret += DUP;
-    ret += compileString(L"");
-    ret += EQUAL;
-    ret += JUMPONFALSE;
-    ret += (c.size() + def.size() + 2);
-    ret += DROP;
-    ret += c;
-    ret += SOURCECLIP;
-    ret += def;
-  }
-  else
-  {
-    wstring undef = attrDefaults[part].first;
-    wstring repl = attrDefaults[part].second;
-    wstring emp1 = compileString(L"") + EQUAL;
-    wstring emp2 = compileTag(undef) + EQUAL;
-    wstring emp = wstring(1, DUP) + emp1 + OVER + emp2 + OR;
-    ret = wstring(1, DROP) + compileTag(repl);
-    ret = emp + wstring(1, JUMPONFALSE) + (wchar_t)ret.size() + ret;
-    ret = wstring(1, DROP) + c + SOURCECLIP + ret;
-    ret = emp + wstring(1, JUMPONFALSE) + (wchar_t)ret.size() + ret;
-    ret = wstring(1, DROP) + c + REFERENCECLIP + ret;
-    ret = emp + wstring(1, JUMPONFALSE) + (wchar_t)ret.size() + ret;
-    ret = c + TARGETCLIP + ret;
-  }
-  if(part == L"lemcase")
-  {
-    ret += GETCASE;
-  }
-  return ret;
+  Clip cl;
+  cl.part = part;
+  cl.src = pos;
+  cl.side = side;
+  return compileClip(&cl);
 }
 
 wstring
@@ -1294,17 +1212,40 @@ RTXCompiler::processOutput(OutputChunk* r)
     {
       ret += compileClip(L"whole", r->pos, L"tl");
       ret += APPENDALLCHILDREN;
+      ret += INT;
+      ret += (wchar_t)r->pos;
+      ret += GETRULE;
+      ret += SETRULE;
     }
     else
     {
+      for(unsigned int i = 1, limit = currentRule->pattern.size(); i <= limit; i++)
+      {
+        ret += compileClip(L"whole", i, L"tl");
+        ret += APPENDCHILD;
+        if(i != limit)
+        {
+          ret += INT;
+          ret += (wchar_t)i;
+          ret += BLANK;
+          ret += APPENDCHILD;
+        }
+      }
+      inOutputRule = true;
+      wstring outrule;
       vector<wstring> was = parentTags;
       parentTags = pattern;
       for(unsigned int i = 0; i < r->children.size(); i++)
       {
-        ret += processOutput(r->children[i]);
-        ret += APPENDCHILD;
+        outrule += processOutput(r->children[i]);
+        outrule += OUTPUT;
       }
       parentTags = was;
+      ret += INT;
+      ret += (wchar_t)outputBytecode.size();
+      ret += SETRULE;
+      outputBytecode.push_back(outrule);
+      inOutputRule = false;
     }
   }
   else
@@ -1474,10 +1415,10 @@ RTXCompiler::processRules()
     }
     rule->compiled = comp;
   }
-  if(attrDefaults.size() != 0)
+  /*if(attrDefaults.size() != 0)
   {
     makeDefaultRule();
-  }
+  }*/
 }
 
 void
@@ -1560,6 +1501,15 @@ RTXCompiler::write(const string &fname, const string &bytename)
     {
       fputwc(reductionRules[i]->compiled[c], out2);
       // char by char because there might be \0s and that could be a problem?
+    }
+  }
+  fputwc(outputBytecode.size(), out2);
+  for(unsigned int i = 0; i < outputBytecode.size(); i++)
+  {
+    fputwc(outputBytecode[i].size(), out2);
+    for(unsigned int c = 0; c < outputBytecode[i].size(); c++)
+    {
+      fputwc(outputBytecode[i][c], out2);
     }
   }
   fclose(out2);

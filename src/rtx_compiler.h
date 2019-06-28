@@ -250,9 +250,12 @@ private:
   
   vector<Rule*> reductionRules;
 
+  vector<wstring> outputBytecode;
+
   Rule* currentRule;
   OutputChunk* currentChunk;
   vector<wstring> parentTags;
+  bool inOutputRule;
   
   void processRules();
   void makePattern(int ruleid);
@@ -260,8 +263,6 @@ private:
   
   map<wstring, set<int>> firstInput;
   map<wstring, set<int>> firstOutput;
-  bool isPrefix(Rule* pref, Rule* rule);
-  vector<vector<wstring>> findSuffixes(Rule* rule);
   
   unsigned int longestPattern;
   

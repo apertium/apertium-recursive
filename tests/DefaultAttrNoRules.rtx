@@ -1,6 +1,0 @@
-NPOS1: _;
-NPOS2: _;
-
-gender = (GD m) m f mf GD;
-
-NPOS2 -> NPOS1 {1};

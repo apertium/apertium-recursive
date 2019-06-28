@@ -1,6 +1,0 @@
-N: _;
-n: _.gender;
-
-gender = m f;
-
-N -> n {1(gender=$gender)};

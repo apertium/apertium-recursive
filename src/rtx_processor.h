@@ -8,6 +8,7 @@
 #include <lttoolbox/ltstr.h>
 #include <matcher.h>
 #include <chunk.h>
+#include <pool.h>
 
 #include <cstring>
 #include <cstdio>
@@ -51,8 +52,8 @@ private:
   Chunk* parentChunk;
   list<Chunk*> outputQueue;
   vector<ParseNode*> parseGraph;
-  ChunkPool pool;
-  wstring blankBuffer;
+  Pool<Chunk> chunkPool;
+  Pool<ParseNode> parsePool;
 
   FILE *output;
 

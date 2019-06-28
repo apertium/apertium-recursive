@@ -653,7 +653,7 @@ RTXProcessor::applyRule(const wstring& rule)
         if(printingSteps) { wcerr << "chunk" << endl; }
       {
         //Chunk* ch = new Chunk();
-        Chunk* ch = pool.newChunk();
+        Chunk* ch = chunkPool.next();
         ch->isBlank = false;
         pushStack(ch);
       }
@@ -689,7 +689,7 @@ RTXProcessor::applyRule(const wstring& rule)
         if(loc == -1)
         {
           //pushStack(new Chunk(L" "));
-          Chunk* ch = pool.newChunk();
+          Chunk* ch = chunkPool.next();
           ch->target = L" ";
           ch->isBlank = true;
           pushStack(ch);
@@ -753,7 +753,7 @@ RTXProcessor::readToken(FILE *in)
     {
       furtherInput = false;
       //Chunk* ret = new Chunk(cur);
-      Chunk* ret = pool.newChunk();
+      Chunk* ret = chunkPool.next();
       ret->target = cur;
       ret->isBlank = true;
       return ret;
@@ -808,7 +808,7 @@ RTXProcessor::readToken(FILE *in)
       {
         inword = false;
         //Chunk* ret = new Chunk(src, dest, coref);
-        Chunk* ret = pool.newChunk();
+        Chunk* ret = chunkPool.next();
         ret->source = src;
         ret->target = dest;
         ret->coref = coref;
@@ -820,7 +820,7 @@ RTXProcessor::readToken(FILE *in)
     {
       inword = true;
       //Chunk* ret = new Chunk(cur);
-      Chunk* ret = pool.newChunk();
+      Chunk* ret = chunkPool.next();
       ret->target = cur;
       ret->isBlank = true;
       return ret;
@@ -891,11 +891,13 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
         ParseNode* cur;
         if(back == NULL)
         {
-          cur = new ParseNode(mx, currentOutput[0], weight + ruleWeights[rule-1]);
+          cur = parsePool.next();
+          cur->init(mx, currentOutput[0], weight + ruleWeights[rule-1]);
         }
         else
         {
-          cur = new ParseNode(back, currentOutput[0], weight + ruleWeights[rule-1]);
+          cur = parsePool.next();
+          cur->init(back, currentOutput[0], weight + ruleWeights[rule-1]);
         }
         checkForReduce(result, cur);
       }
@@ -919,11 +921,6 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
   if(rule == -1 || node->shouldShift())
   {
     result.push_back(node);
-  }
-  else
-  {
-    node->release();
-    node = NULL;
   }
 }
 
@@ -963,21 +960,20 @@ RTXProcessor::process(FILE *in, FILE *out)
     mx->prepareChunk(next->source);
     if(parseGraph.size() == 0)
     {
-      checkForReduce(parseGraph, new ParseNode(mx, next, true));
+      ParseNode* temp = parsePool.next();
+      temp->init(mx, next, true);
+      checkForReduce(parseGraph, temp);
     }
     else
     {
       vector<ParseNode*> temp;
       for(unsigned int i = 0, limit = parseGraph.size(); i < limit; i++)
       {
-        checkForReduce(temp, new ParseNode(parseGraph[i], next, true));
+        ParseNode* tempNode = parsePool.next();
+        tempNode->init(parseGraph[i], next, true);
+        checkForReduce(temp, tempNode);
       }
       parseGraph.swap(temp);
-      for(unsigned int i = 0, limit = temp.size(); i < limit; i++)
-      {
-        temp[i]->release();
-        temp[i] = NULL;
-      }
     }
     next = readToken(in);
     ParseNode* min = NULL;
@@ -995,17 +991,7 @@ RTXProcessor::process(FILE *in, FILE *out)
         {
           len = cur->length;
           weight = cur->weight;
-          if(min != NULL)
-          {
-            min->release();
-            min = NULL;
-          }
           min = cur;
-        }
-        else
-        {
-          cur->release();
-          cur = NULL;
         }
       }
       else
@@ -1018,23 +1004,17 @@ RTXProcessor::process(FILE *in, FILE *out)
     {
       min->getChunks(outputQueue, min->length-1);
       outputAll(out);
-      min->release();
-      min = NULL;
       wstring s = next->source;
       wstring t = next->target;
       wstring r = next->coref;
       bool b = next->isBlank;
-      pool.reset();
-      next = pool.newChunk();
+      chunkPool.reset();
+      parsePool.reset();
+      next = chunkPool.next();
       next->source = s;
       next->target = t;
       next->coref = r;
       next->isBlank = b;
-    }
-    if(min != NULL)
-    {
-      min->release();
-      min = NULL;
     }
     if(!furtherInput)
     {

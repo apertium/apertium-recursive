@@ -296,12 +296,18 @@ public:
   Chunk* chunk;
   int length;
   ParseNode* prev;
-  int refcount;
   MatchExe2* mx;
   double weight;
-  ParseNode(MatchExe2* m, Chunk* ch, double w = 0.0, bool prepared = false)
-  : first(0), last(0), chunk(ch), length(1), prev(NULL), refcount(1), mx(m), weight(w)
+  ParseNode()
+  : first(0), last(0)
+  {}
+  void init(MatchExe2* m, Chunk* ch, double w = 0.0, bool prepared = false)
   {
+    chunk = ch;
+    length = 1;
+    prev = NULL;
+    mx = m;
+    weight = w;
     if(chunk->isBlank)
     {
       mx->matchBlank(state, first, last);
@@ -315,15 +321,15 @@ public:
       mx->matchChunk(state, first, last, chunk->matchSurface());
     }
   }
-  ParseNode(ParseNode* prevNode, Chunk* next, double w = 0.0, bool prepared = false)
-  : first(0), last(0), chunk(next), prev(prevNode), refcount(1)
+  void init(ParseNode* prevNode, Chunk* next, double w = 0.0, bool prepared = false)
   {
+    chunk = next;
+    prev = prevNode;
     for(int i = prevNode->first; i != prevNode->last; i = (i+1)%RTXStateSize)
     {
       state[last++] = prevNode->state[i];
     }
     mx = prevNode->mx;
-    prev->refcount++;
     length = prev->length+1;
     weight = (w == 0) ? prev->weight : w;
     if(next->isBlank)
@@ -339,10 +345,8 @@ public:
       mx->matchChunk(state, first, this->last, chunk->matchSurface());
     }
   }
-  ParseNode(ParseNode* other)
+  void init(ParseNode* other)
   {
-    first = 0;
-    last = 0;
     for(int i = other->first; i != other->last; i = (i+1)%RTXStateSize)
     {
       state[last++] = other->state[i];
@@ -351,27 +355,7 @@ public:
     length = other->length;
     prev = other->prev;
     weight = other->weight;
-    if(prev != NULL)
-    {
-      prev->refcount++;
-    }
-    refcount = 1;
     mx = other->mx;
-  }
-  ~ParseNode()
-  {
-    if(prev != NULL)
-    {
-      prev->release();
-    }
-  }
-  void release()
-  {
-    refcount--;
-    if(refcount == 0)
-    {
-      delete this;
-    }
   }
   void getChunks(list<Chunk*>& chls, int count)
   {

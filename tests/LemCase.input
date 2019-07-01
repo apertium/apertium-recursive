@@ -1,4 +1,5 @@
-^potato<n>/patata<n>$ ^green<adj>/verde<adj>$
-^potato<n>/Patata<n>$ ^green<adj>/verde<adj>$
-^potato<n>/PATATA<n>$ ^green<adj>/Verde<adj>$
-^potato<n>/paTAta<n>$ ^green<adj>/Verde<adj>$
+^potato<n>/patata<n>$ ^green<adj>/verde<adj>$^,<cm>/,<cm>$
+^potato<n>/Patata<n>$ ^green<adj>/verde<adj>$^,<cm>/,<cm>$
+^potato<n>/PATATA<n>$ ^green<adj>/Verde<adj>$^,<cm>/,<cm>$
+^potato<n>/paTAta<n>$ ^green<adj>/Verde<adj>$^,<cm>/,<cm>$
+^the<det>/el<det>$ ^potato<n>/PATATA<n>$ ^green<adj>/verde<adj>/Bloop<adj>$

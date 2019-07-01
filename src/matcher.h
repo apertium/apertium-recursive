@@ -70,6 +70,7 @@ private:
   int rejected[RTXStackSize];
   int rejectedCount;
   int prematch[RTXStackSize];
+  int prematchAlt[RTXStackSize];
   int prematchIdx;
 
   void applySymbol(int const srcNode, int const symbol, int* state, int& last)
@@ -190,6 +191,7 @@ public:
       switch(chunk[i])
       {
         case L'\\':
+          prematchAlt[prematchIdx] = any_char;
           prematch[prematchIdx++] = towlower(chunk[++i]);
           break;
         case L'<':
@@ -198,12 +200,15 @@ public:
             if(chunk[j] == L'>')
             {
               int symbol = (*alpha)(chunk.substr(i, j-i+1));
+              prematchAlt[prematchIdx] = any_tag;
               prematch[prematchIdx++] = (symbol ? symbol : any_tag);
+              i = j;
               break;
             }
           }
           break;
         default:
+          prematchAlt[prematchIdx] = any_char;
           prematch[prematchIdx++] = towlower(chunk[i]);
           break;
       }
@@ -212,19 +217,16 @@ public:
   void matchPreparedChunk(int* state, int& first, int& last)
   {
     step(state, first, last, L'^');
+    applySymbol(initial, L'^', state, last);
     for(int i = 0; i < prematchIdx; i++)
     {
       if(prematch[i] == any_tag)
       {
         step(state, first, last, any_tag);
       }
-      else if(prematch[i] < 0)
-      {
-        step(state, first, last, prematch[i], any_tag);
-      }
       else
       {
-        step(state, first, last, prematch[i], any_char);
+        step(state, first, last, prematch[i], prematchAlt[i]);
       }
     }
     step(state, first, last, L'$');
@@ -301,7 +303,7 @@ public:
   ParseNode()
   : first(0), last(0)
   {}
-  void init(MatchExe2* m, Chunk* ch, double w = 0.0, bool prepared = false)
+  void init(MatchExe2* m, Chunk* ch, double w = 0.0)
   {
     chunk = ch;
     length = 1;
@@ -312,16 +314,12 @@ public:
     {
       mx->matchBlank(state, first, last);
     }
-    else if(prepared)
-    {
-      mx->matchPreparedChunk(state, first, last);
-    }
     else
     {
       mx->matchChunk(state, first, last, chunk->matchSurface());
     }
   }
-  void init(ParseNode* prevNode, Chunk* next, double w = 0.0, bool prepared = false)
+  void init(ParseNode* prevNode, Chunk* next, double w = 0.0)
   {
     chunk = next;
     prev = prevNode;
@@ -336,13 +334,33 @@ public:
     {
       mx->matchBlank(state, first, this->last);
     }
-    else if(prepared)
-    {
-      mx->matchPreparedChunk(state, first, this->last);
-    }
     else
     {
       mx->matchChunk(state, first, this->last, chunk->matchSurface());
+    }
+  }
+  void init(ParseNode* prevNode, Chunk* next, bool prepared)
+  {
+    chunk = next;
+    prev = prevNode;
+    for(int i = prevNode->first; i != prevNode->last; i = (i+1)%RTXStateSize)
+    {
+      state[last++] = prevNode->state[i];
+    }
+    mx = prevNode->mx;
+    length = prev->length+1;
+    weight = prev->weight;
+    if(next->isBlank)
+    {
+      mx->matchBlank(state, first, last);
+    }
+    else if(prepared)
+    {
+      mx->matchPreparedChunk(state, first, last);
+    }
+    else
+    {
+      mx->matchChunk(state, first, last, chunk->matchSurface());
     }
   }
   void init(ParseNode* other)

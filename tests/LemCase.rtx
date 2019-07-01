@@ -1,5 +1,7 @@
 NP: _;
 n: _;
 adj: _;
+det: _;
 
-NP -> n adj {1(lemcase=aa) _1 2(lemcase=1.lemcase)};
+NP -> n adj.$lemcase/ref {1(lemcase=aa) _1 2(lemcase=1.lemcase)} |
+      det NP {1(lemcase=2.lemcase) _1 2};

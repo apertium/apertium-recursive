@@ -35,7 +35,6 @@ RTXProcessor::readData(FILE *in)
 {
   alphabet.read(in);
 
-  //Transducer t;
   Transducer* t = new Transducer();
   t->read(in, alphabet.size());
 
@@ -295,9 +294,6 @@ RTXProcessor::stackCopy(int src, int dest)
 bool
 RTXProcessor::applyRule(const wstring& rule)
 {
-  // applyRule does not release any chunks
-  // it doesn't increment reference counters either
-  // TODO: this may cause memory leaks
   stackIdx = 0;
   for(unsigned int i = 0; i < rule.size(); i++)
   {
@@ -335,7 +331,7 @@ RTXProcessor::applyRule(const wstring& rule)
       }
         break;
       case INT:
-        if(printingSteps) { wcerr << "int" << endl; }
+        if(printingSteps) { wcerr << "int " << (int)rule[i+1] << endl; }
         pushStack((int)rule[++i]);
         break;
       case PUSHFALSE:
@@ -593,7 +589,6 @@ RTXProcessor::applyRule(const wstring& rule)
         if(part == L"whole" || part == L"chcontent")
         {
           pushStack(ch);
-          //currentInput[pos]->refcount++;
         }
         else
         {
@@ -652,7 +647,6 @@ RTXProcessor::applyRule(const wstring& rule)
       case CHUNK:
         if(printingSteps) { wcerr << "chunk" << endl; }
       {
-        //Chunk* ch = new Chunk();
         Chunk* ch = chunkPool.next();
         ch->isBlank = false;
         pushStack(ch);
@@ -688,7 +682,6 @@ RTXProcessor::applyRule(const wstring& rule)
         int loc = 2*(popInt()-1) + 1;
         if(loc == -1)
         {
-          //pushStack(new Chunk(L" "));
           Chunk* ch = chunkPool.next();
           ch->target = L" ";
           ch->isBlank = true;
@@ -752,7 +745,6 @@ RTXProcessor::readToken(FILE *in)
     if(feof(in) || (internal_null_flush && val == 0))
     {
       furtherInput = false;
-      //Chunk* ret = new Chunk(cur);
       Chunk* ret = chunkPool.next();
       ret->target = cur;
       ret->isBlank = true;
@@ -807,7 +799,6 @@ RTXProcessor::readToken(FILE *in)
       if(val == L'$')
       {
         inword = false;
-        //Chunk* ret = new Chunk(src, dest, coref);
         Chunk* ret = chunkPool.next();
         ret->source = src;
         ret->target = dest;
@@ -819,7 +810,6 @@ RTXProcessor::readToken(FILE *in)
     else if(!inword && val == L'^')
     {
       inword = true;
-      //Chunk* ret = new Chunk(cur);
       Chunk* ret = chunkPool.next();
       ret->target = cur;
       ret->isBlank = true;
@@ -905,11 +895,6 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
       {
         // TODO: somewhat tricky loops
       }
-      /*for(unsigned int i = 0, limit = currentInput.size(); i < limit; i++)
-      {
-        currentInput[i]->release();
-        currentInput[i] = NULL;
-      }*/
       break;
     }
     else
@@ -933,6 +918,7 @@ RTXProcessor::outputAll(FILE* out)
     outputQueue.pop_front();
     if(ch->rule == -1)
     {
+      if(printingRules) { wcerr << "No rule specified" << endl; }
       ch->output(out);
     }
     else
@@ -957,15 +943,15 @@ RTXProcessor::process(FILE *in, FILE *out)
   Chunk* next = readToken(in);
   while(true)
   {
-    mx->prepareChunk(next->source);
     if(parseGraph.size() == 0)
     {
       ParseNode* temp = parsePool.next();
-      temp->init(mx, next, true);
+      temp->init(mx, next);
       checkForReduce(parseGraph, temp);
     }
     else
     {
+      mx->prepareChunk(next->source);
       vector<ParseNode*> temp;
       for(unsigned int i = 0, limit = parseGraph.size(); i < limit; i++)
       {

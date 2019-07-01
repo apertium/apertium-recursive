@@ -14,7 +14,7 @@ private:
     int wasUsed;
   };
   vector<Bucket*> bucketList;
-  int idx;
+  unsigned int idx;
   Bucket* cur;
   inline void getNextBucket()
   {

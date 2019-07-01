@@ -1,4 +1,5 @@
-^patata<n>$ ^verde<adj>$
-^patata<n>$ ^Verde<adj>$
-^patata<n>$ ^VERDE<adj>$
-^patata<n>$ ^verde<adj>$
+^patata<n>$ ^verde<adj>$^,<cm>$
+^patata<n>$ ^Verde<adj>$^,<cm>$
+^patata<n>$ ^VERDE<adj>$^,<cm>$
+^patata<n>$ ^verde<adj>$^,<cm>$
+^El<det>$ ^patata<n>$ ^VERDE<adj>$

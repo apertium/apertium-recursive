@@ -24,7 +24,8 @@ RTXCompiler::RTXCompiler()
   inOutputRule = false;
 }
 
-wstring const RTXCompiler::SPECIAL_CHARS = L"!@$%()={}[]|/:;<>,.~→";
+wstring const
+RTXCompiler::SPECIAL_CHARS = L"!@$%()={}[]|/:;<>,.~→";
 
 void
 RTXCompiler::die(wstring message)
@@ -312,6 +313,10 @@ RTXCompiler::parseRetagRule(wstring srcTag)
 void
 RTXCompiler::parseAttrRule(wstring categoryName)
 {
+  if(collections.find(categoryName) != collections.end())
+  {
+    die(L"redefinition of category " + categoryName);
+  }
   eatSpaces();
   if(isNextToken(L'('))
   {
@@ -376,6 +381,10 @@ RTXCompiler::parseClip(int src = -2)
     if(ret->src == 0)
     {
       die(L"literal value cannot have a side");
+    }
+    else if(ret->src == -1)
+    {
+      die(L"variable cannot have a side");
     }
     ret->side = parseIdent();
   }
@@ -706,8 +715,6 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     {
       die(L"empty pattern");
     }
-    firstOutput[output].insert(reductionRules.size());
-    firstInput[rule->pattern[0][1]].insert(reductionRules.size());
     if(isNextToken(L'['))
     {
       while(!source.eof())
@@ -964,7 +971,8 @@ RTXCompiler::compileClip(Clip* c)
   {
     ret += REFERENCECLIP;
   }
-  else if(c->side == L"tl" || c->part == L"lemcase")
+  else if(c->side == L"tl" || c->part == L"lemcase" ||
+          (c->src != -1 && !nodeIsSurface[currentRule->pattern[c->src-1][1]]))
   {
     ret += TARGETCLIP;
   }
@@ -999,30 +1007,20 @@ RTXCompiler::compileClip(Clip* c)
       }
     }
     blank += JUMPONFALSE;
-    if(c->fromChunk)
-    {
-      ret += TARGETCLIP;
-      ret += blank;
-      ret += (wchar_t)thedefault.size();
-      ret += thedefault;
-    }
-    else
-    {
-      ret += TARGETCLIP;
-      ret += blank;
-      ret += (wchar_t)(6 + 2*cl.size() + 2*blank.size() + thedefault.size());
-      ret += DROP;
-      ret += cl;
-      ret += REFERENCECLIP;
-      ret += blank;
-      ret += (wchar_t)(3 + cl.size() + blank.size() + thedefault.size());
-      ret += DROP;
-      ret += cl;
-      ret += SOURCECLIP;
-      ret += blank;
-      ret += (wchar_t)thedefault.size();
-      ret += thedefault;
-    }
+    ret += TARGETCLIP;
+    ret += blank;
+    ret += (wchar_t)(6 + 2*cl.size() + 2*blank.size() + thedefault.size());
+    ret += DROP;
+    ret += cl;
+    ret += REFERENCECLIP;
+    ret += blank;
+    ret += (wchar_t)(3 + cl.size() + blank.size() + thedefault.size());
+    ret += DROP;
+    ret += cl;
+    ret += SOURCECLIP;
+    ret += blank;
+    ret += (wchar_t)thedefault.size();
+    ret += thedefault;
   }
   if(c->part == L"lemcase")
   {
@@ -1032,7 +1030,7 @@ RTXCompiler::compileClip(Clip* c)
 }
 
 wstring
-RTXCompiler::compileClip(wstring part, int pos, wstring side = L"", bool usereplace = false)
+RTXCompiler::compileClip(wstring part, int pos, wstring side = L"")
 {
   Clip cl;
   cl.part = part;
@@ -1305,83 +1303,6 @@ RTXCompiler::processCond(Cond* cond)
 }
 
 void
-RTXCompiler::makeDefaultRule()
-{
-  Rule* rule = new Rule;
-  rule->weight = -1.0;
-  rule->compiled += compileString(L"yes");
-  rule->compiled += compileString(L"foundany");
-  rule->compiled += SETVAR;
-  vector<wstring> tags;
-  for(map<wstring, pair<wstring, wstring>>::iterator it = attrDefaults.begin();
-          it != attrDefaults.end(); ++it)
-  {
-    wstring cat = it->first;
-    wstring undef = it->second.first;
-    tags.push_back(L"<" + undef + L">");
-    wstring def = it->second.second;
-    wstring set = compileTag(def) + compileString(cat);
-    set += INT;
-    set += (wchar_t)1;
-    set += SETCLIP;
-    set += compileString(L"yes");
-    set += compileString(L"foundany");
-    set += SETVAR;
-
-    rule->compiled += compileClip(cat, 1, L"tl");
-    rule->compiled += compileTag(undef);
-    rule->compiled += EQUAL;
-    rule->compiled += JUMPONFALSE;
-    rule->compiled += (wchar_t)set.size();
-    rule->compiled += set;
-  }
-  if(tags.size() == 0)
-  {
-    delete rule;
-    return;
-  }
-  rule->compiled += compileString(L"yes");
-  rule->compiled += compileString(L"foundany");
-  rule->compiled += FETCHVAR;
-  rule->compiled += EQUAL;
-  rule->compiled += JUMPONTRUE;
-  rule->compiled += (wchar_t)1;
-  rule->compiled += REJECTRULE;
-  rule->compiled += compileClip(L"whole", 1, L"tl");
-  rule->compiled += OUTPUT;
-
-  int loc = td.getTransducer().getInitial();
-  loc = td.getTransducer().insertSingleTransduction(L'^', loc);
-  loc = insertLemma(loc, L"");
-  loc = insertTags(loc, L"*");
-  int epsilon = td.getAlphabet()(0,0);
-  int tmp;
-  for(unsigned int i = 0; i < tags.size(); i++)
-  {
-    td.getAlphabet().includeSymbol(tags[i]);
-    tmp = td.getTransducer().insertSingleTransduction(td.getAlphabet()(tags[i]), loc);
-    if(i == 0)
-    {
-      // this will make the rule only apply if the first undefined tags is present
-      // but doing otherwise results in a seeminly infinite loop
-      // TODO TODO TODO
-      loc = td.getTransducer().insertSingleTransduction(epsilon, tmp);
-    }
-    else
-    {
-      td.getTransducer().linkStates(tmp, loc, epsilon);
-    }
-  }
-  td.getTransducer().linkStates(loc, loc, td.getAlphabet()(ANY_TAG));
-  loc = td.getTransducer().insertSingleTransduction(L'$', loc);
-  reductionRules.push_back(rule);
-  const int symbol = td.countToFinalSymbol(reductionRules.size());
-  loc = td.getTransducer().insertSingleTransduction(symbol, loc, rule->weight);
-  td.getTransducer().setFinal(loc);
-  rule->pattern.resize(1);
-}
-
-void
 RTXCompiler::processRules()
 {
   Rule* rule;
@@ -1415,10 +1336,6 @@ RTXCompiler::processRules()
     }
     rule->compiled = comp;
   }
-  /*if(attrDefaults.size() != 0)
-  {
-    makeDefaultRule();
-  }*/
 }
 
 void

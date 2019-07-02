@@ -15,6 +15,8 @@ using namespace std;
 class TRXCompiler
 {
 private:
+  PatternBuilder PB;
+
   map<string, pair<int, xmlNode*>, Ltstr> macros;
   map<string, vector<PatternElement*>, Ltstr> patterns;
   map<string, set<string, Ltstr>, Ltstr> attrs;
@@ -23,10 +25,13 @@ private:
   map<string, string, Ltstr> varMangle;
   map<string, set<string, Ltstr>, Ltstr> lists;
   map<string, string, Ltstr> listMangle;
+  map<string, int, Ltstr> outputMap;
+  map<string, vector<string>, Ltstr> outputNames;
   vector<wstring> inputRules;
   vector<wstring> outputRules;
   bool inOutput;
   xmlDoc* curDoc;
+  int curPatternSize;
 
   void die(xmlNode* node, wstring msg);
   void warn(xmlNode* node, wstring msg);
@@ -35,6 +40,8 @@ private:
   xmlChar* getAttr(xmlNode* node, const xmlChar* attr);
   string toString(const xmlChar* s);
   wstring toWstring(const xmlChar* s);
+
+  int getPos(xmlNode* node, bool isBlank);
 
   void processFile(xmlNode* node);
   void processCats(xmlNode* node);

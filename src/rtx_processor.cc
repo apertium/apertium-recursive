@@ -720,6 +720,10 @@ RTXProcessor::applyRule(const wstring& rule)
         theStack[stackIdx].c->rule = rl;
       }
         break;
+      case LUCOUNT:
+        if(printingSteps) { wcerr << "lucount" << endl; }
+        pushStack(to_wstring(currentInput.size()));
+        break;
       default:
         wcerr << "unknown instruction: " << rule[i] << endl;
         exit(1);

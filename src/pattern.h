@@ -16,7 +16,9 @@ class PatternBuilder
 private:
   TransferData td;
 public:
-  void addPattern(vector<vector<PatternElement>> pat, int rule);
+  void addPattern(vector<vector<PatternElement*>> pat, int rule)
+  {
+  }
 };
 
 #endif

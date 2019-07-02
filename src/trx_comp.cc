@@ -1,11 +1,12 @@
-#include <rtx_processor.h>
+#include <trx_compiler.h>
 #include <lttoolbox/lt_locale.h>
 #include <getopt.h>
+#include <vector>
 
 void endProgram(char *name)
 {
-  cout << basename(name) << ": perform structural transfer" << endl;
-  cout << "USAGE: " << basename(name) << " [ -m | -r | -s ] [-n] bytecode_file pattern_file [input_file [output_file]]" << endl;
+  cout << basename(name) << ": compile xml transfer rules to bytecode" << endl;
+  cout << "USAGE: " << basename(name) << " [ -m | -r | -s ] [-n] bytecode_file pattern_file rule_files..." << endl;
   cout << "Options:" << endl;
 #if HAVE_GETOPT_LONG
   cout << "  -m, --matches:    print the steps of the pattern transducer" << endl;
@@ -25,7 +26,7 @@ void endProgram(char *name)
 
 int main(int argc, char *argv[])
 {
-  RTXProcessor p;
+  TRXCompiler p;
 
 #if HAVE_GETOPT_LONG
   static struct option long_options[]=
@@ -54,22 +55,6 @@ int main(int argc, char *argv[])
 
     switch(c)
     {
-    case 'm':
-      p.printMatch(true);
-      break;
-
-    case 'n':
-      p.withoutCoref(true);
-      break;
-
-    case 'r':
-      p.printRules(true);
-      break;
-
-    case 's':
-      p.printSteps(true);
-      break;
-
     case 'h':
     default:
       endProgram(argv[0]);
@@ -79,27 +64,16 @@ int main(int argc, char *argv[])
 
   LtLocale::tryToSetLocale();
 
-  if(optind > (argc - 2) || optind < (argc - 4))
+  string byte = argv[optind];
+  string bin = argv[optind+1];
+  vector<string> files;
+  for(int i = optind + 2; i < argc; i++)
   {
-    endProgram(argv[0]);
+    files.push_back(argv[i]);
   }
 
-  p.read(argv[optind], argv[optind+1]);
+  p.compile(files);
+  p.write(bin, byte);
 
-  FILE *input = stdin, *output = stdout;
-
-  if(optind <= (argc - 3))
-  {
-    input = fopen(argv[optind+2], "rb");
-  }
-  if(optind <= (argc - 4))
-  {
-    output = fopen(argv[optind+3], "rb");
-  }
-
-  p.process(input, output);
-
-  fclose(input);
-  fclose(output);
   return EXIT_SUCCESS;
 }

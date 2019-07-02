@@ -1,9 +1,6 @@
 #include <rtx_compiler.h>
-#include <bytecode.h>
 #include <apertium/string_utils.h>
-#include <vector>
-#include <algorithm>
-#include <iterator>
+#include <apertium/utf_converter.h>
 
 using namespace std;
 

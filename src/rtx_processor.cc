@@ -4,8 +4,6 @@
 #include <apertium/utf_converter.h>
 #include <lttoolbox/compression.h>
 
-#include <cctype>
-#include <cerrno>
 #include <iostream>
 #include <apertium/string_utils.h>
 //#include <apertium/unlocked_cstdio.h>

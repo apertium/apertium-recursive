@@ -2,8 +2,6 @@
 #define __RTXCOMPILER__
 
 #include <apertium/transfer_data.h>
-#include <lttoolbox/ltstr.h>
-#include <apertium/utf_converter.h>
 #include <bytecode.h>
 
 #include <map>

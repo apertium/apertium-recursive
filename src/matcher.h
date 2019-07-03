@@ -146,10 +146,13 @@ public:
   {
     step(state, first, last, L' ');
   }
-  void matchChunk(int* state, int& first, int& last, const wstring& ch)
+  void matchChunk(int* state, int& first, int& last, const wstring& ch, bool addInit = true)
   {
     step(state, first, last, L'^');
-    applySymbol(initial, L'^', state, last);
+    if(addInit)
+    {
+      applySymbol(initial, L'^', state, last);
+    }
     for(unsigned int i = 0, limit = ch.size(); i < limit; i++)
     {
       switch(ch[i])

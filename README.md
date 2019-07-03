@@ -22,10 +22,11 @@ src/rtx-proc bytecode-file pattern-file < input
 src/rtx-decomp bytecode-file text-file
 ```
 
-Options for ```rec-inter```:
+Options for ```rtx-proc```:
  - ```-r``` print which rules are applying
  - ```-s``` trace the execution of the bytecode interpreter
- - ```-m``` trace the pattern matcher
+ - ```-m``` trace the pattern matcher (Note: this currently has no effect)
+ - ```-n``` indicates that the input stream has only source and target sides and not anaphora coreferences
 
 Testing
 -------

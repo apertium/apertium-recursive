@@ -163,6 +163,9 @@ void writeRule(wstring rule, FILE* out)
       case BLANK:
         fwprintf(out, L"BLANK\n");
         break;
+      case OUTPUTALL:
+        fwprintf(out, L"OUTPUTALL\n");
+        break;
       case CONCAT:
         fwprintf(out, L"CONCAT\n");
         break;

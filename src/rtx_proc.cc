@@ -12,12 +12,14 @@ void endProgram(char *name)
   cout << "  -n, --no-coref:   treat stream as having no coreference LUs" << endl;
   cout << "  -r, --rules:      print the rules that are being applied" << endl;
   cout << "  -s, --steps:      print the instructions executed by the stack machine" << endl;
+  cout << "  -t, --trx:        mimic the behavior of apertium-transfer and apertium-interchunk" << endl;
   cout << "  -h, --help:       show this help" << endl;
 #else
   cout << "  -m:   print the steps of the pattern transducer" << endl;
   cout << "  -n:   treat stream as having no coreference LUs" << endl;
   cout << "  -r:   print the rules that are being applied" << endl;
   cout << "  -s:   print the instructions executed by the stack machine" << endl;
+  cout << "  -t:   mimic the behavior of apertium-transfer and apertium-interchunk" << endl;
   cout << "  -h:   show this help" << endl;
 #endif
   exit(EXIT_FAILURE);
@@ -34,6 +36,7 @@ int main(int argc, char *argv[])
       {"no-coref",          0, 0, 'n'},
       {"rules",             0, 0, 'r'},
       {"steps",             0, 0, 's'},
+      {"trx",               0, 0, 't'},
       {"help",              0, 0, 'h'}
     };
 #endif
@@ -42,9 +45,9 @@ int main(int argc, char *argv[])
   {
 #if HAVE_GETOPT_LONG
     int option_index;
-    int c = getopt_long(argc, argv, "mnrsh", long_options, &option_index);
+    int c = getopt_long(argc, argv, "mnrsth", long_options, &option_index);
 #else
-    int c = getopt(argc, argv, "mnrsh");
+    int c = getopt(argc, argv, "mnrsth");
 #endif
 
     if(c == -1)
@@ -68,6 +71,10 @@ int main(int argc, char *argv[])
 
     case 's':
       p.printSteps(true);
+      break;
+
+    case 't':
+      p.mimicChunker(true);
       break;
 
     case 'h':
@@ -94,7 +101,7 @@ int main(int argc, char *argv[])
   }
   if(optind <= (argc - 4))
   {
-    output = fopen(argv[optind+3], "rb");
+    output = fopen(argv[optind+3], "wb");
   }
 
   p.process(input, output);

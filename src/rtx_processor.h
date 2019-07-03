@@ -65,6 +65,7 @@ private:
   bool printingRules;
   bool printingMatch;
   bool noCoref;
+  bool isLinear;
 
   void destroy();
   void readData(FILE *input);
@@ -76,10 +77,13 @@ private:
   bool endsWith(wstring const &str1, wstring const &str2) const;
   bool applyRule(const wstring& rule);
   Chunk* readToken(FILE *in);
-  void process_wrapper_null_flush(FILE *in, FILE *out);
   
   void checkForReduce(vector<ParseNode*>& result, ParseNode* node);
   void outputAll(FILE* out);
+  void processGLR(FILE* in, FILE* out);
+
+  void processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x);
+  void processTRX(FILE* in, FILE* out);
   
   bool popBool();
   int popInt();
@@ -131,6 +135,10 @@ public:
   void withoutCoref(bool val)
   {
     noCoref = val;
+  }
+  void mimicChunker(bool val)
+  {
+    isLinear = val;
   }
 };
 

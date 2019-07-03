@@ -17,38 +17,41 @@ class TRXCompiler
 private:
   PatternBuilder PB;
 
-  map<string, pair<int, xmlNode*>, Ltstr> macros;
-  map<string, vector<PatternElement*>, Ltstr> patterns;
-  map<string, set<string, Ltstr>, Ltstr> attrs;
-  map<string, string, Ltstr> attrMangle;
-  map<string, string, Ltstr> vars;
-  map<string, string, Ltstr> varMangle;
-  map<string, set<string, Ltstr>, Ltstr> lists;
-  map<string, string, Ltstr> listMangle;
-  map<string, int, Ltstr> outputMap;
-  map<string, vector<string>, Ltstr> outputNames;
+  map<wstring, pair<int, xmlNode*>, Ltstr> macros;
+  map<wstring, vector<PatternElement*>, Ltstr> patterns;
+  map<wstring, set<wstring, Ltstr>, Ltstr> attrs;
+  map<wstring, wstring, Ltstr> attrMangle;
+  map<wstring, wstring, Ltstr> vars;
+  map<wstring, wstring, Ltstr> varMangle;
+  map<wstring, set<wstring, Ltstr>, Ltstr> lists;
+  map<wstring, wstring, Ltstr> listMangle;
+  map<wstring, int, Ltstr> outputMap;
+  map<wstring, vector<wstring>, Ltstr> outputNames;
   vector<wstring> inputRules;
   vector<wstring> outputRules;
+  vector<int> macroPosShift;
   bool inOutput;
   xmlDoc* curDoc;
   int curPatternSize;
+  int longestPattern;
 
   void die(xmlNode* node, wstring msg);
   void warn(xmlNode* node, wstring msg);
 
   xmlChar* requireAttr(xmlNode* node, const xmlChar* attr);
   xmlChar* getAttr(xmlNode* node, const xmlChar* attr);
-  string toString(const xmlChar* s);
+  wstring toString(const xmlChar* s);
   wstring toWstring(const xmlChar* s);
 
   int getPos(xmlNode* node, bool isBlank);
 
   void processFile(xmlNode* node);
+  void makeDefaultOutputRule();
   void processCats(xmlNode* node);
-  string insertAttr(string name, set<string, Ltstr> ats);
+  wstring insertAttr(wstring name, set<wstring, Ltstr> ats);
   void processAttrs(xmlNode* node);
   void processVars(xmlNode* node);
-  string insertList(string name, set<string, Ltstr> ats);
+  wstring insertList(wstring name, set<wstring, Ltstr> ats);
   void processLists(xmlNode* node);
   void gatherMacros(xmlNode* node);
   void processRules(xmlNode* node);
@@ -61,7 +64,7 @@ public:
   TRXCompiler();
   ~TRXCompiler();
   void compile(vector<string> files);
-  void write(const string& binfile, const string& bytefile);
+  void write(const char* binfile, const char* bytefile);
 };
 
 #endif

@@ -20,6 +20,7 @@ RTXProcessor::RTXProcessor()
   printingRules = false;
   printingMatch = false;
   noCoref = false;
+  isLinear = false;
   null_flush = false;
   internal_null_flush = false;
 }
@@ -564,10 +565,15 @@ RTXProcessor::applyRule(const wstring& rule)
       }
         break;
       case OUTPUT:
-        if(printingSteps) { wcerr << "out" << endl; }
+        if(printingSteps) { wcerr << "output" << endl; }
         currentOutput.push_back(popChunk());
         currentOutput.back()->source.clear(); // don't want multiply-matching rules
         if(printingSteps) { wcerr << " -> " << currentOutput.back()->target << endl; }
+        break;
+      case OUTPUTALL:
+        if(printingSteps) { wcerr << "outputall" << endl; }
+        currentOutput = currentInput;
+        return true;
         break;
       case SOURCECLIP:
         if(printingSteps) { wcerr << "sourceclip" << endl; }
@@ -843,26 +849,6 @@ RTXProcessor::setTrace(bool trace)
 }
 
 void
-RTXProcessor::process_wrapper_null_flush(FILE *in, FILE *out)
-{
-  null_flush = false;
-  internal_null_flush = true;
-
-  while(!feof(in))
-  {
-    process(in, out);
-    fputwc_unlocked(L'\0', out);
-    int code = fflush(out);
-    if(code != 0)
-    {
-      wcerr << L"Could not flush output " << errno << endl;
-    }
-  }
-  internal_null_flush = false;
-  null_flush = true;
-}
-
-void
 RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
 {
   mx->resetRejected();
@@ -940,7 +926,7 @@ RTXProcessor::outputAll(FILE* out)
 }
 
 void
-RTXProcessor::process(FILE *in, FILE *out)
+RTXProcessor::processGLR(FILE *in, FILE *out)
 {
   Chunk* next = readToken(in);
   while(true)
@@ -1010,5 +996,147 @@ RTXProcessor::process(FILE *in, FILE *out)
       next->output(out);
       break;
     }
+  }
+}
+
+void
+RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
+{
+  int state[1024];
+  int first = 0;
+  int last = 0;
+  if(!furtherInput || t1x.size() >= longestPattern)
+  {
+    mx->resetRejected();
+    int len = 0;
+    int rule = -1;
+    int i = 0;
+  try_again_for_reject_rule:
+    for(list<Chunk*>::iterator it = t1x.begin(), limit = t1x.end();
+          it != limit && i < longestPattern; it++)
+    {
+      i++;
+      if(first == last) break;
+      if((*it)->isBlank)
+      {
+        mx->matchBlank(state, first, last);
+      }
+      else
+      {
+        mx->matchChunk(state, first, last, (*it)->matchSurface(), (i == 1));
+        int r = mx->getRule(state, first, last);
+        if(r != -1)
+        {
+          rule = r;
+          len = i;
+        }
+      }
+    }
+    if(rule == -1)
+    {
+      t2x.push_back(t1x.front());
+      t1x.pop_front();
+    }
+    else
+    {
+      i = 0;
+      currentInput.resize(len);
+      for(list<Chunk*>::iterator it = t1x.begin(), limit = t1x.end();
+            it != limit && i < len; it++)
+      {
+        currentInput[i] = *it;
+        i++;
+      }
+      currentOutput.clear();
+      if(applyRule(rule_map[rule-1]))
+      {
+        for(unsigned int n = 0; n < currentOutput.size(); n++)
+        {
+          t2x.push_back(currentOutput[n]);
+        }
+      }
+      else
+      {
+        goto try_again_for_reject_rule;
+      }
+    }
+  }
+}
+
+void
+RTXProcessor::processTRX(FILE *in, FILE *out)
+{
+  list<Chunk*> t1x;
+  list<Chunk*> t2x;
+  list<Chunk*> t3x;
+  while(furtherInput || t1x.size() > 0 || t2x.size() > 0)
+  {
+    while(furtherInput && t1x.size() < 2*longestPattern)
+    {
+      t1x.push_back(readToken(in));
+    }
+    processTRXLayer(t1x, t2x);
+    processTRXLayer(t2x, t3x);
+    while(t3x.size() > 0)
+    {
+      Chunk* cur = t3x.front();
+      t3x.pop_front();
+      if(cur->rule == -1)
+      {
+        cur->output(out);
+      }
+      else
+      {
+        parentChunk = cur;
+        currentInput = cur->contents;
+        currentOutput.clear();
+        applyRule(output_rules[cur->rule]);
+        for(unsigned int i = 0; i < currentOutput.size(); i++)
+        {
+          currentOutput[i]->output(out);
+        }
+      }
+    }
+  }
+}
+
+void
+RTXProcessor::process(FILE* in, FILE* out)
+{
+  if(null_flush)
+  {
+    null_flush = false;
+    internal_null_flush = true;
+
+    while(!feof(in))
+    {
+      furtherInput = true;
+      if(isLinear)
+      {
+        processTRX(in, out);
+      }
+      else
+      {
+        processGLR(in, out);
+      }
+      fputwc_unlocked(L'\0', out);
+      int code = fflush(out);
+      if(code != 0)
+      {
+        wcerr << L"Could not flush output " << errno << endl;
+      }
+      chunkPool.reset();
+      parsePool.reset();
+    }
+    internal_null_flush = false;
+    null_flush = true;
+  }
+  else if(isLinear)
+  {
+    processTRX(in, out);
+  }
+  else
+  {
+    processGLR(in, out);
   }
 }

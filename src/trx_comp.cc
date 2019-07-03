@@ -64,8 +64,8 @@ int main(int argc, char *argv[])
 
   LtLocale::tryToSetLocale();
 
-  string byte = argv[optind];
-  string bin = argv[optind+1];
+  char* byte = argv[optind];
+  char* bin = argv[optind+1];
   vector<string> files;
   for(int i = optind + 2; i < argc; i++)
   {

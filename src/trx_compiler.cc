@@ -13,10 +13,12 @@ using namespace std;
 
 TRXCompiler::TRXCompiler()
 {
+  // TODO
 }
 
 TRXCompiler::~TRXCompiler()
 {
+  // TODO
 }
 
 void
@@ -514,8 +516,10 @@ wstring
 TRXCompiler::processStatement(xmlNode* node)
 {
   wstring ret;
-  if(!xmlStrcmp(node->name, (const xmlChar*) "let"))
+  if(!xmlStrcmp(node->name, (const xmlChar*) "let") ||
+     !xmlStrcmp(node->name, (const xmlChar*) "modify-case"))
   {
+    wstring name = toWstring(node->name);
     xmlNode* var = NULL;
     wstring val;
     for(xmlNode* n = node->children; n != NULL; n = n->next)
@@ -531,24 +535,36 @@ TRXCompiler::processStatement(xmlNode* node)
       }
       else
       {
-        die(node, L"<let> cannot have more than two children.");
+        die(node, L"<" + name + L"> cannot have more than two children.");
       }
     }
     if(val.size() == 0)
     {
-      die(node, L"<let> must have two children.");
+      die(node, L"<" + name + L"> must have two children.");
     }
     if(!xmlStrcmp(var->name, (const xmlChar*) "var"))
     {
-      wstring name = toWstring(requireAttr(var, (const xmlChar*) "n"));
-      if(varMangle.find(UtfConverter::toUtf8(name)) == varMangle.end())
+      wstring vname = toWstring(requireAttr(var, (const xmlChar*) "n"));
+      if(varMangle.find(UtfConverter::toUtf8(vname)) == varMangle.end())
       {
-        die(var, L"Undefined variable '" + name + L"'.");
+        die(var, L"Undefined variable '" + vname + L"'.");
       }
       ret += STRING;
-      ret += (wchar_t)name.size();
-      ret += name;
-      ret += val;
+      ret += (wchar_t)vname.size();
+      ret += vname;
+      if(name == L"modify-case")
+      {
+        ret += STRING;
+        ret += (wchar_t)vname.size();
+        ret += vname;
+        ret += FETCHVAR;
+        ret += val;
+        ret += SETCASE;
+      }
+      else
+      {
+        ret += val;
+      }
       ret += SETVAR;
     }
     else if(!xmlStrcmp(var->name, (const xmlChar*) "clip"))
@@ -559,13 +575,30 @@ TRXCompiler::processStatement(xmlNode* node)
         warn(var, L"Cannot set side '" + side + L"', setting 'tl' instead.");
       }
       wstring part = toWstring(requireAttr(var, (const xmlChar*) "part"));
-      ret = val;
+      if(name == L"modify-case")
+      {
+        ret += STRING;
+        ret += (wchar_t)part.size();
+        ret += part;
+        ret += INT;
+        ret += (wchar_t)getPos(var);
+        ret += TARGETCLIP;
+        ret += val;
+        ret += SETCASE;
+      }
+      else
+      {
+        ret = val;
+      }
       ret += STRING;
       ret += (wchar_t)part.size();
       ret += part;
       ret += INT;
       ret += (wchar_t)getPos(var);
       ret += SETCLIP;
+      // TODO: if this is <let> modifying "lem"
+      // then we might have to change the output rule
+      // which will require modifying SETRULE to look at input nodes
     }
     else
     {
@@ -587,14 +620,13 @@ TRXCompiler::processStatement(xmlNode* node)
   {
     ret = processChoose(node);
   }
-  else if(!xmlStrcmp(node->name, (const xmlChar*) "modify-case"))
-  {
-  }
   else if(!xmlStrcmp(node->name, (const xmlChar*) "call-macro"))
   {
+    // TODO
   }
   else if(!xmlStrcmp(node->name, (const xmlChar*) "append"))
   {
+    // TODO
   }
   else if(!xmlStrcmp(node->name, (const xmlChar*) "reject-current-rule"))
   {
@@ -623,6 +655,7 @@ TRXCompiler::processValue(xmlNode* node)
   }
   else if(!xmlStrcmp(node->name, (const xmlChar*) "clip"))
   {
+    // TODO
   }
   else if(!xmlStrcmp(node->name, (const xmlChar*) "lit"))
   {
@@ -758,6 +791,7 @@ TRXCompiler::processValue(xmlNode* node)
   }
   else if(!xmlStrcmp(node->name, (const xmlChar*) "chunk"))
   {
+    // TODO
   }
   // <pseudolemma> seems not to have been implemented
   // so I can't actually determine what it's supposed to do
@@ -1059,9 +1093,111 @@ TRXCompiler::processCond(xmlNode* node)
 wstring
 TRXCompiler::processChoose(xmlNode* node)
 {
+  vector<pair<wstring, wstring>> clauses;
+  int when = 0;
+  int otherwise = 0;
+  for(xmlNode* cl = node->children; cl != NULL; cl = cl->next)
+  {
+    if(cl->type != XML_ELEMENT_NODE) continue;
+    if(!xmlStrcmp(cl->name, (const xmlChar*) "when"))
+    {
+      if(otherwise > 0)
+      {
+        warn(cl, L"Clauses after <otherwise> will not be executed.");
+        continue;
+      }
+      when++;
+      wstring test, block;
+      for(xmlNode* n = cl->children; n != NULL; n = n->next)
+      {
+        if(n->type != XML_ELEMENT_NODE) continue;
+        if(!xmlStrcmp(n->name, (const xmlChar*) "test"))
+        {
+          if(test.size() != 0)
+          {
+            die(n, L"Cannot have multiple <test>s in a <when> clause.");
+          }
+          for(xmlNode* t = n->children; t != NULL; t = t->next)
+          {
+            if(t->type != XML_ELEMENT_NODE) continue;
+            if(test.size() == 0)
+            {
+              test = processCond(t);
+            }
+            else
+            {
+              die(t, L"<test> must have exactly one child.");
+            }
+          }
+          if(test.size() == 0)
+          {
+            die(n, L"<test> cannot be empty.");
+          }
+        }
+        else
+        {
+          if(test.size() == 0)
+          {
+            die(n, L"<when> clause must begin with <test>.");
+          }
+          block += processStatement(n);
+        }
+      }
+      clauses.push_back(make_pair(test, block));
+    }
+    else if(!xmlStrcmp(cl->name, (const xmlChar*) "otherwise"))
+    {
+      otherwise++;
+      if(otherwise > 1)
+      {
+        warn(cl, L"Multiple <otherwise> clauses will not be executed.");
+        continue;
+      }
+      wstring block;
+      for(xmlNode* state = cl->children; state != NULL; state = state->next)
+      {
+        if(state->type == XML_ELEMENT_NODE)
+        {
+          block += processStatement(state);
+        }
+      }
+      if(block.size() > 0)
+      {
+        clauses.push_back(make_pair(L"", block));
+      }
+      else
+      {
+        warn(cl, L"Empty <otherwise> clause.");
+      }
+    }
+    else
+    {
+      warn(cl, L"Ignoring unexpected clause in <choose>.");
+    }
+  }
+  wstring ret;
+  for(vector<pair<wstring, wstring>>::reverse_iterator it = clauses.rbegin(),
+            limit = clauses.rend(); it != limit; it++)
+  {
+    wstring act = it->second;
+    if(ret.size() > 0)
+    {
+      act += JUMP;
+      act += (wchar_t)ret.size();
+    }
+    wstring test = it->first;
+    if(test.size() > 0)
+    {
+      test += JUMPONFALSE;
+      test += (wchar_t)act.size();
+    }
+    ret = test + act + ret;
+  }
+  return ret;
 }
 
 void
 TRXCompiler::write(const string& binfile, const string& bytefile)
 {
+  // TODO
 }

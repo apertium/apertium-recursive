@@ -520,6 +520,21 @@ void
 RTXCompiler::parseOutputElement()
 {
   OutputChunk* ret = new OutputChunk;
+  ret->conjoined = isNextToken(L'+');
+  ret->nextConjoined = false;
+  if(ret->conjoined)
+  {
+    if(currentChunk->children.size() == 0)
+    {
+      die(L"Cannot conjoin first element.");
+    }
+    if(currentChunk->children.back()->mode == L"_")
+    {
+      die(L"Cannot conjoin to a blank.");
+    }
+    eatSpaces();
+    currentChunk->children.back()->nextConjoined = true;
+  }
   ret->getall = isNextToken(L'%');
   ret->isToplevel = false;
   if(source.peek() == L'_')
@@ -1090,7 +1105,15 @@ RTXCompiler::processOutput(OutputChunk* r)
       }
     }
 
-    ret += CHUNK;
+    if(r->conjoined)
+    {
+      ret += compileString(L"+");
+      ret += APPENDSURFACE;
+    }
+    else
+    {
+      ret += CHUNK;
+    }
     for(unsigned int i = 0; i < pattern.size(); i++)
     {
       if(pattern[i] == L"_")
@@ -1233,7 +1256,7 @@ RTXCompiler::processOutput(OutputChunk* r)
       for(unsigned int i = 0; i < r->children.size(); i++)
       {
         outrule += processOutput(r->children[i]);
-        outrule += OUTPUT;
+        if(!r->children[i]->nextConjoined) outrule += OUTPUT;
       }
       parentTags = was;
       ret += INT;

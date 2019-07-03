@@ -46,6 +46,8 @@ private:
     wstring pattern;
     vector<OutputChunk*> children;
     bool isToplevel;
+    bool conjoined;
+    bool nextConjoined;
   };
 
   struct Rule

@@ -14,6 +14,7 @@ RTXCompiler::RTXCompiler()
 {
   td.getAlphabet().includeSymbol(ANY_TAG);
   td.getAlphabet().includeSymbol(ANY_CHAR);
+  td.getAttrItems()[L"pos_tag"] = L"(<[^>]+>)";
   longestPattern = 0;
   currentRule = NULL;
   currentChunk = NULL;
@@ -1142,7 +1143,8 @@ RTXCompiler::processOutput(OutputChunk* r)
         ret += APPENDSURFACE;
         if(r->pos != 0)
         {
-          ret += compileTag(currentRule->pattern[r->pos-1][1]);
+          //ret += compileTag(currentRule->pattern[r->pos-1][1]);
+          ret += compileClip(L"pos_tag", r->pos, L"tl");
         }
         else
         {

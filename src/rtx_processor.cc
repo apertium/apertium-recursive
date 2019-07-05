@@ -568,6 +568,7 @@ RTXProcessor::applyRule(const wstring& rule)
       {
         wstring var = popString();
         wstring val = popString();
+        if(var == L"adjectiu1") { wcerr << L"adjectiu1 is now " << val << endl;}
         variables[var] = val;
       }
         break;
@@ -651,7 +652,7 @@ RTXProcessor::applyRule(const wstring& rule)
         if(printingSteps) { wcerr << "concat" << endl; }
       {
         wstring result = popString();
-        result += popString();
+        result = popString() + result;
         pushStack(result);
       }
         break;

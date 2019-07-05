@@ -631,9 +631,6 @@ TRXCompiler::processStatement(xmlNode* node)
       {
         die(var, L"Undefined variable '" + vname + L"'.");
       }
-      ret += STRING;
-      ret += (wchar_t)vname.size();
-      ret += vname;
       if(name == L"modify-case")
       {
         ret += STRING;
@@ -647,6 +644,9 @@ TRXCompiler::processStatement(xmlNode* node)
       {
         ret += val;
       }
+      ret += STRING;
+      ret += (wchar_t)vname.size();
+      ret += vname;
       ret += SETVAR;
     }
     else if(!xmlStrcmp(var->name, (const xmlChar*) "clip"))

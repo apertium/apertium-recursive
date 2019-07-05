@@ -549,9 +549,13 @@ RTXCompiler::parseOutputElement()
     if(isdigit(source.peek()))
     {
       ret->pos = parseInt();
+      if(currentRule->pattern.size() == 1)
+      {
+        die(L"Cannot output indexed blank because pattern is one element long and thus does not include blanks.");
+      }
       if(ret->pos < 1 || ret->pos >= currentRule->pattern.size())
       {
-        die(L"position index of blank out of bounds");
+        die(L"Position index of blank out of bounds, expected an integer from 1 to " + to_wstring(currentRule->pattern.size()-1) + L".");
       }
     }
     else
@@ -563,9 +567,13 @@ RTXCompiler::parseOutputElement()
   {
     ret->mode = L"#";
     ret->pos = parseInt();
-    if(ret->pos == 0 || ret->pos > currentRule->pattern.size())
+    if(ret->pos == 0)
     {
-      die(L"output index is out of bounds");
+      die(L"There is no position 0.");
+    }
+    else if(ret->pos > currentRule->pattern.size())
+    {
+      die(L"There are only " + to_wstring(currentRule->pattern.size()) + L" elements in the pattern.");
     }
     if(source.peek() == L'[')
     {
@@ -698,6 +706,10 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     wstring cur = next;
     while(cur != L"->")
     {
+      if(SPECIAL_CHARS.find(cur) != wstring::npos)
+      {
+        die(L"Chunk names must be identifiers. (I think I'm parsing a reduction rule.)");
+      }
       outNodes.push_back(cur);
       cur = nextToken();
     }
@@ -782,7 +794,7 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
       }
       if(n < outNodes.size())
       {
-        die(L"not enough chunks in output pattern");
+        die(L"not enough chunks in output pattern, got " + to_wstring(n) + L", expected " + to_wstring(outNodes.size()));
       }
     }
     reductionRules.push_back(rule);

@@ -27,6 +27,7 @@ RTXProcessor::RTXProcessor()
 
 RTXProcessor::~RTXProcessor()
 {
+  delete mx;
 }
 
 void
@@ -35,7 +36,7 @@ RTXProcessor::readData(FILE *in)
   alphabet.read(in);
 
   Transducer* t = new Transducer();
-  t->read(in, alphabet.size());
+  t->read(in, alphabet.size()); 
 
   map<int, int> finals;
 
@@ -89,6 +90,8 @@ RTXProcessor::readData(FILE *in)
       listslow[cad_k].insert(StringUtils::tolower(cad_v));
     }
   }
+
+  delete t;
 }
 
 void
@@ -244,6 +247,10 @@ RTXProcessor::popString()
   if(theStack[stackIdx].mode == 2)
   {
     return theStack[stackIdx--].s;
+  }
+  else if(theStack[stackIdx].mode == 3)
+  {
+    return theStack[stackIdx--].c->target;
   }
   else
   {
@@ -722,8 +729,16 @@ RTXProcessor::applyRule(const wstring& rule)
       case SETRULE:
         if(printingSteps) { wcerr << "setrule" << endl; }
       {
+        int pos = 2*(popInt()-1);
         int rl = popInt();
-        theStack[stackIdx].c->rule = rl;
+        if(pos == -2)
+        {
+          theStack[stackIdx].c->rule = rl;
+        }
+        else
+        {
+          currentInput[pos]->rule = rl;
+        }
       }
         break;
       case LUCOUNT:
@@ -747,6 +762,7 @@ RTXProcessor::readToken(FILE *in)
   wstring dest;
   wstring coref;
   cur.reserve(256);
+  bool inSquare = false;
   while(true)
   {
     int val = fgetwc_unlocked(in);
@@ -766,23 +782,14 @@ RTXProcessor::readToken(FILE *in)
     else if(val == L'[')
     {
       cur += L'[';
-      while(true)
+      inSquare = true;
+    }
+    else if(inSquare)
+    {
+      cur += val;
+      if(val == L']')
       {
-        int val2 = fgetwc_unlocked(in);
-        if(val2 == L'\\')
-        {
-          cur += L'\\';
-          cur += wchar_t(fgetwc_unlocked(in));
-        }
-        else if(val2 == L']')
-        {
-          cur += L']';
-          break;
-        }
-        else
-        {
-          cur += wchar_t(val2);
-        }
+        inSquare = false;
       }
     }
     else if(inword && (val == L'$' || val == L'/'))
@@ -1002,6 +1009,10 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
 void
 RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
 {
+  if(t1x.size() == 0)
+  {
+    return;
+  }
   int state[1024];
   int first = 0;
   int last = 0;
@@ -1012,18 +1023,22 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
     int rule = -1;
     int i = 0;
   try_again_for_reject_rule:
+    first = 0;
+    last = 1;
+    state[0] = mx->getInitial();
     for(list<Chunk*>::iterator it = t1x.begin(), limit = t1x.end();
           it != limit && i < longestPattern; it++)
     {
       i++;
-      if(first == last) break;
       if((*it)->isBlank)
       {
+        if(printingMatch) { wcerr << "  matching blank" << endl; }
         mx->matchBlank(state, first, last);
       }
       else
       {
-        mx->matchChunk(state, first, last, (*it)->matchSurface(), (i == 1));
+        if(printingMatch) { wcerr << "  matching chunk " << (*it)->matchSurface() << endl; }
+        mx->matchChunk(state, first, last, (*it)->matchSurface(), false);
         int r = mx->getRule(state, first, last);
         if(r != -1)
         {
@@ -1031,6 +1046,7 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
           len = i;
         }
       }
+      if(first == last) break;
     }
     if(rule == -1)
     {
@@ -1048,11 +1064,16 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
         i++;
       }
       currentOutput.clear();
+      if(printingRules) { wcerr << "Applying rule " << rule << endl; }
       if(applyRule(rule_map[rule-1]))
       {
         for(unsigned int n = 0; n < currentOutput.size(); n++)
         {
           t2x.push_back(currentOutput[n]);
+        }
+        for(unsigned int n = 0; n < len; n++)
+        {
+          t1x.pop_front();
         }
       }
       else
@@ -1075,8 +1096,22 @@ RTXProcessor::processTRX(FILE *in, FILE *out)
     {
       t1x.push_back(readToken(in));
     }
-    processTRXLayer(t1x, t2x);
-    processTRXLayer(t2x, t3x);
+    if(furtherInput)
+    {
+      processTRXLayer(t1x, t2x);
+      processTRXLayer(t2x, t3x);
+    }
+    else
+    {
+      while(t1x.size() > 0)
+      {
+        processTRXLayer(t1x, t2x);
+      }
+      while(t2x.size() > 0)
+      {
+        processTRXLayer(t2x, t3x);
+      }
+    }
     while(t3x.size() > 0)
     {
       Chunk* cur = t3x.front();

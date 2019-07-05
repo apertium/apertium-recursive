@@ -91,7 +91,14 @@ TRXCompiler::makeDefaultOutputRule()
           limit = outputMap.end(); it != limit; it++)
   {
     wstring eq;
-    eq += OVER;
+    if(cond[it->second].size() > 0)
+    {
+      eq += OVER;
+    }
+    else
+    {
+      eq += DUP;
+    }
     eq += STRING;
     eq += (wchar_t)it->first.size();
     eq += it->first;
@@ -141,7 +148,7 @@ TRXCompiler::processFile(xmlNode* node)
       {
         gatherMacros(i);
       }
-      else if(!xmlStrcmp(i->name, (const xmlChar*) "section-def-rules"))
+      else if(!xmlStrcmp(i->name, (const xmlChar*) "section-rules"))
       {
         processRules(i);
       }
@@ -184,7 +191,19 @@ TRXCompiler::toWstring(const xmlChar* s)
 int
 TRXCompiler::getPos(xmlNode* node, bool isBlank = false)
 {
-  wstring v = toWstring(requireAttr(node, (const xmlChar*) "pos"));
+  wstring v;
+  if(!xmlStrcmp(node->name, (const xmlChar*) "b"))
+  {
+    v = toWstring(getAttr(node, (const xmlChar*) "pos"));
+    if(v == L"")
+    {
+      return 0;
+    }
+  }
+  else
+  {
+    v = toWstring(requireAttr(node, (const xmlChar*) "pos"));
+  }
   if(v.size() == 0)
   {
     if(isBlank)
@@ -210,6 +229,10 @@ TRXCompiler::getPos(xmlNode* node, bool isBlank = false)
   }
   int ret = stoi(v);
   if(inOutput && ret == 0)
+  {
+    return ret;
+  }
+  if(inOutput && macroPosShift.size() == 0 && ret >= 0)
   {
     return ret;
   }
@@ -247,9 +270,10 @@ TRXCompiler::processCats(xmlNode* node)
       vector<PatternElement*> pat;
       for(xmlNode* item = cat->children; item != NULL; item = item->next)
       {
-        if(xmlStrcmp(cat->name, (const xmlChar*) "cat-item"))
+        if(item->type != XML_ELEMENT_NODE) continue;
+        if(xmlStrcmp(item->name, (const xmlChar*) "cat-item"))
         {
-          warn(cat, L"Unexpected tag in def-cat - ignoring");
+          warn(cat, L"Unexpected tag <" + toWstring(item->name) + L"> in def-cat - ignoring");
           continue;
         }
         if(inOutput)
@@ -493,14 +517,15 @@ TRXCompiler::processRules(xmlNode* node)
             int curRule = outputRules.size();
             for(unsigned int i = 0; i < vec.size(); i++)
             {
-              if(outputMap.find(vec[i]) == outputMap.end())
+              wstring nm = StringUtils::tolower(vec[i]);
+              if(outputMap.find(nm) == outputMap.end())
               {
-                outputMap[vec[i]] = curRule;
+                outputMap[nm] = curRule;
               }
               else
               {
-                int other = outputMap[vec[i]];
-                warn(rule, L"Rules " + to_wstring(other) + L" and " + to_wstring(curRule) + L" both match '" + vec[i] + L"', the earliest one will be used.");
+                int other = outputMap[nm];
+                warn(rule, L"Rules " + to_wstring(other) + L" and " + to_wstring(curRule) + L" both match '" + nm + L"', the earliest one will be used.");
               }
             }
           }
@@ -523,10 +548,11 @@ TRXCompiler::processRules(xmlNode* node)
         }
         if(!inOutput)
         {
+          inputRuleSizes.push_back(pls.size());
           int blocker = PB.addPattern(pls, inputRules.size() + 1);
           if(blocker != -1)
           {
-            warn(rule, L"Pattern for rule" + to_wstring(inputRules.size()+1) + L" is blocked by rule " + to_wstring(blocker) + L".");
+            warn(rule, L"Pattern for rule " + to_wstring(inputRules.size()+1) + L" is blocked by rule " + to_wstring(blocker) + L".");
           }
         }
       }
@@ -540,6 +566,7 @@ TRXCompiler::processRules(xmlNode* node)
         wstring action;
         for(xmlNode* state = part->children; state != NULL; state = state->next)
         {
+          if(state->type != XML_ELEMENT_NODE) continue;
           action += processStatement(state);
         }
         if(inOutput)
@@ -651,9 +678,14 @@ TRXCompiler::processStatement(xmlNode* node)
       ret += INT;
       ret += (wchar_t)getPos(var);
       ret += SETCLIP;
-      // TODO: if this is <let> modifying "lem"
-      // then we might have to change the output rule
-      // which will require modifying SETRULE to look at input nodes
+      if(part == L"lem" || part == L"lemh" || part == L"lemq")
+      {
+        ret += INT;
+        ret += (wchar_t)(outputRules.size()-1);
+        ret += INT;
+        ret += (wchar_t)getPos(var);
+        ret += SETRULE;
+      }
     }
     else
     {
@@ -709,6 +741,7 @@ TRXCompiler::processStatement(xmlNode* node)
     xmlNode* mac = macros[name].second;
     for(xmlNode* state = mac->children; state != NULL; state = state->next)
     {
+      if(state->type != XML_ELEMENT_NODE) continue;
       ret += processStatement(state);
     }
     macroPosShift.swap(temp);
@@ -949,20 +982,45 @@ TRXCompiler::processValue(xmlNode* node)
         wstring name = toWstring(getAttr(node, (const xmlChar*) "name"));
         wstring namefrom = toWstring(getAttr(node, (const xmlChar*) "namefrom"));
         wstring casevar = toWstring(getAttr(node, (const xmlChar*) "case"));
+        wstring csadd;
+        if(casevar.size() != 0)
+        {
+          csadd += STRING;
+          csadd += (wchar_t)casevar.size();
+          csadd += casevar;
+          csadd += FETCHVAR;
+          csadd += SETCASE;
+        }
         // TODO: what happens when name and namefrom are both empty?
         if(namefrom.size() == 0)
         {
+          wstring lowname = StringUtils::tolower(name);
           ret += STRING;
           if(name.size() == 0)
           {
             ret += (wchar_t)7;
             ret += L"default";
+            lowname = L"default";
           }
           else
           {
             ret += (wchar_t)name.size();
             ret += name;
           }
+          ret += csadd;
+          ret += APPENDSURFACE;
+          ret += INT;
+          if(outputMap.find(lowname) != outputMap.end())
+          {
+            ret += (wchar_t)(outputMap[lowname]);
+          }
+          else
+          {
+            ret += (wchar_t)(outputRules.size()-1);
+          }
+          ret += INT;
+          ret += (wchar_t)0;
+          ret += SETRULE;
         }
         else
         {
@@ -970,16 +1028,14 @@ TRXCompiler::processValue(xmlNode* node)
           ret += (wchar_t)namefrom.size();
           ret += namefrom;
           ret += FETCHVAR;
+          ret += csadd;
+          ret += APPENDSURFACE;
+          ret += INT;
+          ret += (wchar_t)(outputRules.size()-1);
+          ret += INT;
+          ret += (wchar_t)0;
+          ret += SETRULE;
         }
-        if(casevar.size() != 0)
-        {
-          ret += STRING;
-          ret += (wchar_t)casevar.size();
-          ret += casevar;
-          ret += FETCHVAR;
-          ret += SETCASE;
-        }
-        ret += APPENDSURFACE;
         for(xmlNode* tag = part->children; tag != NULL; tag = tag->next)
         {
           if(tag->type != XML_ELEMENT_NODE) continue;
@@ -1200,13 +1256,13 @@ TRXCompiler::processCond(xmlNode* node)
       {
         die(node, L"<begins-with-list> cannot have more than two children.");
       }
-      else if(xmlStrcmp(node->name, (const xmlChar*) "list"))
+      else if(xmlStrcmp(op->name, (const xmlChar*) "list"))
       {
         die(op, L"Expected <list>, found <" + toWstring(op->name) + L"> instead.");
       }
       else
       {
-        wstring name = toWstring(requireAttr(node, (const xmlChar*) "n"));
+        wstring name = toWstring(requireAttr(op, (const xmlChar*) "n"));
         if(listMangle.find(name) == listMangle.end())
         {
           die(op, L"Unknown list '" + name + L"'.");
@@ -1268,13 +1324,13 @@ TRXCompiler::processCond(xmlNode* node)
       {
         die(node, L"<ends-with-list> cannot have more than two children.");
       }
-      else if(xmlStrcmp(node->name, (const xmlChar*) "list"))
+      else if(xmlStrcmp(op->name, (const xmlChar*) "list"))
       {
         die(op, L"Expected <list>, found <" + toWstring(op->name) + L"> instead.");
       }
       else
       {
-        wstring name = toWstring(requireAttr(node, (const xmlChar*) "n"));
+        wstring name = toWstring(requireAttr(op, (const xmlChar*) "n"));
         if(listMangle.find(name) == listMangle.end())
         {
           die(op, L"Unknown list '" + name + L"'.");
@@ -1336,13 +1392,13 @@ TRXCompiler::processCond(xmlNode* node)
       {
         die(node, L"<in> cannot have more than two children.");
       }
-      else if(xmlStrcmp(node->name, (const xmlChar*) "list"))
+      else if(xmlStrcmp(op->name, (const xmlChar*) "list"))
       {
         die(op, L"Expected <list>, found <" + toWstring(op->name) + L"> instead.");
       }
       else
       {
-        wstring name = toWstring(requireAttr(node, (const xmlChar*) "n"));
+        wstring name = toWstring(requireAttr(op, (const xmlChar*) "n"));
         if(listMangle.find(name) == listMangle.end())
         {
           die(op, L"Unknown list '" + name + L"'.");
@@ -1502,6 +1558,7 @@ TRXCompiler::write(const char* binfile, const char* bytefile)
   for(unsigned int i = 0; i < inputRules.size(); i++)
   {
     fputwc(inputRules[i].size(), byte);
+    fputwc(inputRuleSizes[i], byte);
     for(unsigned int j = 0; j < inputRules[i].size(); j++)
     {
       fputwc(inputRules[i][j], byte);

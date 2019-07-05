@@ -25,10 +25,17 @@ public:
   int rule;
   double weight;
   int length;
-  MatchNode2(int const sz)
-  : size(sz), rule(-1)
+  MatchNode2()
+  : size(0), rule(-1)
+  {}
+  void setSize(int const sz)
   {
+    size = sz;
     trans = new Transition[sz];
+  }
+  ~MatchNode2()
+  {
+    delete[] trans;
   }
   void addTransition(int const tag, int const dest, int const pos)
   {
@@ -62,7 +69,7 @@ public:
 class MatchExe2
 {
 private:
-  vector<MatchNode2> nodes;
+  MatchNode2* nodes;
   int any_char;
   int any_tag;
   Alphabet* alpha;
@@ -107,12 +114,17 @@ public:
   : alpha(a)
   {
     map<int, multimap<int, pair<int, double> > >& trns = t.getTransitions();
-    nodes.reserve(trns.size());
+    nodes = new MatchNode2[trns.size()];
     for(map<int, multimap<int, pair<int, double> > >::const_iterator it = trns.begin(),
           limit = trns.end(); it != limit; it++)
     {
-      MatchNode2 mynode(it->second.size());
-      nodes.push_back(mynode);
+      nodes[it->first].setSize(it->second.size());
+      int i = 0;
+      for(multimap<int, pair<int, double> >::const_iterator it2 = it->second.begin(),
+            limit2 = it->second.end(); it2 != limit2; it2++)
+      {
+        nodes[it->first].addTransition(it2->first, it2->second.first, i++);
+      }
     }
 
     for(map<int, int>::const_iterator it = rules.begin(), limit = rules.end();
@@ -125,22 +137,18 @@ public:
 
     initial = t.getInitial();
 
-    for(map<int, multimap<int, pair<int, double> > >::const_iterator it = trns.begin(),
-          limit = trns.end(); it != limit; it++)
-    {
-      MatchNode2 &mynode = nodes[it->first];
-      int i = 0;
-      for(multimap<int, pair<int, double> >::const_iterator it2 = it->second.begin(),
-            limit2 = it->second.end(); it2 != limit2; it2++)
-      {
-        mynode.addTransition(it2->first, it2->second.first, i++);
-      }
-    }
-
     any_char = (*a)(L"<ANY_CHAR>");
     any_tag = (*a)(L"<ANY_TAG>");
 
     prematchIdx = 0;
+  }
+  ~MatchExe2()
+  {
+    delete[] nodes;
+  }
+  int getInitial()
+  {
+    return initial;
   }
   void matchBlank(int* state, int& first, int& last)
   {

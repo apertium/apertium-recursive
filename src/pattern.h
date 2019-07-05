@@ -65,14 +65,21 @@ private:
       }
       else
       {
-        td.getAlphabet().includeSymbol(tags[i]);
-        retval = td.getTransducer().insertSingleTransduction(td.getAlphabet()(tags[i]), retval);
+        wstring tg = L"<" + tags[i] + L">";
+        td.getAlphabet().includeSymbol(tg);
+        retval = td.getTransducer().insertSingleTransduction(td.getAlphabet()(tg), retval);
       }
     }
     return retval;
   }
 public:
-  bool addPattern(vector<vector<PatternElement*>> pat, int rule, double weight = 0.0)
+  PatternBuilder()
+  {
+    td.getAlphabet().includeSymbol(L"<ANY_TAG>");
+    td.getAlphabet().includeSymbol(L"<ANY_CHAR>");
+  }
+
+  int addPattern(vector<vector<PatternElement*>> pat, int rule, double weight = 0.0)
   {
     int state = td.getTransducer().getInitial();
     for(unsigned int p = 0; p < pat.size(); p++)
@@ -81,6 +88,7 @@ public:
       {
         state = td.getTransducer().insertSingleTransduction(L' ', state);
       }
+      state = td.getTransducer().insertSingleTransduction(L'^', state);
       int end = insertLemma(state, pat[p][0]->lemma);
       end = insertTags(end, pat[p][0]->tags);
       end = td.getTransducer().insertSingleTransduction(L'$', end);
@@ -119,7 +127,7 @@ public:
       {
         pat += L"|";
       }
-      pat += *it;
+      pat += L"<" + StringUtils::substitute(*it, L".", L"><") + L">";
     }
     pat += L")";
     td.getAttrItems()[name] = pat;

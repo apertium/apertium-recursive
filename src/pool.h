@@ -42,6 +42,15 @@ public:
     bucketList.push_back(b);
     cur = b;
   }
+  ~Pool()
+  {
+    while(bucketList.size() > 0)
+    {
+      Bucket* cur = bucketList.back();
+      bucketList.pop_back();
+      delete cur;
+    }
+  }
   void reset()
   {
     idx = 0;

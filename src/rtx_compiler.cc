@@ -1233,6 +1233,8 @@ RTXCompiler::processOutput(OutputChunk* r)
       ret += INT;
       ret += (wchar_t)r->pos;
       ret += GETRULE;
+      ret += INT;
+      ret += (wchar_t)0;
       ret += SETRULE;
     }
     else
@@ -1261,6 +1263,8 @@ RTXCompiler::processOutput(OutputChunk* r)
       parentTags = was;
       ret += INT;
       ret += (wchar_t)outputBytecode.size();
+      ret += INT;
+      ret += (wchar_t)0;
       ret += SETRULE;
       outputBytecode.push_back(outrule);
       inOutputRule = false;
@@ -1418,6 +1422,7 @@ RTXCompiler::write(const string &fname, const string &bytename)
   }
 
   td.write(out);
+  wcerr << endl << endl << L"Transducer has " << td.getTransducer().getTransitions().size() << L" states" << endl << endl;
 
   fclose(out);
   

@@ -28,6 +28,7 @@ private:
   map<wstring, int, Ltstr> outputMap;
   map<wstring, vector<wstring>, Ltstr> outputNames;
   vector<wstring> inputRules;
+  vector<int> inputRuleSizes;
   vector<wstring> outputRules;
   vector<int> macroPosShift;
   bool inOutput;

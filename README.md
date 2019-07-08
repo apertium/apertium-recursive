@@ -15,11 +15,14 @@ Running
 # compile the rules file
 src/rtx-comp rule-file pattern-file bytecode-file
 
-# run the the rules
+# run the rules
 src/rtx-proc bytecode-file pattern-file < input
 
 # decompile the rules and examine the bytecode
 src/rtx-decomp bytecode-file text-file
+
+# compile XML rule files
+src/trx-comp pattern-file bytecode-file xml-files...
 ```
 
 Options for ```rtx-proc```:
@@ -27,6 +30,8 @@ Options for ```rtx-proc```:
  - ```-s``` trace the execution of the bytecode interpreter
  - ```-m``` trace the pattern matcher (Note: this currently has no effect)
  - ```-n``` indicates that the input stream has only source and target sides and not anaphora coreferences
+ - ```-t``` mimic the behavior of apertium-transfer and apertium-interchunk
+ - ```-T``` print the syntax tree rather than applying output rules
 
 Testing
 -------

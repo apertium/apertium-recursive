@@ -657,6 +657,11 @@ TRXCompiler::processStatement(xmlNode* node)
         warn(var, L"Cannot set side '" + side + L"', setting 'tl' instead.");
       }
       wstring part = toWstring(requireAttr(var, (const xmlChar*) "part"));
+      if(attrMangle.find(part) != attrMangle.end())
+      {
+        part = attrMangle[part];
+        // there's some checking to do here...
+      }
       if(name == L"modify-case")
       {
         ret += STRING;
@@ -796,6 +801,10 @@ TRXCompiler::processValue(xmlNode* node)
   {
     ret += STRING;
     wstring part = toWstring(requireAttr(node, (const xmlChar*) "part"));
+    if(attrMangle.find(part) != attrMangle.end())
+    {
+      part = attrMangle[part];
+    }
     ret += (wchar_t)part.size();
     ret += part;
     ret += INT;
@@ -973,9 +982,12 @@ TRXCompiler::processValue(xmlNode* node)
     ret += CHUNK;
     bool inLitChunk = false;
     bool surface = true;
+    wstring whole;
+    int partct = 0;
     for(xmlNode* part = node->children; part != NULL; part = part->next)
     {
       if(part->type != XML_ELEMENT_NODE) continue;
+      partct++;
       if(!xmlStrcmp(part->name, (const xmlChar*) "tags"))
       {
         surface = false;
@@ -1114,10 +1126,12 @@ TRXCompiler::processValue(xmlNode* node)
       {
         // TODO: maybe there should be some error checking here
         // also, generally ensure that we're not getting chunks and wstrings mixed up
-        ret += processValue(part);
+        wstring temp = processValue(part);
+        ret += temp;
         wstring prt = toWstring(getAttr(part, (const xmlChar*) "part"));
         if(prt == L"whole")
         {
+          whole = temp;
           ret += APPENDCHILD;
         }
         else if(prt == L"content" || prt == L"chcontent")
@@ -1127,6 +1141,15 @@ TRXCompiler::processValue(xmlNode* node)
         else
         {
           ret += APPENDSURFACE;
+          if(prt == L"lem" || prt == L"lemh")
+          {
+            ret += INT;
+            ret += (wchar_t)getPos(part);
+            ret += GETRULE;
+            ret += INT;
+            ret += (wchar_t)0;
+            ret += SETRULE;
+          }
         }
       }
       else
@@ -1134,6 +1157,10 @@ TRXCompiler::processValue(xmlNode* node)
         ret += processValue(part);
         ret += surface ? APPENDSURFACE : APPENDCHILD;
       }
+    }
+    if(whole.size() > 0 && partct == 1)
+    {
+      ret = whole;
     }
   }
   // <pseudolemma> seems not to have been implemented

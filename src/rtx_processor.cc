@@ -605,6 +605,7 @@ RTXProcessor::applyRule(const wstring& rule)
         else
         {
           pushStack(ch->chunkPart(attr_items[part], TargetClip));
+          if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
         }
       }
         break;
@@ -767,6 +768,7 @@ RTXProcessor::readToken(FILE *in)
   bool inSquare = false;
   while(true)
   {
+    wcerr << "Cur: '" << cur << "'" << endl;
     int val = fgetwc_unlocked(in);
     if(feof(in) || (internal_null_flush && val == 0))
     {
@@ -1063,6 +1065,15 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
     if(rule == -1)
     {
       t2x.push_back(t1x.front());
+      if(!t2x.back()->isBlank && t2x.back()->target.size() == 0)
+      {
+        t2x.pop_back();
+        if(t2x.size() > 0 && t1x.size() > 0)
+        {
+          t2x.back()->target += t1x.front()->target;
+          t1x.pop_front();
+        }
+      }
       t1x.pop_front();
     }
     else
@@ -1076,7 +1087,14 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
         i++;
       }
       currentOutput.clear();
-      if(printingRules) { wcerr << "Applying rule " << rule << endl; }
+      if(printingRules) {
+        wcerr << "Applying rule " << rule << ": ";
+        for(unsigned int i = 0; i < currentInput.size(); i++)
+        {
+          currentInput[i]->writeTree();
+        }
+        wcerr << endl;
+      }
       if(applyRule(rule_map[rule-1]))
       {
         for(unsigned int n = 0; n < currentOutput.size(); n++)
@@ -1128,14 +1146,33 @@ RTXProcessor::processTRX(FILE *in, FILE *out)
     {
       Chunk* cur = t3x.front();
       t3x.pop_front();
+      vector<wstring> tags = cur->getTags(vector<wstring>());
       if(cur->rule == -1)
       {
-        cur->output(out);
+        if(cur->contents.size() == 0) cur->output(out);
+        else
+        {
+          while(cur->contents.size() > 0)
+          {
+            t3x.push_front(cur->contents.back());
+            t3x.front()->updateTags(tags);
+            cur->contents.pop_back();
+          }
+        }
       }
       else
       {
+        if(printingRules) {
+          wcerr << L"Applying output rule " << cur->rule << ": ";
+          cur->writeTree();
+          wcerr << endl;
+        }
         parentChunk = cur;
         currentInput = cur->contents;
+        for(unsigned int i = 0; i < currentInput.size(); i++)
+        {
+          currentInput[i]->updateTags(tags);
+        }
         currentOutput.clear();
         applyRule(output_rules[cur->rule]);
         for(unsigned int i = 0; i < currentOutput.size(); i++)

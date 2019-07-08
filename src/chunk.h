@@ -231,6 +231,29 @@ public:
   {
     contents.push_back(kid);
   }
+  void writeTree()
+  {
+    if(!isBlank) wcerr << "^";
+    if(source.size() > 0)
+    {
+      wcerr << source << "/";
+    }
+    wcerr << target;
+    if(coref.size() > 0)
+    {
+      wcerr << "/" << coref;
+    }
+    if(contents.size() > 0)
+    {
+      wcerr << "{";
+      for(unsigned int i = 0; i < contents.size(); i++)
+      {
+        contents[i]->writeTree();
+      }
+      wcerr << "}";
+    }
+    if(!isBlank) wcerr << "$";
+  }
   void writeTree(FILE* out)
   {
     if(!isBlank) fputc_unlocked('^', out);

@@ -1065,7 +1065,7 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
   {
     ret += GETCASE;
   }
-  if(dest.size() > 0 && dest != c->part)
+  if(dest.size() > 0)
   {
     bool found = false;
     vector<pair<wstring, wstring>> rule;
@@ -1078,7 +1078,7 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
         break;
       }
     }
-    if(!found)
+    if(!found && dest != c->part)
     {
       die(L"There is no tag-rewrite rule from '" + c->part + L"' to '" + dest + L"'.");
     }
@@ -1241,7 +1241,7 @@ RTXCompiler::processOutput(OutputChunk* r, int useOutput = -1)
           Clip* cl = new Clip;
           cl->src = r->pos;
           cl->part = pattern[i];
-          ret += compileClip(cl);
+          ret += compileClip(cl, pattern[i]);
         }
         else if(var == L"")
         {
@@ -1271,7 +1271,7 @@ RTXCompiler::processOutput(OutputChunk* r, int useOutput = -1)
                 cl->src = currentRule->grab_all;
               }
             }
-            ret += compileClip(cl);
+            ret += compileClip(cl, pattern[i]);
           }
         }
         else

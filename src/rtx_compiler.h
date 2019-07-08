@@ -25,6 +25,7 @@ private:
     int src;
     wstring part;
     wstring side;
+    wstring rewrite;
   };
 
   struct Cond
@@ -418,10 +419,13 @@ private:
 
   /**
    * Compile a Clip object
+   * If a destination attribute is provided, the function will check for
+   * applicable tag-rewrite rules
    * @param c - the clip
+   * @param dest - the destination attribute
    * @return bytecode
    */
-  wstring compileClip(Clip* c);
+  wstring compileClip(Clip* c, wstring dest);
 
   /**
    * Wrapper around compileClip(Clip*)

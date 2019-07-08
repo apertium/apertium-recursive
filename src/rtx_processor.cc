@@ -574,9 +574,61 @@ RTXProcessor::applyRule(const wstring& rule)
         break;
       case OUTPUT:
         if(printingSteps) { wcerr << "output" << endl; }
-        currentOutput.push_back(popChunk());
-        currentOutput.back()->source.clear(); // don't want multiply-matching rules
-        if(printingSteps) { wcerr << " -> '" << currentOutput.back()->target << "'" << endl; }
+      {
+        Chunk* ch = popChunk();
+        ch->source.clear();
+        if(isLinear && ch->contents.size() == 0)
+        {
+          bool word = true;
+          int last = 0;
+          wchar_t* targ = ch->target.data();
+          bool chunk = false;
+          for(unsigned int c = 0, limit = ch->target.size(); c < limit; c++)
+          {
+            if(targ[c] == L'\\') c++;
+            else if((targ[c] == L'{' || targ[c] == L'$') && word)
+            {
+              if(targ[c] == L'{') chunk = true;
+              Chunk* temp = chunkPool.next();
+              temp->isBlank = false;
+              temp->target = ch->target.substr(last, c-last);
+              if(chunk) currentOutput.back()->contents.push_back(temp);
+              else currentOutput.push_back(temp);
+              last = c+1;
+              word = false;
+            }
+            else if((targ[c] == L'^' || targ[c] == L'}') && !word)
+            {
+              if(c > last)
+              {
+                Chunk* temp = chunkPool.next();
+                temp->isBlank = true;
+                temp->target = ch->target.substr(last, c-last);
+                if(chunk) currentOutput.back()->contents.push_back(temp);
+                else currentOutput.push_back(temp);
+              }
+              if(targ[c] == L'}') chunk = false;
+              last = c+1;
+              word = true;
+            }
+          }
+          if(last == 0 && ch->target.size() != 0)
+          {
+            currentOutput.push_back(ch);
+          }
+          else if(last < ch->target.size())
+          {
+            Chunk* temp = chunkPool.next();
+            temp->isBlank = true;
+            temp->target = ch->target.substr(last);
+            currentOutput.push_back(temp);
+          }
+        }
+        else
+        {
+          currentOutput.push_back(ch);
+        }
+      }
         break;
       case OUTPUTALL:
         if(printingSteps) { wcerr << "outputall" << endl; }
@@ -595,9 +647,31 @@ RTXProcessor::applyRule(const wstring& rule)
       case TARGETCLIP:
         if(printingSteps) { wcerr << "targetclip" << endl; }
       {
-        int pos = 2*(popInt()-1);
+        int loc = popInt();
+        int pos = 2*(loc-1);
         wstring part = popString();
-        Chunk* ch = (pos == -2) ? parentChunk : currentInput[pos];
+        Chunk* ch = NULL;
+        if(pos == -2) ch = parentChunk;
+        else if(0 <= pos && pos < currentInput.size()) ch = currentInput[pos];
+        else
+        {
+          int n = 0;
+          for(unsigned int x = 0; x < currentInput.size(); x++)
+          {
+            if(!currentInput[x]->isBlank) n++;
+            if(n == loc)
+            {
+              ch = currentInput[x];
+              break;
+            }
+          }
+          if(ch == NULL)
+          {
+            //wcerr << L"Clip index is out of bounds." << endl;
+            //exit(EXIT_FAILURE);
+            ch = currentInput.back();
+          }
+        }
         if(part == L"whole" || part == L"chcontent")
         {
           pushStack(ch);
@@ -678,6 +752,7 @@ RTXProcessor::applyRule(const wstring& rule)
       {
         wstring s = popString();
         theStack[stackIdx].c->target += s;
+        if(printingSteps) { wcerr << " -> " << s << endl; }
       }
         break;
       case APPENDALLCHILDREN:
@@ -768,7 +843,6 @@ RTXProcessor::readToken(FILE *in)
   bool inSquare = false;
   while(true)
   {
-    wcerr << "Cur: '" << cur << "'" << endl;
     int val = fgetwc_unlocked(in);
     if(feof(in) || (internal_null_flush && val == 0))
     {

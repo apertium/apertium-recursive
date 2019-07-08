@@ -631,6 +631,10 @@ TRXCompiler::processStatement(xmlNode* node)
       {
         die(var, L"Undefined variable '" + vname + L"'.");
       }
+      else
+      {
+        vname = varMangle[vname];
+      }
       if(name == L"modify-case")
       {
         ret += STRING;
@@ -755,6 +759,10 @@ TRXCompiler::processStatement(xmlNode* node)
   {
     // TODO: DTD says this can append to a clip
     wstring name = toWstring(requireAttr(node, (const xmlChar*) "n"));
+    if(varMangle.find(name) != varMangle.end())
+    {
+      name = varMangle[name];
+    }
     ret += STRING;
     ret += (wchar_t)name.size();
     ret += name;
@@ -864,6 +872,10 @@ TRXCompiler::processValue(xmlNode* node)
   {
     ret += STRING;
     wstring v = toWstring(requireAttr(node, (const xmlChar*) "n"));
+    if(varMangle.find(v) != varMangle.end())
+    {
+      v = varMangle[v];
+    }
     ret += (wchar_t)v.size();
     ret += v;
     ret += FETCHVAR;
@@ -997,7 +1009,15 @@ TRXCompiler::processValue(xmlNode* node)
         }
         wstring name = toWstring(getAttr(node, (const xmlChar*) "name"));
         wstring namefrom = toWstring(getAttr(node, (const xmlChar*) "namefrom"));
+        if(varMangle.find(namefrom) != varMangle.end())
+        {
+          namefrom = varMangle[namefrom];
+        }
         wstring casevar = toWstring(getAttr(node, (const xmlChar*) "case"));
+        if(varMangle.find(casevar) != varMangle.end())
+        {
+          casevar = varMangle[casevar];
+        }
         wstring csadd;
         if(casevar.size() != 0)
         {
@@ -1076,6 +1096,10 @@ TRXCompiler::processValue(xmlNode* node)
         ret += CHUNK;
         ret += STRING;
         wstring name = toWstring(requireAttr(part, (const xmlChar*) "n"));
+        if(varMangle.find(name) != varMangle.end())
+        {
+          name = varMangle[name];
+        }
         ret += (wchar_t)name.size();
         ret += name;
         ret += FETCHVAR;
@@ -1085,10 +1109,12 @@ TRXCompiler::processValue(xmlNode* node)
       else if(surface && !xmlStrcmp(part->name, (const xmlChar*) "lit"))
       {
         wstring val = toWstring(requireAttr(part, (const xmlChar*) "v"));
+        wstring app;
         if(inLitChunk)
         {
           if(val.size() >= 2 && val[val.size()-2] == L'$' && val[val.size()-1] == L'}')
           {
+            app += APPENDCHILD;
             val = val.substr(0, val.size()-2);
             inLitChunk = false;
             if(val.size() == 0)
@@ -1105,6 +1131,7 @@ TRXCompiler::processValue(xmlNode* node)
         {
           if(val.size() >= 2 && val[0] == L'{' && val[1] == L'^')
           {
+            ret += CHUNK;
             val = val.substr(2);
             inLitChunk = true;
             if(val.size() == 0)
@@ -1121,6 +1148,7 @@ TRXCompiler::processValue(xmlNode* node)
         ret += (wchar_t)val.size();
         ret += val;
         ret += APPENDSURFACE;
+        ret += app;
       }
       else if(!xmlStrcmp(part->name, (const xmlChar*) "clip"))
       {

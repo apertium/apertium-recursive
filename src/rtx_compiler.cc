@@ -386,6 +386,18 @@ RTXCompiler::parseClip(int src = -2)
     }
     ret->side = parseIdent();
   }
+  if(isNextToken(L'>'))
+  {
+    if(ret->src == 0)
+    {
+      die(L"literal value cannot be rewritten");
+    }
+    else if(ret->src == -1)
+    {
+      die(L"variable cannot be rewritten");
+    }
+    ret->rewrite = parseIdent();
+  }
   return ret;
 }
 
@@ -976,10 +988,12 @@ RTXCompiler::compileTag(wstring s)
 }
 
 wstring
-RTXCompiler::compileClip(Clip* c)
+RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
 {
   int src = (c->src == -1) ? 0 : c->src;
   bool useReplace = inOutputRule;
+  wstring dest = _dest;
+  if(dest.size() == 0 && c->rewrite.size() > 0) dest = c->rewrite;
   wstring cl = (c->part == L"lemcase") ? compileString(L"lem") : compileString(c->part);
   cl += INT;
   cl += src;
@@ -1050,6 +1064,43 @@ RTXCompiler::compileClip(Clip* c)
   if(c->part == L"lemcase")
   {
     ret += GETCASE;
+  }
+  if(dest.size() > 0 && dest != c->part)
+  {
+    bool found = false;
+    vector<pair<wstring, wstring>> rule;
+    for(unsigned int i = 0; i < retagRules.size(); i++)
+    {
+      if(retagRules[i][0].first == c->part && retagRules[i][0].second == dest)
+      {
+        found = true;
+        rule = retagRules[i];
+        break;
+      }
+    }
+    if(!found)
+    {
+      die(L"There is no tag-rewrite rule from '" + c->part + L"' to '" + dest + L"'.");
+    }
+    wstring check;
+    for(unsigned int i = 1; i < rule.size(); i++)
+    {
+      wstring cur;
+      cur += DUP;
+      cur += compileTag(rule[i].first);
+      cur += EQUAL;
+      cur += JUMPONFALSE;
+      cur += (wchar_t)(rule[i].second.size() + (i == 1 ? 5 : 7));
+      cur += DROP;
+      cur += compileTag(rule[i].second);
+      if(i != 1)
+      {
+        cur += JUMP;
+        cur += (wchar_t)check.size();
+      }
+      check = cur + check;
+    }
+    ret += check;
   }
   return ret;
 }
@@ -1225,7 +1276,7 @@ RTXCompiler::processOutput(OutputChunk* r, int useOutput = -1)
         }
         else
         {
-          ret += compileClip(r->vars[var]);
+          ret += compileClip(r->vars[var], pattern[i]);
         }
         ret += APPENDSURFACE;
       }

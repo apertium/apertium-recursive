@@ -88,7 +88,7 @@ public:
       {
         state = td.getTransducer().insertSingleTransduction(L' ', state);
       }
-      state = td.getTransducer().insertSingleTransduction(L'^', state);
+      state = td.getTransducer().insertNewSingleTransduction(L'^', state);
       int end = insertLemma(state, pat[p][0]->lemma);
       end = insertTags(end, pat[p][0]->tags);
       end = td.getTransducer().insertSingleTransduction(L'$', end);

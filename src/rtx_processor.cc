@@ -23,6 +23,7 @@ RTXProcessor::RTXProcessor()
   isLinear = false;
   null_flush = false;
   internal_null_flush = false;
+  printingTrees = false;
 }
 
 RTXProcessor::~RTXProcessor()
@@ -568,7 +569,6 @@ RTXProcessor::applyRule(const wstring& rule)
       {
         wstring var = popString();
         wstring val = popString();
-        if(var == L"adjectiu1") { wcerr << L"adjectiu1 is now " << val << endl;}
         variables[var] = val;
       }
         break;
@@ -576,7 +576,7 @@ RTXProcessor::applyRule(const wstring& rule)
         if(printingSteps) { wcerr << "output" << endl; }
         currentOutput.push_back(popChunk());
         currentOutput.back()->source.clear(); // don't want multiply-matching rules
-        if(printingSteps) { wcerr << " -> " << currentOutput.back()->target << endl; }
+        if(printingSteps) { wcerr << " -> '" << currentOutput.back()->target << "'" << endl; }
         break;
       case OUTPUTALL:
         if(printingSteps) { wcerr << "outputall" << endl; }
@@ -669,6 +669,7 @@ RTXProcessor::applyRule(const wstring& rule)
       {
         Chunk* kid = popChunk();
         theStack[stackIdx].c->contents.push_back(kid);
+        if(printingSteps) { wcerr << " -> child with surface '" << kid->target << L"' appended" << endl; }
       }
         break;
       case APPENDSURFACE:
@@ -912,6 +913,11 @@ RTXProcessor::outputAll(FILE* out)
   {
     Chunk* ch = outputQueue.front();
     outputQueue.pop_front();
+    if(printingTrees)
+    {
+      ch->writeTree(out);
+      continue;
+    }
     if(ch->rule == -1)
     {
       if(printingRules) { wcerr << "No rule specified" << endl; }
@@ -920,7 +926,12 @@ RTXProcessor::outputAll(FILE* out)
     else
     {
       parentChunk = ch;
+      vector<wstring> tags = ch->getTags(vector<wstring>());
       currentInput = ch->contents;
+      for(unsigned int i = 0; i < currentInput.size(); i++)
+      {
+        currentInput[i]->updateTags(tags);
+      }
       currentOutput.clear();
       if(printingRules) { wcerr << "Applying output rule " << ch->rule << endl; }
       applyRule(output_rules[ch->rule]);

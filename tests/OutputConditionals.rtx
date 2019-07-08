@@ -1,10 +1,16 @@
 n: _.gender.number;
 adj: _.gender.number;
-NP: _;
+det: _.number;
+NP: _.number;
+Dbar: _.number;
+DP: _;
 
 gender = m f mf;
 number = sg pl sp;
 
-NP -> adj n {2 _1 1(number=2.number)} (2.number/sl = pl)
-            {1(number=sg) _1 2} (2.number/ref = sp)
-            {1 1 1};
+NP -> adj %n {2 _1 1(number=2.number)} (2.number/sl = pl)
+             {1(number=sg) _1 2} (2.number/ref = sp)
+             {1 1 1};
+Dbar -> %det {%1 _ singular@whatever} ($number = sg)
+             {%1 _ plural@whatever};
+DP -> Dbar NP {1(number=2.number) _1 2};

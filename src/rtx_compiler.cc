@@ -1065,7 +1065,7 @@ RTXCompiler::compileClip(wstring part, int pos, wstring side = L"")
 }
 
 wstring
-RTXCompiler::processOutput(OutputChunk* r)
+RTXCompiler::processOutput(OutputChunk* r, int useOutput = -1)
 {
   wstring ret;
   if(r->mode == L"_")
@@ -1276,11 +1276,22 @@ RTXCompiler::processOutput(OutputChunk* r)
       }
       parentTags = was;
       ret += INT;
-      ret += (wchar_t)outputBytecode.size();
+      if(useOutput == -1)
+      {
+        ret += (wchar_t)outputBytecode.size();
+        outputBytecode.push_back(outrule);
+      }
+      else
+      {
+        ret += (wchar_t)useOutput;
+        outrule += JUMP;
+        outrule += (wchar_t)(outputBytecode[useOutput].size());
+        outrule += outputBytecode[useOutput];
+        outputBytecode[useOutput] = outrule;
+      }
       ret += INT;
       ret += (wchar_t)0;
       ret += SETRULE;
-      outputBytecode.push_back(outrule);
       inOutputRule = false;
     }
   }
@@ -1309,18 +1320,14 @@ RTXCompiler::processCond(Cond* cond)
   }
   if(cond->op == 0)
   {
-    if(cond->val->src == -1)
-    {
-      die(L"conditionals cannot refer to output chunk tags");
-    }
-    else if(cond->val->src == 0)
+    if(cond->val->src == 0)
     {
       ret = compileString(cond->val->part);
     }
     else
     {
       ret = compileClip(cond->val);
-      if(cond->val->part != L"lem")
+      if(cond->val->part != L"lem" && cond->val->part != L"lemh" && cond->val->part != L"lemq")
       {
         ret += DISTAG;
       }
@@ -1350,23 +1357,39 @@ RTXCompiler::processRules()
     currentRule = rule;
     makePattern(ruleid);
     wstring comp;
+    vector<wstring> outcomp;
+    outcomp.resize(rule->pattern.size());
+    OutputChunk* pat = rule->output[0].first;
     parentTags.clear();
+    int outcount = 0;
+    for(unsigned int i = 0; i < pat->children.size(); i++)
+    {
+      comp += processOutput(pat->children[i]);
+      comp += OUTPUT;
+      if(pat->children[i]->mode == L"{}")
+      {
+        outcount++;
+      }
+    }
     for(vector<pair<OutputChunk*, Cond*>>::reverse_iterator it = rule->output.rbegin();
               it != rule->output.rend(); ++it)
     {
-      int pl = 0;
-      if(comp.size() > 0)
+      int outidx = outputBytecode.size() - outcount;
+      wstring cnd = processCond(it->second);
+      for(unsigned int i = 0; i < it->first->children.size(); i++)
       {
-        comp = wstring(1, JUMP) + (wchar_t)comp.size() + comp;
-        pl = 2;
+        if(it->first->children[i]->mode == L"{}")
+        {
+          int size = outputBytecode[outidx].size();
+          processOutput(it->first->children[i], outidx);
+          if(cnd.size() > 0)
+          {
+            wstring s = outputBytecode[outidx];
+            outputBytecode[outidx] = cnd + JUMPONFALSE + (wchar_t)(s.size()-size) + s;
+          }
+          outidx++;
+        }
       }
-      wstring out = processOutput(it->first);
-      wstring cnd;
-      if(it->second != NULL)
-      {
-        cnd = processCond(it->second) + JUMPONFALSE + (wchar_t)(out.size()+pl);
-      }
-      comp = cnd + out + comp;
     }
     if(rule->cond != NULL)
     {
@@ -1436,7 +1459,6 @@ RTXCompiler::write(const string &fname, const string &bytename)
   }
 
   td.write(out);
-  wcerr << endl << endl << L"Transducer has " << td.getTransducer().getTransitions().size() << L" states" << endl << endl;
 
   fclose(out);
   

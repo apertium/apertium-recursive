@@ -794,43 +794,47 @@ TRXCompiler::processValue(xmlNode* node)
   }
   else if(!xmlStrcmp(node->name, (const xmlChar*) "clip"))
   {
+    ret += STRING;
+    wstring part = toWstring(requireAttr(node, (const xmlChar*) "part"));
+    ret += (wchar_t)part.size();
+    ret += part;
+    ret += INT;
+    ret += (wchar_t)getPos(node);
+    wstring side = toWstring(getAttr(node, (const xmlChar*) "side"));
+    if(side == L"sl")
+    {
+      ret += SOURCECLIP;
+    }
+    else if(side == L"tl" || side == L"")
+    {
+      ret += TARGETCLIP;
+    }
+    else if(side == L"ref")
+    {
+      ret += REFERENCECLIP;
+    }
+    else
+    {
+      warn(node, L"Unknown clip side '" + side + L"', defaulting to 'tl'.");
+      ret += TARGETCLIP;
+    }
     wstring link = toWstring(getAttr(node, (const xmlChar*) "link-to"));
     if(link.size() > 0)
     {
+      ret += DUP;
+      ret += STRING;
+      ret += (wchar_t)0;
+      ret += EQUAL;
+      ret += JUMPONTRUE;
+      ret += (wchar_t)(link.size() + 5);
+      ret += DROP;
       ret += STRING;
       ret += (wchar_t)(link.size() + 2);
       ret += L'<';
       ret += link;
       ret += L'>';
     }
-    else
-    {
-      ret += STRING;
-      wstring part = toWstring(requireAttr(node, (const xmlChar*) "part"));
-      ret += (wchar_t)part.size();
-      ret += part;
-      ret += INT;
-      ret += (wchar_t)getPos(node);
-      wstring side = toWstring(getAttr(node, (const xmlChar*) "side"));
-      if(side == L"sl")
-      {
-        ret += SOURCECLIP;
-      }
-      else if(side == L"tl" || side == L"")
-      {
-        ret += TARGETCLIP;
-      }
-      else if(side == L"ref")
-      {
-        ret += REFERENCECLIP;
-      }
-      else
-      {
-        warn(node, L"Unknown clip side '" + side + L"', defaulting to 'tl'.");
-        ret += TARGETCLIP;
-      }
-      // TODO: what does attribute "queue" do?
-    }
+    // TODO: what does attribute "queue" do?
   }
   else if(!xmlStrcmp(node->name, (const xmlChar*) "lit"))
   {

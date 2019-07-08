@@ -130,6 +130,7 @@ public:
   }
   void updateTags(const vector<wstring>& parentTags)
   {
+    if(isBlank) return;
     unsigned int last = 0;
     wstring result;
     result.reserve(target.size() + (2*parentTags.size()));
@@ -229,6 +230,31 @@ public:
   void appendChild(Chunk* kid)
   {
     contents.push_back(kid);
+  }
+  void writeTree(FILE* out)
+  {
+    if(!isBlank) fputc_unlocked('^', out);
+    if(source.size() > 0)
+    {
+      fputs_unlocked(UtfConverter::toUtf8(source).c_str(), out);
+      fputc_unlocked('/', out);
+    }
+    fputs_unlocked(UtfConverter::toUtf8(target).c_str(), out);
+    if(coref.size() > 0)
+    {
+      fputc_unlocked('/', out);
+      fputs_unlocked(UtfConverter::toUtf8(coref).c_str(), out);
+    }
+    if(contents.size() > 0)
+    {
+      fputc_unlocked('{', out);
+      for(unsigned int i = 0; i < contents.size(); i++)
+      {
+        contents[i]->writeTree(out);
+      }
+      fputc_unlocked('}', out);
+    }
+    if(!isBlank) fputc_unlocked('$', out);
   }
 };
 

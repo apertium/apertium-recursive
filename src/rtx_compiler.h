@@ -433,14 +433,16 @@ private:
    * @param ch - the element
    * @return bytecode
    */
-  wstring processOutput(OutputChunk* ch);
+  wstring processOutputChunk(OutputChunk* ch);
 
   /**
    * Compile an output chunk and potentially generate output rule
    * @param chunk - the chunk
+   * @param useOutput - if specified, generated output rule will be added to
+   *    the beginning of that rule rather than creating a new one
    * @return bytecode
    */
-  wstring processOutputChunk(OutputChunk* chunk);
+  wstring processOutput(OutputChunk* chunk, int useOutput);
 
   /**
    * Compile a Cond object

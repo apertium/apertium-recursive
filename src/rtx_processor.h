@@ -66,6 +66,7 @@ private:
   bool printingMatch;
   bool noCoref;
   bool isLinear;
+  bool printingTrees;
 
   void destroy();
   void readData(FILE *input);
@@ -139,6 +140,10 @@ public:
   void mimicChunker(bool val)
   {
     isLinear = val;
+  }
+  void printTrees(bool val)
+  {
+    printingTrees = val;
   }
 };
 

@@ -1184,11 +1184,11 @@ RTXCompiler::processOutput(OutputChunk* r, int useOutput = -1)
       {
         if(r->vars.find(L"lem") != r->vars.end())
         {
-          ret += compileClip(r->vars[L"lem"]);
+          ret += compileClip(r->vars[L"lem"], L"lem");
         }
         else if(r->vars.find(L"lemh") != r->vars.end())
         {
-          ret += compileClip(r->vars[L"lemh"]);
+          ret += compileClip(r->vars[L"lemh"], L"lemh");
         }
         else if(r->mode == L"{}")
         {
@@ -1196,11 +1196,16 @@ RTXCompiler::processOutput(OutputChunk* r, int useOutput = -1)
         }
         else
         {
-          ret += compileClip(L"lemh", r->pos, L"tl");
+          Clip* c = new Clip;
+          c->part = L"lemh";
+          c->src = r->pos;
+          c->side = L"tl";
+          c->rewrite = L"lemh";
+          ret += compileClip(c);
         }
         if(r->vars.find(L"lemcase") != r->vars.end())
         {
-          ret += compileClip(r->vars[L"lemcase"]);
+          ret += compileClip(r->vars[L"lemcase"], L"lemcase");
           ret += SETCASE;
         }
         ret += APPENDSURFACE;

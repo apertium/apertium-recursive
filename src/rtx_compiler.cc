@@ -1262,21 +1262,28 @@ RTXCompiler::processOutput(OutputChunk* r, int useOutput = -1)
           }
           if(!found)
           {
-            Clip* cl = new Clip;
-            cl->src = r->pos;
-            cl->part = pattern[i];
-            if(r->pos == 0)
+            if(attrDefaults.find(pattern[i]) != attrDefaults.end())
             {
-              if(currentRule->grab_all == -1)
-              {
-                die(L"cannot find source for tag '" + pattern[i] + L"'");
-              }
-              else
-              {
-                cl->src = currentRule->grab_all;
-              }
+              ret += compileTag(attrDefaults[pattern[i]].first);
             }
-            ret += compileClip(cl, pattern[i]);
+            else
+            {
+              Clip* cl = new Clip;
+              cl->src = r->pos;
+              cl->part = pattern[i];
+              if(r->pos == 0)
+              {
+                if(currentRule->grab_all == -1)
+                {
+                  die(L"cannot find source for tag '" + pattern[i] + L"'");
+                }
+                else
+                {
+                  cl->src = currentRule->grab_all;
+                }
+              }
+              ret += compileClip(cl, pattern[i]);
+            }
           }
         }
         else

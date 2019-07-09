@@ -1211,34 +1211,6 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       parseGraph.swap(temp);
     }
     next = readToken(in);
-    /*ParseNode* min = NULL;
-    ParseNode* cur = NULL;
-    vector<ParseNode*> temp;
-    //temp.reserve(parseGraph.size());
-    int len = INT_MAX;
-    double weight = 0.0;
-    for(unsigned int i = 0, limit = parseGraph.size(); i < limit; i++)
-    {
-      cur = parseGraph[i];
-      if(!furtherInput || cur->isDone())
-      {
-        if(cur->length < len || (cur->length == len && cur->weight > weight))
-        {
-          len = cur->length;
-          weight = cur->weight;
-          min = cur;
-        }
-      }
-      else
-      {
-        temp.push_back(cur);
-      }
-    }
-    temp.swap(parseGraph);*/
-    //if(parseGraph.size() == 0 && min != NULL)
-    //if((!next->isBlank || !furtherInput) && filterParseGraph())
-    //if(!furtherInput || next->isBlank) filterParseGraph();
-    //if(parseGraph.size() == 1 && parseGraph[0]->isDone())
     if(filterParseGraph())
     {
       parseGraph[0]->getChunks(outputQueue, parseGraph[0]->length-1);

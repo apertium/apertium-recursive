@@ -752,6 +752,11 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     {
       die(L"empty pattern");
     }
+    if(source.peek() == L'(')
+    {
+      rule->cond = parseCond();
+      eatSpaces();
+    }
     if(isNextToken(L'['))
     {
       while(!source.eof())
@@ -773,6 +778,10 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     }
     if(source.peek() == L'(')
     {
+      if(rule->cond != NULL)
+      {
+        die(L"Rule cannot have multiple pattern conditions.");
+      }
       rule->cond = parseCond();
       eatSpaces();
     }

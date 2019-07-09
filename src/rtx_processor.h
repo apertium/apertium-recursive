@@ -81,6 +81,7 @@ private:
   
   void checkForReduce(vector<ParseNode*>& result, ParseNode* node);
   void outputAll(FILE* out);
+  bool filterParseGraph();
   void processGLR(FILE* in, FILE* out);
 
   void processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x);

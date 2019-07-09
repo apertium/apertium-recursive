@@ -141,7 +141,6 @@ verbtype = pron;
 
 cnjcoo: _;
 tractaments = Mr\. Mrs\. Ms\. Dr\.;
-np_type = ant cog;
 NA -> 0: AP %NA {1 _1 2} (1.mode = num)
                 {2 _1 %1} |
       0: AP %NOM {1 _1 2} (1.mode = num)

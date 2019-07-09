@@ -9,11 +9,10 @@ autom4te.cache/
 depcomp
 install-sh
 missing
-src/rec-inter
 src/rtx-comp
-src/rtx-comp2
 src/rtx-proc
-src/prep-all
+src/trx-comp
+src/rtx-decomp
 stamp-h1
 *.comp
 *.bin

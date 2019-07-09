@@ -311,11 +311,15 @@ public:
   ParseNode* prev;
   MatchExe2* mx;
   double weight;
+  int firstWord;
+  int lastWord;
   ParseNode()
-  : first(0), last(0)
+  : first(0), last(0), firstWord(0), lastWord(0)
   {}
   void init(MatchExe2* m, Chunk* ch, double w = 0.0)
   {
+    firstWord = 0;
+    lastWord = 0;
     chunk = ch;
     length = 1;
     prev = NULL;
@@ -334,6 +338,8 @@ public:
   {
     chunk = next;
     prev = prevNode;
+    firstWord = prev->lastWord + 1;
+    lastWord = firstWord;
     for(int i = prevNode->first; i != prevNode->last; i = (i+1)%RTXStateSize)
     {
       state[last++] = prevNode->state[i];
@@ -361,6 +367,8 @@ public:
     mx = prevNode->mx;
     length = prev->length+1;
     weight = prev->weight;
+    firstWord = prev->lastWord+1;
+    lastWord = firstWord;
     if(next->isBlank)
     {
       mx->matchBlank(state, first, last);
@@ -385,6 +393,8 @@ public:
     prev = other->prev;
     weight = other->weight;
     mx = other->mx;
+    firstWord = other->firstWord;
+    lastWord = other->lastWord;
   }
   void getChunks(list<Chunk*>& chls, int count)
   {

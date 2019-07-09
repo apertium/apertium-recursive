@@ -580,7 +580,7 @@ RTXProcessor::applyRule(const wstring& rule)
         if(isLinear && ch->contents.size() == 0)
         {
           bool word = true;
-          int last = 0;
+          unsigned int last = 0;
           wchar_t* targ = ch->target.data();
           bool chunk = false;
           for(unsigned int c = 0, limit = ch->target.size(); c < limit; c++)
@@ -942,31 +942,70 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
   while(rule != -1)
   {
     int len = pat_size[rule-1];
+    int first;
+    int last = node->lastWord;
     currentInput.resize(len);
     node->getChunks(currentInput, len-1);
     currentOutput.clear();
-    if(printingRules) { wcerr << "Applying rule " << rule << endl; }
+    if(printingRules) {
+      wcerr << "Applying rule " << rule << ": ";
+      for(unsigned int i = 0; i < currentInput.size(); i++)
+      {
+        currentInput[i]->writeTree(output);
+      }
+      wcerr << endl;
+    }
     if(applyRule(rule_map[rule-1]))
     {
-      if(currentOutput.size() == 1)
+      vector<Chunk*> temp;
+      temp.reserve(currentOutput.size());
+      while(currentOutput.size() > 1)
       {
-        ParseNode* back = node->popNodes(len);
-        ParseNode* cur;
-        if(back == NULL)
-        {
-          cur = parsePool.next();
-          cur->init(mx, currentOutput[0], weight + ruleWeights[rule-1]);
-        }
-        else
-        {
-          cur = parsePool.next();
-          cur->init(back, currentOutput[0], weight + ruleWeights[rule-1]);
-        }
-        checkForReduce(result, cur);
+        temp.push_back(currentOutput.back());
+        currentOutput.pop_back();
+      }
+      ParseNode* back = node->popNodes(len);
+      ParseNode* cur;
+      if(back == NULL)
+      {
+        first = 0;
+        cur = parsePool.next();
+        cur->init(mx, currentOutput[0], weight + ruleWeights[rule-1]);
       }
       else
       {
-        // TODO: somewhat tricky loops
+        first = back->lastWord+1;
+        cur = parsePool.next();
+        cur->init(back, currentOutput[0], weight + ruleWeights[rule-1]);
+      }
+      if(temp.size() == 0)
+      {
+        checkForReduce(result, cur);
+        break;
+      }
+      vector<ParseNode*> res;
+      vector<ParseNode*> res2;
+      checkForReduce(res, cur);
+      while(temp.size() > 0)
+      {
+        for(vector<ParseNode*>::iterator it = res.begin(), limit = res.end();
+              it != limit; it++)
+        {
+          cur = parsePool.next();
+          cur->init(*it, temp.back());
+          cur->firstWord = first;
+          cur->lastWord = last;
+          checkForReduce(res2, cur);
+        }
+        temp.pop_back();
+        res.clear();
+        res.swap(res2);
+      }
+      result.reserve(result.size() + res.size());
+      for(vector<ParseNode*>::iterator it = res.begin(), limit = res.end();
+            it != limit; it++)
+      {
+        result.push_back(*it);
       }
       break;
     }
@@ -1009,7 +1048,14 @@ RTXProcessor::outputAll(FILE* out)
         currentInput[i]->updateTags(tags);
       }
       currentOutput.clear();
-      if(printingRules) { wcerr << "Applying output rule " << ch->rule << endl; }
+      if(printingRules) {
+        wcerr << "Applying output rule " << ch->rule << ": ";
+        for(unsigned int i = 0; i < currentInput.size(); i++)
+        {
+          currentInput[i]->writeTree(output);
+        }
+        wcerr << endl;
+      }
       applyRule(output_rules[ch->rule]);
       for(vector<Chunk*>::reverse_iterator it = currentOutput.rbegin(),
               limit = currentOutput.rend(); it != limit; it++)
@@ -1018,6 +1064,126 @@ RTXProcessor::outputAll(FILE* out)
       }
     }
   }
+}
+
+bool
+RTXProcessor::filterParseGraph()
+{
+  bool shouldOutput = !furtherInput;
+  int state[parseGraph.size()];
+  const int N = parseGraph.size();
+  memset(state, 1, N*sizeof(int));
+  int count = N;
+  if(furtherInput)
+  {
+    for(int i = 0; i < N; i++)
+    {
+      if(parseGraph[i]->isDone())
+      {
+        state[i] = 0;
+        count--;
+      }
+    }
+    if(count == 0)
+    {
+      shouldOutput = true;
+      memset(state, 1, N*sizeof(int));
+      count = N;
+    }
+  }
+  int min = -1;
+  ParseNode* minNode = NULL;
+  ParseNode* cur = NULL;
+  map<int, vector<int>> filter;
+  //wcerr << L"shouldOutput: " << shouldOutput << L" branch count: " << N << endl;
+  for(int i = 0; i < N; i++)
+  {
+    //wcerr << "examining node " << i << " ... ";
+    if(state[i] == 0) continue;
+    if(min == -1)
+    {
+      //wcerr << "FIRST!" << endl;
+      min = i;
+      minNode = parseGraph[i];
+      cur = minNode;
+      filter[cur->firstWord].push_back(i);
+    }
+    else
+    {
+      cur = parseGraph[i];
+      if(shouldOutput)
+      {
+        if(cur->length < minNode->length
+            || (cur->length == minNode->length && cur->weight > minNode->weight))
+        {
+          //wcerr << i << L" beats " << min << " in length or weight" << endl;
+          state[min] = 0;
+          min = i;
+          minNode = cur;
+        }
+        else
+        {
+          state[i] = 0;
+          //wcerr << min << L" beats " << i << " in length or weight" << endl;
+        }
+        count--;
+      }
+      else if(filter.find(cur->firstWord) == filter.end())
+      {
+        filter[cur->firstWord].push_back(i);
+        //wcerr << i << " has nothing to compare with" << endl;
+      }
+      else
+      {
+        vector<int>& other = filter[cur->firstWord];
+        double w = parseGraph[other[0]]->weight;
+        if(w > cur->weight)
+        {
+          //wcerr << i << L" has lower weight - discarding." << endl;
+          state[i] = 0;
+          count--;
+        }
+        else if(w < cur->weight)
+        {
+          //wcerr << i << L" has higher weight - discarding others." << endl;
+          for(vector<int>::iterator it = other.begin(), limit = other.end();
+                it != limit; it++)
+          {
+            state[*it] = 0;
+            count--;
+          }
+          other.resize(1);
+          other[0] = i;
+        }
+        else
+        {
+          //wcerr << i << " has same weight - keeping all." << endl;
+          other.push_back(i);
+        }
+      }
+    }
+  }
+  vector<ParseNode*> temp;
+  temp.reserve(count);
+  for(int i = 0; i < N; i++)
+  {
+    if(state[i] != 0)
+    {
+      temp.push_back(parseGraph[i]);
+      //wcerr << L"keeping branch " << i << " first word: " << parseGraph[i]->firstWord << " ending with ";
+      //parseGraph[i]->chunk->writeTree(output);
+      //wcerr << endl;
+    }
+    else
+    {
+      //wcerr << L"discarding branch " << i << " first word: " << parseGraph[i]->firstWord << " ending with ";
+      //parseGraph[i]->chunk->writeTree(output);
+      //wcerr << endl;
+    }
+  }
+  //wcerr << L"remaining branches: " << temp.size() << endl << endl;
+  parseGraph.swap(temp);
+  return shouldOutput;
 }
 
 void
@@ -1045,7 +1211,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       parseGraph.swap(temp);
     }
     next = readToken(in);
-    ParseNode* min = NULL;
+    /*ParseNode* min = NULL;
     ParseNode* cur = NULL;
     vector<ParseNode*> temp;
     //temp.reserve(parseGraph.size());
@@ -1068,10 +1234,16 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
         temp.push_back(cur);
       }
     }
-    temp.swap(parseGraph);
-    if(parseGraph.size() == 0 && min != NULL)
+    temp.swap(parseGraph);*/
+    //if(parseGraph.size() == 0 && min != NULL)
+    //if((!next->isBlank || !furtherInput) && filterParseGraph())
+    //if(!furtherInput || next->isBlank) filterParseGraph();
+    //if(parseGraph.size() == 1 && parseGraph[0]->isDone())
+    if(filterParseGraph())
     {
-      min->getChunks(outputQueue, min->length-1);
+      parseGraph[0]->getChunks(outputQueue, parseGraph[0]->length-1);
+      parseGraph.clear();
+      //min->getChunks(outputQueue, min->length-1);
       outputAll(out);
       wstring s = next->source;
       wstring t = next->target;
@@ -1175,7 +1347,7 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
         {
           t2x.push_back(currentOutput[n]);
         }
-        for(unsigned int n = 0; n < len; n++)
+        for(int n = 0; n < len; n++)
         {
           t1x.pop_front();
         }
@@ -1261,6 +1433,7 @@ RTXProcessor::processTRX(FILE *in, FILE *out)
 void
 RTXProcessor::process(FILE* in, FILE* out)
 {
+  output = out;
   if(null_flush)
   {
     null_flush = false;

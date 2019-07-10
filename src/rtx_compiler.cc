@@ -1001,8 +1001,15 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
 {
   int src = (c->src == -1) ? 0 : c->src;
   bool useReplace = inOutputRule;
-  wstring dest = _dest;
-  if(dest.size() == 0 && c->rewrite.size() > 0) dest = c->rewrite;
+  wstring dest;
+  if(inOutputRule && _dest.size() > 0)
+  {
+    dest = _dest;
+  }
+  else if(c->rewrite.size() > 0)
+  {
+    dest = c->rewrite;
+  }
   wstring cl = (c->part == L"lemcase") ? compileString(L"lem") : compileString(c->part);
   cl += INT;
   cl += src;

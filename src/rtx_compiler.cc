@@ -1465,7 +1465,7 @@ RTXCompiler::processRules()
     }
     if(rule->cond != NULL)
     {
-      comp = processCond(rule->cond) + JUMPONFALSE + (wchar_t)1 + REJECTRULE + comp;
+      comp = processCond(rule->cond) + JUMPONTRUE + (wchar_t)1 + REJECTRULE + comp;
     }
     rule->compiled = comp;
   }

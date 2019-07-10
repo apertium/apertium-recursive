@@ -3,7 +3,7 @@ adj: _.number;
 prn: _.<pos>.person.number;
 vblex: _.tense.number;
 VP: _;
-NP: _.number;
+NP: _.poss;
 
 number = (ND sg) sg pl sp ND;
 poss = px1sg px2sg px3sg px1pl px2pl px3pl;
@@ -16,4 +16,4 @@ tense > tense : past pri;
 
 NP -> n.$poss prn {2(person=1.poss, number=1.poss) _1 1} |
       n.$poss adj {blah@prn.pos.[1.poss>person].[1.poss>number] _ 2(number=1.number) _1 1};
-VP -> NP vblex {1 _1 2(number=1.number)};
+VP -> NP vblex {1 _1 2(number=1.poss)};

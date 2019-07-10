@@ -765,6 +765,10 @@ RTXProcessor::applyRule(const wstring& rule)
         }
       }
         break;
+      case APPENDALLINPUT:
+        if(printingSteps) { wcerr << "appendallinput" << endl; }
+        theStack[stackIdx].c->contents = currentInput;
+        break;
       case BLANK:
         if(printingSteps) { wcerr << "blank" << endl; }
       {

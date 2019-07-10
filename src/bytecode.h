@@ -76,6 +76,7 @@ static const wchar_t CHUNK             = L'C';
 static const wchar_t APPENDCHILD       = L'1';
 static const wchar_t APPENDSURFACE     = L'2';
 static const wchar_t APPENDALLCHILDREN = L'3';
+static const wchar_t APPENDALLINPUT    = L'4';
 
 // Output
 

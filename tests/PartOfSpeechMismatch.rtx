@@ -18,11 +18,14 @@ tense = pres past;
 NP -> %np {1} |
       det.pos %n {1(number=2.number) _1 2};
 V -> %vblex {1} |
-     %vblex vblex.inf {usually@adv _1 %2(tense=1.tense)} ((1.lem/sl = soler) and (1.tense/sl = pres))
-                      {1 _1 2[vbinf]};
+     %vblex vblex.inf
+          (if ((1.lem/sl = soler) and (1.tense/sl = pres))
+              {usually@adv _1 %2(tense=1.tense)}
+           else
+              {1 _1 2[vbinf]});
 VP -> %V {1} |
       %V adv {1 _1 2} |
       %V NP {1 _1 2};
-S -> NP VP.p3 (~(1.number = 2.number)) {1 _1 2} |
+S -> NP VP.p3 ?(1.number = 2.number) {1 _1 2} |
      VP.p3.sg {prpers@prn.subj.p3.m.sg _ 1} |
      VP {prpers@prn.subj.[1.person].mf.[1.number] _ 1};

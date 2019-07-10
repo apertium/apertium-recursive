@@ -18,8 +18,10 @@ RTXCompiler::RTXCompiler()
   longestPattern = 0;
   currentRule = NULL;
   currentChunk = NULL;
+  currentChoice = NULL;
   errorsAreSyntax = true;
   inOutputRule = false;
+  parserIsInChunk = false;
 }
 
 wstring const
@@ -428,6 +430,7 @@ RTXCompiler::parseCond()
   }
   while(true)
   {
+    bool isNotted = false;
     wstring op = nextToken();
     if(op == L")")
     {
@@ -435,6 +438,11 @@ RTXCompiler::parseCond()
     }
     else
     {
+      if(op == L"not")
+      {
+        isNotted = true;
+        op = nextToken();
+      }
       bool found = false;
       wstring key = StringUtils::tolower(op);
       key = StringUtils::substitute(key, L"-", L"");
@@ -472,6 +480,13 @@ RTXCompiler::parseCond()
       ret->right->val = parseClip();
     }
     Cond* temp = ret;
+    if(isNotted)
+    {
+      ret = new Cond;
+      ret->op = NOT;
+      ret->right = temp;
+      temp = ret;
+    }
     ret = new Cond;
     ret->left = temp;
   }
@@ -537,19 +552,30 @@ RTXCompiler::parseOutputElement()
   ret->nextConjoined = false;
   if(ret->conjoined)
   {
+    if(currentChunk == NULL)
+    {
+      die(L"Cannot conjoin from within if statement.");
+    }
     if(currentChunk->children.size() == 0)
     {
       die(L"Cannot conjoin first element.");
     }
-    if(currentChunk->children.back()->mode == L"_")
+    if(currentChunk->children.back()->conds.size() > 0)
+    {
+      die(L"Cannot conjoin to something in an if statement.");
+    }
+    if(currentChunk->children.back()->chunks.size() == 0)
+    {
+      die(L"Cannot conjoin inside and outside of if statement and cannot conjoin first element.");
+    }
+    if(currentChunk->children.back()->chunks[0]->mode == L"_")
     {
       die(L"Cannot conjoin to a blank.");
     }
     eatSpaces();
-    currentChunk->children.back()->nextConjoined = true;
+    currentChunk->children.back()->chunks[0]->nextConjoined = true;
   }
   ret->getall = isNextToken(L'%');
-  ret->isToplevel = false;
   if(source.peek() == L'_')
   {
     if(ret->getall)
@@ -654,27 +680,127 @@ RTXCompiler::parseOutputElement()
       }
     }
   }
-  currentChunk->children.push_back(ret);
+  if(currentChoice != NULL)
+  {
+    currentChoice->chunks.push_back(ret);
+    currentChoice->nest.push_back(NULL);
+  }
+  else
+  {
+    OutputChoice* temp = new OutputChoice;
+    temp->chunks.push_back(ret);
+    temp->nest.push_back(NULL);
+    if(currentChunk == NULL)
+    {
+      currentRule->output.push_back(temp);
+    }
+    else
+    {
+      currentChunk->children.push_back(temp);
+    }
+  }
   eatSpaces();
 }
 
 void
-RTXCompiler::parseOutputChunk(bool recursing = false)
+RTXCompiler::parseOutputCond()
+{
+  nextToken(L"(");
+  OutputChoice* choicewas = currentChoice;
+  OutputChunk* chunkwas = currentChunk;
+  OutputChoice* ret = new OutputChoice;
+  currentChoice = ret;
+  currentChunk = NULL;
+  while(true)
+  {
+    wstring mode = StringUtils::tolower(nextToken());
+    mode = StringUtils::substitute(mode, L"-", L"");
+    mode = StringUtils::substitute(mode, L"_", L"");
+    if(ret->conds.size() == 0 && mode != L"if")
+    {
+      die(L"If statement must begin with 'if'.");
+    }
+    if(mode == L"if" || mode == L"elif" || mode == L"elseif")
+    {
+      ret->conds.push_back(parseCond());
+    }
+    else if(mode != L"else" && mode != L"otherwise")
+    {
+      die(L"Unknown statement: '" + mode + L"'.");
+    }
+    eatSpaces();
+    if(source.peek() == L'(')
+    {
+      parseOutputCond();
+      ret->chunks.push_back(NULL);
+    }
+    else if(source.peek() == L'{')
+    {
+      if(parserIsInChunk)
+      {
+        die(L"Nested chunks are currently not allowed.");
+      }
+      ret->nest.push_back(NULL);
+      parseOutputChunk();
+    }
+    else
+    {
+      if(!parserIsInChunk)
+      {
+        die(L"Conditional non-chunk output current not possible.");
+      }
+      parseOutputElement();
+      ret->nest.push_back(NULL);
+    }
+    if(mode == L"else" || mode == L"otherwise")
+    {
+      break;
+    }
+  }
+  currentChunk = chunkwas;
+  currentChoice = choicewas;
+  nextToken(L")");
+  if(ret->conds.size() == 0)
+  {
+    die(L"If statement cannot be empty.");
+  }
+  if(ret->conds.size() == ret->nest.size())
+  {
+    die(L"If statement has no else clause and thus could produce no output.");
+  }
+  if(currentChoice != NULL)
+  {
+    currentChoice->nest.push_back(ret);
+    currentChoice->chunks.push_back(NULL);
+  }
+  else if(currentChunk != NULL)
+  {
+    currentChunk->children.push_back(ret);
+  }
+  else
+  {
+    currentRule->output.push_back(ret);
+  }
+}
+
+void
+RTXCompiler::parseOutputChunk()
 {
   nextToken(L"{");
+  parserIsInChunk = true;
   eatSpaces();
   OutputChunk* ch = new OutputChunk;
-  OutputChunk* was = currentChunk;
+  OutputChunk* chunkwas = currentChunk;
+  OutputChoice* choicewas = currentChoice;
   currentChunk = ch;
+  currentChoice = NULL;
   ch->mode = L"{}";
   ch->pos = 0;
-  bool hasrec = false;
   while(source.peek() != L'}')
   {
-    if(!recursing && source.peek() == L'{')
+    if(source.peek() == L'(')
     {
-      parseOutputChunk(true);
-      hasrec = true;
+      parseOutputCond();
     }
     else
     {
@@ -682,29 +808,24 @@ RTXCompiler::parseOutputChunk(bool recursing = false)
     }
   }
   nextToken(L"}");
+  parserIsInChunk = false;
   eatSpaces();
-  Cond* cnd = NULL;
-  if(!recursing && source.peek() == L'(')
+  currentChunk = chunkwas;
+  currentChoice = choicewas;
+  OutputChoice* ret = new OutputChoice;
+  ret->chunks.push_back(ch);
+  ret->nest.push_back(NULL);
+  if(currentChoice != NULL)
   {
-    cnd = parseCond();
+    currentChoice->chunks.push_back(ch);
   }
-  eatSpaces();
-  ch->isToplevel = !recursing;
-  currentChunk = was;
-  if(recursing)
+  else if(currentChunk != NULL)
   {
-    currentChunk->children.push_back(ch);
-  }
-  else if(hasrec)
-  {
-    currentRule->output.push_back(make_pair(ch, cnd));
+    currentChunk->children.push_back(ret);
   }
   else
   {
-    OutputChunk* ret = new OutputChunk;
-    ret->mode = L"{}";
-    ret->children.push_back(ch);
-    currentRule->output.push_back(make_pair(ret, cnd));
+    currentRule->output.push_back(ret);
   }
 }
 
@@ -732,6 +853,7 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     rule = new Rule();
     currentRule = rule;
     rule->grab_all = -1;
+    rule->result = outNodes;
     eatSpaces();
     rule->line = currentLine;
     if(isdigit(source.peek()))
@@ -744,7 +866,7 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     {
       rule->weight = 0;
     }
-    while(!source.eof() && source.peek() != L'{' && source.peek() != L'[' && source.peek() != L'(')
+    while(!source.eof() && source.peek() != L'{' && source.peek() != L'[' && source.peek() != L'(' && source.peek() != L'?')
     {
       parsePatternElement(rule);
     }
@@ -752,7 +874,8 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     {
       die(L"empty pattern");
     }
-    if(source.peek() == L'(')
+    eatSpaces();
+    if(isNextToken(L'?'))
     {
       rule->cond = parseCond();
       eatSpaces();
@@ -776,47 +899,47 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
       }
       eatSpaces();
     }
-    if(source.peek() == L'(')
+    if(rule->result.size() > 1)
     {
-      if(rule->cond != NULL)
-      {
-        die(L"Rule cannot have multiple pattern conditions.");
-      }
-      rule->cond = parseCond();
-      eatSpaces();
+      nextToken(L"{");
     }
-    eatSpaces();
-    while(!source.eof() && source.peek() == L'{')
+    int chunk_count = 0;
+    while(chunk_count < rule->result.size())
     {
-      parseOutputChunk();
-      OutputChunk* ch = rule->output.back().first;
-      unsigned int n = 0;
-      for(unsigned int i = 0; i < ch->children.size(); i++)
+      eatSpaces();
+      if(source.eof()) die(L"Unexpected end of file.");
+      switch(source.peek())
       {
-        OutputChunk* cur = ch->children[i];
-        if(cur->mode == L"{}" || cur->pattern == outNodes[n])
-        {
-          if(n == outNodes.size())
+        case L'(':
+          parseOutputCond();
+          chunk_count++;
+          break;
+        case L'{':
+          parseOutputChunk();
+          chunk_count++;
+          break;
+        case L'_':
+          parseOutputElement();
+          break;
+        case L'}':
+          if(rule->result.size() == 1)
           {
-            die(L"too many chunks in output pattern");
+            die(L"Unexpected } in output pattern.");
           }
-          cur->pattern = outNodes[n];
-          for(map<wstring, Clip*>::iterator it = rule->vars.begin();
-                  it != rule->vars.end(); ++it)
+          else if(chunk_count < rule->result.size())
           {
-            if(cur->vars.find(it->first) == cur->vars.end())
-            {
-              cur->vars[it->first] = it->second;
-            }
+            die(L"Output pattern does not have enough chunks.");
           }
-          n++;
-        }
-        cur->isToplevel = true;
+          break;
+        default:
+          parseOutputElement();
+          chunk_count++;
+          break;
       }
-      if(n < outNodes.size())
-      {
-        die(L"not enough chunks in output pattern, got " + to_wstring(n) + L", expected " + to_wstring(outNodes.size()));
-      }
+    }
+    if(rule->result.size() > 1)
+    {
+      nextToken(L"}");
     }
     reductionRules.push_back(rule);
     if(nextToken(L"|", L";") == L";")
@@ -1132,7 +1255,7 @@ RTXCompiler::compileClip(wstring part, int pos, wstring side = L"")
 }
 
 wstring
-RTXCompiler::processOutput(OutputChunk* r, int useOutput = -1)
+RTXCompiler::processOutputChunk(OutputChunk* r)
 {
   wstring ret;
   if(r->mode == L"_")
@@ -1141,18 +1264,21 @@ RTXCompiler::processOutput(OutputChunk* r, int useOutput = -1)
     ret += (wchar_t)r->pos;
     ret += BLANK;
   }
-  else if(r->mode == L"{}" && r->pattern == L"")
+  else if(r->mode == L"{}")
   {
-    OutputChunk* was = currentChunk;
-    currentChunk = r;
     for(unsigned int i = 0; i < r->children.size(); i++)
     {
-      ret += processOutput(r->children[i]);
-      ret += OUTPUT;
+      ret += processOutputChoice(r->children[i]);
+      if(r->children[i]->chunks.size() == 1 && r->children[i]->chunks[0]->nextConjoined)
+      {
+      }
+      else
+      {
+        ret += OUTPUT;
+      }
     }
-    currentChunk = was;
   }
-  else if(r->mode == L"#" || r->mode == L"{}")
+  else if(r->mode == L"#")
   {
     wstring pos;
     if(r->pos != 0)
@@ -1207,6 +1333,10 @@ RTXCompiler::processOutput(OutputChunk* r, int useOutput = -1)
           ret += compileClip(r->vars[L"lemh"], L"lemh");
         }
         else if(r->mode == L"{}")
+        {
+          ret += compileString(L"unknown");
+        }
+        else if(r->pos == 0)
         {
           ret += compileString(L"unknown");
         }
@@ -1319,7 +1449,7 @@ RTXCompiler::processOutput(OutputChunk* r, int useOutput = -1)
       ret += compileClip(L"lemq", r->pos, L"tl");
       ret += APPENDSURFACE;
     }
-    if(r->mode == L"#")
+    if(r->mode == L"#" && inOutputRule)
     {
       ret += compileClip(L"whole", r->pos, L"tl");
       ret += APPENDALLCHILDREN;
@@ -1329,49 +1459,6 @@ RTXCompiler::processOutput(OutputChunk* r, int useOutput = -1)
       ret += INT;
       ret += (wchar_t)0;
       ret += SETRULE;
-    }
-    else
-    {
-      for(unsigned int i = 1, limit = currentRule->pattern.size(); i <= limit; i++)
-      {
-        ret += compileClip(L"whole", i, L"tl");
-        ret += APPENDCHILD;
-        if(i != limit)
-        {
-          ret += INT;
-          ret += (wchar_t)i;
-          ret += BLANK;
-          ret += APPENDCHILD;
-        }
-      }
-      inOutputRule = true;
-      wstring outrule;
-      vector<wstring> was = parentTags;
-      parentTags = pattern;
-      for(unsigned int i = 0; i < r->children.size(); i++)
-      {
-        outrule += processOutput(r->children[i]);
-        if(!r->children[i]->nextConjoined) outrule += OUTPUT;
-      }
-      parentTags = was;
-      ret += INT;
-      if(useOutput == -1)
-      {
-        ret += (wchar_t)outputBytecode.size();
-        outputBytecode.push_back(outrule);
-      }
-      else
-      {
-        ret += (wchar_t)useOutput;
-        outrule += JUMP;
-        outrule += (wchar_t)(outputBytecode[useOutput].size());
-        outrule += outputBytecode[useOutput];
-        outputBytecode[useOutput] = outrule;
-      }
-      ret += INT;
-      ret += (wchar_t)0;
-      ret += SETRULE;
-      inOutputRule = false;
     }
   }
   else
@@ -1426,6 +1513,40 @@ RTXCompiler::processCond(Cond* cond)
   return ret;
 }
 
+wstring
+RTXCompiler::processOutputChoice(OutputChoice* choice)
+{
+  wstring ret;
+  if(choice->nest.back() == NULL)
+  {
+    ret += processOutputChunk(choice->chunks.back());
+  }
+  else
+  {
+    ret += processOutputChoice(choice->nest.back());
+  }
+  int n = choice->conds.size();
+  for(int i = 1; i <= n; i++)
+  {
+    wstring act;
+    if(choice->nest[n-i] != NULL)
+    {
+      act = processOutputChoice(choice->nest[n-i]);
+    }
+    else
+    {
+      act = processOutputChunk(choice->chunks[n-i]);
+    }
+    act += JUMP;
+    act += (wchar_t)ret.size();
+    wstring cond = processCond(choice->conds[n-i]);
+    cond += JUMPONFALSE;
+    cond += (wchar_t)act.size();
+    ret = cond + act + ret;
+  }
+  return ret;
+}
+
 void
 RTXCompiler::processRules()
 {
@@ -1434,45 +1555,55 @@ RTXCompiler::processRules()
   {
     rule = reductionRules[ruleid];
     currentRule = rule;
+    currentChunk = NULL;
+    currentChoice = NULL;
     makePattern(ruleid);
     wstring comp;
-    vector<wstring> outcomp;
-    outcomp.resize(rule->pattern.size());
-    OutputChunk* pat = rule->output[0].first;
-    parentTags.clear();
-    int outcount = 0;
-    for(unsigned int i = 0; i < pat->children.size(); i++)
-    {
-      comp += processOutput(pat->children[i]);
-      comp += OUTPUT;
-      if(pat->children[i]->mode == L"{}")
-      {
-        outcount++;
-      }
-    }
-    for(vector<pair<OutputChunk*, Cond*>>::reverse_iterator it = rule->output.rbegin();
-              it != rule->output.rend(); ++it)
-    {
-      int outidx = outputBytecode.size() - outcount;
-      wstring cnd = processCond(it->second);
-      for(unsigned int i = 0; i < it->first->children.size(); i++)
-      {
-        if(it->first->children[i]->mode == L"{}")
-        {
-          int size = outputBytecode[outidx].size();
-          processOutput(it->first->children[i], outidx);
-          if(cnd.size() > 0)
-          {
-            wstring s = outputBytecode[outidx];
-            outputBytecode[outidx] = cnd + JUMPONFALSE + (wchar_t)(s.size()-size) + s;
-          }
-          outidx++;
-        }
-      }
-    }
     if(rule->cond != NULL)
     {
-      comp = processCond(rule->cond) + JUMPONTRUE + (wchar_t)1 + REJECTRULE + comp;
+      comp = processCond(rule->cond) + JUMPONTRUE + (wchar_t)1 + REJECTRULE;
+    }
+    vector<wstring> outcomp;
+    outcomp.resize(rule->pattern.size());
+    parentTags.clear();
+    int patidx = 0;
+    for(unsigned int i = 0; i < rule->output.size(); i++)
+    {
+      OutputChoice* cur = rule->output[i];
+      if(cur->chunks.size() == 1 && cur->chunks[0]->mode == L"_")
+      {
+        comp += processOutputChoice(cur);
+      }
+      else if(cur->chunks.size() == 1 && cur->chunks[0]->mode == L"#")
+      {
+        comp += processOutputChoice(cur);
+        patidx++;
+      }
+      else
+      {
+        OutputChunk* ch = new OutputChunk;
+        ch->mode = L"#";
+        ch->pos = 0;
+        ch->getall = true;
+        ch->vars = rule->vars;
+        ch->conjoined = false;
+        ch->nextConjoined = false;
+        ch->pattern = rule->result[patidx];
+        comp += processOutputChunk(ch);
+        comp += INT;
+        comp += (wchar_t)outputBytecode.size();
+        comp += INT;
+        comp += (wchar_t)0;
+        comp += SETRULE;
+        comp += APPENDALLINPUT;
+        parentTags = outputRules[ch->pattern];
+        inOutputRule = true;
+        outputBytecode.push_back(processOutputChoice(cur));
+        inOutputRule = false;
+        parentTags.clear();
+        patidx++;
+      }
+      comp += OUTPUT;
     }
     rule->compiled = comp;
   }

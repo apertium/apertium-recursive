@@ -36,6 +36,8 @@ private:
     Cond* right;
   };
 
+  struct OutputChoice;
+
   struct OutputChunk
   {
     wstring mode;
@@ -45,10 +47,16 @@ private:
     bool getall;
     map<wstring, Clip*> vars;
     wstring pattern;
-    vector<OutputChunk*> children;
-    bool isToplevel;
+    vector<OutputChoice*> children;
     bool conjoined;
     bool nextConjoined;
+  };
+
+  struct OutputChoice
+  {
+    vector<Cond*> conds;
+    vector<OutputChoice*> nest;
+    vector<OutputChunk*> chunks;
   };
 
   struct Rule
@@ -57,8 +65,9 @@ private:
     int grab_all;
     float weight;
     vector<vector<wstring>> pattern;
-    vector<pair<OutputChunk*, Cond*>> output;
+    vector<OutputChoice*> output;
     map<wstring, Clip*> vars;
+    vector<wstring> result;
     wstring compiled;
     Cond* cond;
   };
@@ -151,6 +160,11 @@ private:
   OutputChunk* currentChunk;
 
   /**
+   * Either the current if statement being parsed or the current if statement being compiled
+   */
+  OutputChoice* currentChoice;
+
+  /**
    * All attributes which can be clipped from the chunk whose children
    * are currently being compiled
    */
@@ -160,6 +174,11 @@ private:
    * If true, then the current compilation is for an output-time rule
    */
   bool inOutputRule;
+
+  /**
+   * Whether the current if statement or node is inside a chunk or at surface level
+   */
+  bool parserIsInChunk;
 
   /**
    * The length of the longest left side of a rule
@@ -342,9 +361,13 @@ private:
 
   /**
    * Parse the right side of a rule
-   * @param recursing - whether the chunk to be parsed is inside another chunk
    */
-  void parseOutputChunk(bool recursing);
+  void parseOutputChunk();
+
+  /**
+   * Parse an if statement on the right side of a rule
+   */
+  void parseOutputCond();
 
   //////////
   // RULE PARSING
@@ -440,13 +463,18 @@ private:
   wstring processOutputChunk(OutputChunk* ch);
 
   /**
-   * Compile an output chunk and potentially generate output rule
+   * Compile and the output rule for a chunk
    * @param chunk - the chunk
-   * @param useOutput - if specified, generated output rule will be added to
-   *    the beginning of that rule rather than creating a new one
    * @return bytecode
    */
-  wstring processOutput(OutputChunk* chunk, int useOutput);
+  wstring processOutput(OutputChunk* chunk);
+
+  /**
+   * Compile the output rule for an if statement
+   * @param chunk - the chunk
+   * @return bytecode
+   */
+  wstring processOutputChoice(OutputChoice* choice);
 
   /**
    * Compile a Cond object

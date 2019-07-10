@@ -157,6 +157,9 @@ void writeRule(wstring rule, FILE* out)
       case APPENDALLCHILDREN:
         fwprintf(out, L"APPENDALLCHILDREN\n");
         break;
+      case APPENDALLINPUT:
+        fwprintf(out, L"APPENDALLINPUT\n");
+        break;
       case OUTPUT:
         fwprintf(out, L"OUTPUT\n");
         break;

@@ -332,19 +332,50 @@ private:
     make_pair(L"endswithfoldcase", ISSUFFIXCL),
 
     make_pair(L"issubstringcl", ISSUBSTRINGCL),
+    make_pair(L"issubstringcaseless", ISSUBSTRINGCL),
+    make_pair(L"issubstringfold", ISSUBSTRINGCL),
+    make_pair(L"issubstringfoldcase", ISSUBSTRINGCL),
 
     make_pair(L"hasprefix", HASPREFIX),
+    make_pair(L"startswithlist", HASPREFIX),
+    make_pair(L"beginswithlist", HASPREFIX),
 
     make_pair(L"hassuffix", HASSUFFIX),
+    make_pair(L"endswithlist", HASSUFFIX),
 
     make_pair(L"in", IN),
     make_pair(L"∈", IN),
 
     make_pair(L"hasprefixcl", HASPREFIXCL),
+    make_pair(L"startswithlistcl", HASPREFIXCL),
+    make_pair(L"beginswithlistcl", HASPREFIXCL),
+    make_pair(L"hasprefixcaseless", HASPREFIXCL),
+    make_pair(L"startswithlistcaseless", HASPREFIXCL),
+    make_pair(L"beginswithlistcaseless", HASPREFIXCL),
+    make_pair(L"hasprefixfold", HASPREFIXCL),
+    make_pair(L"startswithlistfold", HASPREFIXCL),
+    make_pair(L"beginswithlistfold", HASPREFIXCL),
+    make_pair(L"hasprefixfoldcase", HASPREFIXCL),
+    make_pair(L"startswithlistfoldcase", HASPREFIXCL),
+    make_pair(L"beginswithlistfoldcase", HASPREFIXCL),
 
     make_pair(L"hassuffixcl", HASSUFFIXCL),
+    make_pair(L"endswithlistcl", HASSUFFIXCL),
+    make_pair(L"hassuffixcaseless", HASSUFFIXCL),
+    make_pair(L"endswithlistcaseless", HASSUFFIXCL),
+    make_pair(L"hassuffixfold", HASSUFFIXCL),
+    make_pair(L"endswithlistfold", HASSUFFIXCL),
+    make_pair(L"hassuffixfoldcase", HASSUFFIXCL),
+    make_pair(L"endswithlistfoldcase", HASSUFFIXCL),
 
-    make_pair(L"incl", INCL)
+    make_pair(L"incl", INCL),
+    make_pair(L"∈cl", INCL), // why you would want to use ∈ here I'm not sure
+    make_pair(L"incaseless", INCL),
+    make_pair(L"∈caseless", INCL), // but the documentation implies they exist
+    make_pair(L"infold", INCL),
+    make_pair(L"∈fold", INCL), // so here they are
+    make_pair(L"infoldcase", INCL),
+    make_pair(L"∈foldcase", INCL)
   };
 
   /**

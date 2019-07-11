@@ -22,6 +22,7 @@ RTXCompiler::RTXCompiler()
   errorsAreSyntax = true;
   inOutputRule = false;
   parserIsInChunk = false;
+  inMacro = false;
 }
 
 wstring const
@@ -262,25 +263,44 @@ void
 RTXCompiler::parseOutputRule(wstring pattern)
 {
   nodeIsSurface[pattern] = !isNextToken(L':');
+  eatSpaces();
   vector<wstring> output;
-  wstring cur;
-  while(!source.eof())
+  if(source.peek() == L'(')
   {
-    cur = nextToken();
-    if(cur == L"<")
-    {
-      cur = cur + parseIdent();
-      cur += nextToken(L">");
-    }
-    output.push_back(cur);
-    if(nextToken(L".", L";") == L";")
-    {
-      break;
-    }
+    inMacro = true;
+    parserIsInChunk = true;
+    currentRule = new Rule;
+    currentRule->pattern.push_back(vector<wstring>(2, L"blah"));
+    parseOutputCond();
+    macros[pattern] = currentChoice;
+    currentChoice = NULL;
+    output.push_back(L"macro");
+    currentRule = NULL;
+    parserIsInChunk = false;
+    inMacro = false;
+    nextToken(L";");
   }
-  if(output.size() == 0)
+  else
   {
-    die(L"empty tag order rule");
+    wstring cur;
+    while(!source.eof())
+    {
+      cur = nextToken();
+      if(cur == L"<")
+      {
+        cur = cur + parseIdent();
+        cur += nextToken(L">");
+      }
+      output.push_back(cur);
+      if(nextToken(L".", L";") == L";")
+      {
+        break;
+      }
+    }
+    if(output.size() == 0)
+    {
+      die(L"empty tag order rule");
+    }
   }
   outputRules[pattern] = output;
 }
@@ -334,7 +354,26 @@ RTXCompiler::parseAttrRule(wstring categoryName)
     {
       break;
     }
-    if(isNextToken(L'@'))
+    if(isNextToken(L'['))
+    {
+      wstring other = parseIdent(true);
+      if(collections.find(other) == collections.end())
+      {
+        die(L"Use of category '" + other + L"' in set arithmetic before definition.");
+      }
+      vector<wstring> otherstuff = collections[other];
+      for(unsigned int i = 0; i < otherstuff.size(); i++)
+      {
+        members.push_back(otherstuff[i]);
+      }
+      otherstuff = noOverwrite[other];
+      for(unsigned int i = 0; i < otherstuff.size(); i++)
+      {
+        noOver.push_back(otherstuff[i]);
+      }
+      nextToken(L"]");
+    }
+    else if(isNextToken(L'@'))
     {
       wstring next = parseIdent();
       members.push_back(next);
@@ -374,6 +413,10 @@ RTXCompiler::parseClip(int src = -2)
   else
   {
     ret->src = 0;
+  }
+  if(inMacro && !(ret->src == 0 || ret->src == 1))
+  {
+    die(L"Macros can only access their single argument.");
   }
   ret->part = parseIdent();
   if(isNextToken(L'/'))
@@ -777,6 +820,10 @@ RTXCompiler::parseOutputCond()
   else if(currentChunk != NULL)
   {
     currentChunk->children.push_back(ret);
+  }
+  else if(inMacro)
+  {
+    currentChoice = ret;
   }
   else
   {
@@ -1254,6 +1301,67 @@ RTXCompiler::compileClip(wstring part, int pos, wstring side = L"")
   cl.side = side;
   return compileClip(&cl);
 }
+
+/*Cond*
+RTXCompiler::processMacroCond(Cond* mac, OutputChunk* arg)
+{
+  Cond* ret = new Cond;
+  ret->op = mac->op;
+  if(mac->op == 0)
+  {
+    ret->val = new Clip;
+    ret->val->part = mac->val->part;
+    ret->val->side = mac->val->side;
+    ret->val->rewrite = mac->val->rewrite;
+    if(mac->val->src == 1)
+    {
+      ret->val->src = arg->pos;
+    }
+    else
+    {
+      ret->val->src = mac->val->src;
+    }
+  }
+  else
+  {
+    ret->left = processMacroCond(mac->left, arg);
+    ret->right = processMacroCond(mac->right, arg);
+  }
+  return ret;
+}
+
+OutputChunk*
+RTXCompiler::processMacroChunk(OutputChunk* mac, OutputChunk* arg)
+{
+  if(mac == NULL) return NULL;
+  OutputChunk* ret = new OutputChunk;
+  ret->mode = mac->mode;
+  ret->lemma = mac->lemma;
+  ret->tags = mac->tags;
+  ret->getall = mac->getall;
+  ret->pattern = mac->pattern;
+  ret->conjoined = mac->conjoined;
+  ret->nextConjoined = mac->nextConjoined;
+  for(unsigned int i = 0; i < mac->children.size(); i++)
+  {
+    ret->children.push_back(processMacroChoice(mac->children[i]));
+  }
+  if(mac->pos == 1)
+  {
+    ret->pos = arg->pos;
+    // deal with vars
+  }
+  else
+  {
+    ret->pos = mac->pos;
+  }
+}
+
+OutputChoice*
+RTXCompiler::processMacroChoice(OutputChoice* mac, OutputChunk* arg)
+{
+  if(mac == NULL) return NULL;
+}*/
 
 wstring
 RTXCompiler::processOutputChunk(OutputChunk* r)

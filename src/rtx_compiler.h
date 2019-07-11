@@ -127,8 +127,14 @@ private:
    * Where '_' represents "lemh" and the part of speech tag
    * (which is usually the pattern name)
    * "lemq" is automatically appended to the end
+   * If the contents of the vector is L"macro", look at macros
    */
   map<wstring, vector<wstring>> outputRules;
+
+  /**
+   * Map of pattern names to conditioned output patterns
+   */
+  map<wstring, OutputChoice*> macros;
 
   /**
    * Map of pattern names to booleans
@@ -179,6 +185,11 @@ private:
    * Whether the current if statement or node is inside a chunk or at surface level
    */
   bool parserIsInChunk;
+
+  /**
+   * This is true when parsing a macro
+   */
+  bool inMacro;
 
   /**
    * The length of the longest left side of a rule

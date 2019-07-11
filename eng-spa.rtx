@@ -50,8 +50,7 @@ temps = cni fti ifi imp pii pis inf prs pres past pri pp ger pprs subs;
 
 ! pattern % passes lem, output % does not
 
-NOM -> !1: %n.$lem/sl {%1} |
-       0: %n {%1} |
+NOM -> 1: %n.$lem/sl {%1} |
        1: %np {%1} |
        0: adj guio %NOM {%3 _ %1} |
        0: num guio %NOM {%3 _ %1} |
@@ -113,8 +112,12 @@ CONJ -> 1: cnjcoo {1} | 1: cm {1} ;
 
 digit: _;
 
-AP -> 0: %adj [$gender=GD] {1(number=$number)} (1.gender/tl = mf)
-                           {%1} |
+AP -> 0: %adj [$gender=GD]
+              { (if (1.gender/tl = mf)
+                    1(number=$number)
+                 else
+                    %1
+                ) } |
 
       1: adv %adj {1 _1 %2} |
       0: adv guio %adj {1 _ %3} |
@@ -141,10 +144,16 @@ verbtype = pron;
 
 cnjcoo: _;
 tractaments = Mr\. Mrs\. Ms\. Dr\.;
-NA -> 0: AP %NA {1 _1 2} (1.mode = num)
-                {2 _1 %1} |
-      0: AP %NOM {1 _1 2} (1.mode = num)
-                {2 _1 %1} |
+NA -> AP %NA (if (1.mode = num)
+                 {1 _1 2}
+              else
+                 {2 _1 %1}
+             ) |
+      AP %NOM (if (1.mode = num)
+                  {1 _1 2}
+               else
+                  {2 _1 %1}
+              ) |
          
       2: num %NA {1 _1 2} |
          ! "3 elephants" -> "tres elephantes"
@@ -157,12 +166,14 @@ NA -> 0: AP %NA {1 _1 2} (1.mode = num)
       0: %NA cnjcoo NA {1 _1 2 _2 3} |
 
       0: NOM %NOM.$number.$gender
-         {1 _1 2} (1.nom in np_type |
-                   2.nom in np_type |
-                   1.lem/sl in tractaments |
-                   2.lem/sl in tractaments |
-                   2.lem/sl in weekday)
-         {2 _1 de@pr _ 1} |
+             (if (1.nom in np_type |
+                  2.nom in np_type |
+                  1.lem/sl in tractaments |
+                  2.lem/sl in tractaments |
+                  2.lem/sl in weekday)
+                 {1 _1 2}
+              else
+                 {2 _1 de@pr _ 1} ) |
       0: NOM NOM %NOM {3 _2 2 _1 1} ;
       !0: %NOM to@pr INF {%1 _1 2 _2 3} ;
 
@@ -182,10 +193,16 @@ AGE -> 0: %$one@num guio $yearmonth@n guio old@adj.sint
           {1 _1 2(number=pl)} ;
 
 
-DET -> 0: %det {1} ((1.gender/tl = mf) & (1.number/tl = sp))
-               {1(number=$number)} (1.gender/tl = mf)
-               {1(gender=$gender)} (1.number/tl = sp)
-               {%1} ;
+DET -> 0: %det
+            { (if ((1.gender/tl = mf) & (1.number/tl = sp))
+                  1
+               if (1.gender/tl = mf)
+                  1(number=$number)
+               if (1.number/tl = sp)
+                  1(gender=$gender)
+               else
+                  %1
+              ) } ;
 NP -> 1: all@predet %NP.pl.$gender/tl
          {%1 _ el@det.def.$gender.pl _1 2} |
          ! "all tables" -> "todas las mesas"
@@ -231,14 +248,23 @@ VERB -> !0: %vblex.$lem/sl {%1} |
         0: %vbser VERB.pp {estar@vblex.$temps.$person.$number _1 %2[verbpp](gender=m)} |
         0: %vbhaver VERB.pp {%1 _1 2[verbpp](gender=m, number=sg)} |
         0: %do@vbaux VERB
-           {_1 %2(temps=ifi)} (1.tense = past)
-           {_1 %2(temps=pri)} |
+           {_1 (if (1.tense = past)
+                   %2(temps = ifi)
+                else
+                   %2(temps = pri)
+               ) } |
         0: %do@vbaux adv VERB
-           {_1 2 _2 %3(temps=ifi)} (1.tense = past)
-           {_1 2 _2 %3(temps=pri)} |
+           {_1 2 _2 (if (1.tense = past)
+                        %3(temps = ifi)
+                     else
+                        %3(temps = pri)
+                    ) } |
         0: %do@vbdo adv adv VERB
-           {_1 2 _2 3 _3 %4(temps=ifi)} (1.tense = past)
-           {_1 2 _2 3 _3 %4(temps=pri)} |
+           {_1 2 _2 3 _3 (if (1.tense = past)
+                             %4(temps = ifi)
+                          else
+                             %4(temps = pri)
+                         ) } |
         0: %$auxtemps@vbaux VERB {_1 %2(tense=fti)} |
         0: %would@vbaux VERB {_1 %2(tense=cni)} |
         0: %vaux VERB.inf {%1 _1 2[verbinf]} |

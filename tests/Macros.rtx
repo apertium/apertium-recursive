@@ -1,0 +1,18 @@
+n: _.gender.number;
+adj: _.gender.number;
+NP: _.number;
+DP: _;
+
+definite = def ind;
+det_type = def ind dem;
+dist = dist prx;
+
+det_dem: _.<dem>.dist;
+det_def: _.definite.number;
+det: (if (1.det_type = dem) 1[det_dem] else 1[det_def]);
+
+gender = m f mf;
+number = sg pl sp;
+
+NP -> adj n.$number {2 _1 1(number=2.number)};
+DP -> det NP {1(number=2.number) _1 2};

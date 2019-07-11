@@ -314,7 +314,13 @@ RTXCompiler::parseRetagRule(wstring srcTag)
   rule.push_back(pair<wstring, wstring>(srcTag, destTag));
   while(!source.eof())
   {
+    bool list = isNextToken(L'[');
     wstring cs = parseIdent(true);
+    if(list)
+    {
+      nextToken(L"]");
+      cs = L"[]" + cs;
+    }
     wstring cd = parseIdent(true);
     rule.push_back(pair<wstring, wstring>(cs, cd));
     if(nextToken(L";", L",") == L";")
@@ -1274,8 +1280,17 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
     {
       wstring cur;
       cur += DUP;
-      cur += compileTag(rule[i].first);
-      cur += EQUAL;
+      if(rule[i].first.size() > 2 &&
+         rule[i].first[0] == L'[' && rule[i].first[1] == L']')
+      {
+        cur += compileString(rule[i].first.substr(2));
+        cur += IN;
+      }
+      else
+      {
+        cur += compileTag(rule[i].first);
+        cur += EQUAL;
+      }
       cur += JUMPONFALSE;
       cur += (wchar_t)(rule[i].second.size() + (i == 1 ? 5 : 7));
       cur += DROP;
@@ -1302,25 +1317,25 @@ RTXCompiler::compileClip(wstring part, int pos, wstring side = L"")
   return compileClip(&cl);
 }
 
-/*Cond*
+/*Clip*
+RTXCompiler::processMacroClip(Clip* mac, OutputChunk* arg)
+{
+  Clip* ret = new Clip;
+  ret->part = mac->part;
+  ret->side = mac->side;
+  ret->rewrite = mac->rewrite;
+  ret->src = (mac->src == 1) ? arg->pos : mac->src;
+  return ret;
+}
+
+Cond*
 RTXCompiler::processMacroCond(Cond* mac, OutputChunk* arg)
 {
   Cond* ret = new Cond;
   ret->op = mac->op;
   if(mac->op == 0)
   {
-    ret->val = new Clip;
-    ret->val->part = mac->val->part;
-    ret->val->side = mac->val->side;
-    ret->val->rewrite = mac->val->rewrite;
-    if(mac->val->src == 1)
-    {
-      ret->val->src = arg->pos;
-    }
-    else
-    {
-      ret->val->src = mac->val->src;
-    }
+    ret->val = processMacroClip(mac->val, arg);
   }
   else
   {
@@ -1346,10 +1361,22 @@ RTXCompiler::processMacroChunk(OutputChunk* mac, OutputChunk* arg)
   {
     ret->children.push_back(processMacroChoice(mac->children[i]));
   }
+  for(map<wstring, Clip*>::iterator it = mac->vars.begin(),
+          limit = mac->vars.end(); it != limit; it++)
+  {
+    ret->vars[it->first] = processMacroClip(it->second, arg);
+  }
   if(mac->pos == 1)
   {
     ret->pos = arg->pos;
-    // deal with vars
+    for(map<wstring, Clip*>::iterator it = arg->vars.begin(),
+            limit = arg->vars.end(); it != limit; it++)
+    {
+      if(ret->vars.find(it->first) == ret->vars.end())
+      {
+        ret->vars[it->first] = it->second;
+      }
+    }
   }
   else
   {

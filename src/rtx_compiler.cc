@@ -425,6 +425,10 @@ RTXCompiler::parseClip(int src = -2)
   {
     die(L"Macros can only access their single argument.");
   }
+  else if(src == -2 && ret->src > (int)currentRule->pattern.size())
+  {
+    die(L"Clip source is out of bounds (position " + to_wstring(ret->src) + L" requested, but rule has only " + to_wstring(currentRule->pattern.size()) + L" elements in its pattern).");
+  }
   ret->part = parseIdent();
   if(isNextToken(L'/'))
   {
@@ -674,6 +678,18 @@ RTXCompiler::parseOutputElement()
       ret->pattern = currentRule->pattern[ret->pos-1][1];
     }
   }
+  else if(isNextToken(L'*'))
+  {
+    if(source.peek() != L'[')
+    {
+      die(L"No macro name specified.");
+    }
+    nextToken(L"[");
+    ret->pattern = parseIdent(true);
+    nextToken(L"]");
+    ret->pos = 0;
+    ret->mode = L"#";
+  }
   else
   {
     if(ret->getall)
@@ -793,6 +809,11 @@ RTXCompiler::parseOutputCond()
       ret->nest.push_back(NULL);
       parseOutputChunk();
     }
+    else if(source.peek() == L'[')
+    {
+      ret->nest.push_back(NULL);
+      parseOutputChunk();
+    }
     else
     {
       if(!parserIsInChunk)
@@ -841,17 +862,30 @@ RTXCompiler::parseOutputCond()
 void
 RTXCompiler::parseOutputChunk()
 {
-  nextToken(L"{");
-  parserIsInChunk = true;
-  eatSpaces();
+  wchar_t end;
   OutputChunk* ch = new OutputChunk;
+  if(nextToken(L"{", L"[") == L"{")
+  {
+    parserIsInChunk = true;
+    ch->mode = L"{}";
+    end = L'}';
+  }
+  else
+  {
+    if(!parserIsInChunk)
+    {
+      die(L"Output grouping with [] only valid inside chunks.");
+    }
+    ch->mode == L"[]";
+    end = L']';
+  }
+  eatSpaces();
   OutputChunk* chunkwas = currentChunk;
   OutputChoice* choicewas = currentChoice;
   currentChunk = ch;
   currentChoice = NULL;
-  ch->mode = L"{}";
   ch->pos = 0;
-  while(source.peek() != L'}')
+  while(source.peek() != end)
   {
     if(source.peek() == L'(')
     {
@@ -862,8 +896,8 @@ RTXCompiler::parseOutputChunk()
       parseOutputElement();
     }
   }
-  nextToken(L"}");
-  parserIsInChunk = false;
+  nextToken(wstring(1, end));
+  if(end == L'}') parserIsInChunk = false;
   eatSpaces();
   currentChunk = chunkwas;
   currentChoice = choicewas;
@@ -1325,7 +1359,25 @@ RTXCompiler::processMacroClip(Clip* mac, OutputChunk* arg)
   ret->part = mac->part;
   ret->side = mac->side;
   ret->rewrite = mac->rewrite;
-  ret->src = (mac->src == 1) ? arg->pos : mac->src;
+  if(arg->pos == 0 && mac->src == 1)
+  {
+    if(arg->vars.find(mac->part) != arg->vars.end())
+    {
+      Clip* other = arg->vars[mac->part];
+      ret->part = other->part;
+      ret->side = other->side;
+      ret->rewrite = other->rewrite; // TODO: what if they both have rewrite?
+      ret->src = other->src;
+    }
+    else
+    {
+      die(L"Macro not given value for attribute '" + mac->part + L"'.");
+    }
+  }
+  else
+  {
+    ret->src = (mac->src == 1) ? arg->pos : mac->src;
+  }
   return ret;
 }
 
@@ -1373,7 +1425,7 @@ RTXCompiler::processMacroChunk(OutputChunk* mac, OutputChunk* arg)
     for(map<wstring, Clip*>::iterator it = arg->vars.begin(),
             limit = arg->vars.end(); it != limit; it++)
     {
-      if(ret->vars.find(it->first) == ret->vars.end())
+      if(ret->vars.find(it->first) == ret->vars.end() || arg->pos == 0)
       {
         ret->vars[it->first] = it->second;
       }
@@ -1416,7 +1468,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     ret += (wchar_t)r->pos;
     ret += BLANK;
   }
-  else if(r->mode == L"{}")
+  else if(r->mode == L"{}" || r->mode == L"[]")
   {
     for(unsigned int i = 0; i < r->children.size(); i++)
     {
@@ -1606,7 +1658,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       ret += compileClip(L"lemq", r->pos, L"tl");
       ret += APPENDSURFACE;
     }
-    if(r->mode == L"#" && inOutputRule)
+    if(r->mode == L"#" && r->pos != 0 && inOutputRule)
     {
       ret += compileClip(L"whole", r->pos, L"tl");
       ret += APPENDALLCHILDREN;

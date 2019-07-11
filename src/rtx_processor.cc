@@ -955,7 +955,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
       wcerr << "Applying rule " << rule << ": ";
       for(unsigned int i = 0; i < currentInput.size(); i++)
       {
-        currentInput[i]->writeTree(output);
+        currentInput[i]->writeTree();
       }
       wcerr << endl;
     }
@@ -1056,7 +1056,7 @@ RTXProcessor::outputAll(FILE* out)
         wcerr << "Applying output rule " << ch->rule << ": ";
         for(unsigned int i = 0; i < currentInput.size(); i++)
         {
-          currentInput[i]->writeTree(output);
+          currentInput[i]->writeTree();
         }
         wcerr << endl;
       }
@@ -1175,15 +1175,15 @@ RTXProcessor::filterParseGraph()
     {
       temp.push_back(parseGraph[i]);
       //wcerr << L"keeping branch " << i << " first word: " << parseGraph[i]->firstWord << " ending with ";
-      //parseGraph[i]->chunk->writeTree(output);
+      //parseGraph[i]->chunk->writeTree();
       //wcerr << endl;
     }
-    else
+    /*else
     {
-      //wcerr << L"discarding branch " << i << " first word: " << parseGraph[i]->firstWord << " ending with ";
-      //parseGraph[i]->chunk->writeTree(output);
-      //wcerr << endl;
-    }
+      wcerr << L"discarding branch " << i << " first word: " << parseGraph[i]->firstWord << " ending with ";
+      parseGraph[i]->chunk->writeTree();
+      wcerr << endl;
+    }*/
   }
   //wcerr << L"remaining branches: " << temp.size() << endl << endl;
   parseGraph.swap(temp);

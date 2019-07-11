@@ -1039,7 +1039,11 @@ RTXProcessor::outputAll(FILE* out)
     }
     if(ch->rule == -1)
     {
-      if(printingRules) { wcerr << "No rule specified" << endl; }
+      if(printingRules) {
+        wcerr << "No rule specified: ";
+        ch->writeTree();
+        wcerr << endl;
+      }
       ch->output(out);
     }
     else

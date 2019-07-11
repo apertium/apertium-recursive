@@ -790,6 +790,10 @@ RTXCompiler::parseOutputCond()
     {
       ret->conds.push_back(parseCond());
     }
+    else if(mode == L")")
+    {
+      break;
+    }
     else if(mode != L"else" && mode != L"otherwise")
     {
       die(L"Unknown statement: '" + mode + L"'.");
@@ -825,19 +829,24 @@ RTXCompiler::parseOutputCond()
     }
     if(mode == L"else" || mode == L"otherwise")
     {
+      nextToken(L")");
       break;
     }
   }
   currentChunk = chunkwas;
   currentChoice = choicewas;
-  nextToken(L")");
   if(ret->conds.size() == 0)
   {
     die(L"If statement cannot be empty.");
   }
   if(ret->conds.size() == ret->nest.size())
   {
-    die(L"If statement has no else clause and thus could produce no output.");
+    //die(L"If statement has no else clause and thus could produce no output.");
+    ret->nest.push_back(NULL);
+    OutputChunk* temp = new OutputChunk;
+    temp->mode = L"[]";
+    temp->pos = 0;
+    ret->chunks.push_back(temp);
   }
   eatSpaces();
   if(currentChoice != NULL)
@@ -1467,19 +1476,16 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     ret += INT;
     ret += (wchar_t)r->pos;
     ret += BLANK;
+    if(inOutputRule)
+    {
+      ret += OUTPUT;
+    }
   }
-  else if(r->mode == L"{}" || r->mode == L"[]")
+  else if(r->mode == L"{}" || r->mode == L"[]" || r->mode == L"")
   {
     for(unsigned int i = 0; i < r->children.size(); i++)
     {
       ret += processOutputChoice(r->children[i]);
-      if(r->children[i]->chunks.size() == 1 && r->children[i]->chunks[0]->nextConjoined)
-      {
-      }
-      else
-      {
-        ret += OUTPUT;
-      }
     }
   }
   else if(r->mode == L"#")
@@ -1517,8 +1523,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
 
     if(pattern.size() == 1 && pattern[0] == L"macro")
     {
-      pattern.clear();
-      ret = processOutputChoice(processMacroChoice(macros[patname], r));
+      return processOutputChoice(processMacroChoice(macros[patname], r));
     }
     else if(r->conjoined)
     {
@@ -1540,10 +1545,6 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
         else if(r->vars.find(L"lemh") != r->vars.end())
         {
           ret += compileClip(r->vars[L"lemh"], L"lemh");
-        }
-        else if(r->mode == L"{}")
-        {
-          ret += compileString(L"unknown");
         }
         else if(r->pos == 0)
         {
@@ -1658,7 +1659,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       ret += compileClip(L"lemq", r->pos, L"tl");
       ret += APPENDSURFACE;
     }
-    if(r->mode == L"#" && r->pos != 0 && inOutputRule)
+    if(r->pos != 0 && inOutputRule)
     {
       ret += compileClip(L"whole", r->pos, L"tl");
       ret += APPENDALLCHILDREN;
@@ -1668,6 +1669,10 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       ret += INT;
       ret += (wchar_t)0;
       ret += SETRULE;
+    }
+    if(inOutputRule && !r->nextConjoined)
+    {
+      ret += OUTPUT;
     }
   }
   else
@@ -1679,6 +1684,10 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     {
       ret += compileClip(r->vars[r->tags[i]]);
       ret += APPENDSURFACE;
+    }
+    if(inOutputRule && !r->nextConjoined)
+    {
+      ret += OUTPUT;
     }
   }
   return ret;
@@ -1692,6 +1701,18 @@ RTXCompiler::processCond(Cond* cond)
   {
     ret += PUSHTRUE;
     return ret;
+  }
+  if(cond->op == AND && (cond->left->op == 0 || cond->right->op == 0))
+  {
+    die(L"Cannot evaluate AND with string as operand (try adding parentheses).");
+  }
+  if(cond->op == OR && (cond->left->op == 0 || cond->right->op == 0))
+  {
+    die(L"Cannot evaluate OR with string as operand (try adding parentheses).");
+  }
+  if(cond->op == NOT && cond->right->op == 0)
+  {
+    die(L"Attempt to negate string value.");
   }
   if(cond->op == 0)
   {

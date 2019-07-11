@@ -768,6 +768,7 @@ RTXCompiler::parseOutputCond()
   {
     die(L"If statement has no else clause and thus could produce no output.");
   }
+  eatSpaces();
   if(currentChoice != NULL)
   {
     currentChoice->nest.push_back(ret);

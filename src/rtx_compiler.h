@@ -497,6 +497,11 @@ private:
    */
   wstring compileClip(wstring part, int pos, wstring side);
 
+  Clip* processMacroClip(Clip* mac, OutputChunk* arg);
+  Cond* processMacroCond(Cond* mac, OutputChunk* arg);
+  OutputChunk* processMacroChunk(Cond* mac, OutputChunk* arg);
+  OutputChoice* processMacroChoice(Cond* mac, OutputChunk* arg);
+
   /**
    * Compile a non-chunk output element
    * @param ch - the element

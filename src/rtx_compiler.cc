@@ -314,6 +314,7 @@ RTXCompiler::parseRetagRule(wstring srcTag)
   rule.push_back(pair<wstring, wstring>(srcTag, destTag));
   while(!source.eof())
   {
+    eatSpaces();
     bool list = isNextToken(L'[');
     wstring cs = parseIdent(true);
     if(list)

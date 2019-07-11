@@ -1318,7 +1318,7 @@ RTXCompiler::compileClip(wstring part, int pos, wstring side = L"")
   return compileClip(&cl);
 }
 
-/*Clip*
+RTXCompiler::Clip*
 RTXCompiler::processMacroClip(Clip* mac, OutputChunk* arg)
 {
   Clip* ret = new Clip;
@@ -1329,7 +1329,7 @@ RTXCompiler::processMacroClip(Clip* mac, OutputChunk* arg)
   return ret;
 }
 
-Cond*
+RTXCompiler::Cond*
 RTXCompiler::processMacroCond(Cond* mac, OutputChunk* arg)
 {
   Cond* ret = new Cond;
@@ -1346,7 +1346,7 @@ RTXCompiler::processMacroCond(Cond* mac, OutputChunk* arg)
   return ret;
 }
 
-OutputChunk*
+RTXCompiler::OutputChunk*
 RTXCompiler::processMacroChunk(OutputChunk* mac, OutputChunk* arg)
 {
   if(mac == NULL) return NULL;
@@ -1360,7 +1360,7 @@ RTXCompiler::processMacroChunk(OutputChunk* mac, OutputChunk* arg)
   ret->nextConjoined = mac->nextConjoined;
   for(unsigned int i = 0; i < mac->children.size(); i++)
   {
-    ret->children.push_back(processMacroChoice(mac->children[i]));
+    ret->children.push_back(processMacroChoice(mac->children[i], arg));
   }
   for(map<wstring, Clip*>::iterator it = mac->vars.begin(),
           limit = mac->vars.end(); it != limit; it++)
@@ -1383,13 +1383,28 @@ RTXCompiler::processMacroChunk(OutputChunk* mac, OutputChunk* arg)
   {
     ret->pos = mac->pos;
   }
+  return ret;
 }
 
-OutputChoice*
+RTXCompiler::OutputChoice*
 RTXCompiler::processMacroChoice(OutputChoice* mac, OutputChunk* arg)
 {
   if(mac == NULL) return NULL;
-}*/
+  OutputChoice* ret = new OutputChoice;
+  for(unsigned int i = 0; i < mac->conds.size(); i++)
+  {
+    ret->conds.push_back(processMacroCond(mac->conds[i], arg));
+  }
+  for(unsigned int i = 0; i < mac->nest.size(); i++)
+  {
+    ret->nest.push_back(processMacroChoice(mac->nest[i], arg));
+  }
+  for(unsigned int i = 0; i < mac->chunks.size(); i++)
+  {
+    ret->chunks.push_back(processMacroChunk(mac->chunks[i], arg));
+  }
+  return ret;
+}
 
 wstring
 RTXCompiler::processOutputChunk(OutputChunk* r)
@@ -1448,7 +1463,12 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       }
     }
 
-    if(r->conjoined)
+    if(pattern.size() == 1 && pattern[0] == L"macro")
+    {
+      pattern.clear();
+      ret = processOutputChoice(processMacroChoice(macros[patname], r));
+    }
+    else if(r->conjoined)
     {
       ret += compileString(L"+");
       ret += APPENDSURFACE;

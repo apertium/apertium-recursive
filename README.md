@@ -76,3 +76,4 @@ Documentation
  - File format documentation: http://wiki.apertium.org/wiki/User:Popcorndude/Recursive_Transfer/Formalism
  - Bytecode documentation: http://wiki.apertium.org/wiki/User:Popcorndude/Recursive_Transfer/Bytecode
  - Progress reports: http://wiki.apertium.org/wiki/User:Popcorndude/Recursive_Transfer/Progress and https://github.com/apertium/apertium-recursive/issues/1
+ - Examples of functioning rule sets can be found in [apertium-eng-kir](https://github.com/apertium/apertium-eng-kir/blob/rtx/apertium-eng-kir.kir-eng.rtx), [`eng-spa.rtx`](eng-spa.rtx), and [`tests/`](tests/)

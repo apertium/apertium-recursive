@@ -40,6 +40,35 @@ Testing
 ./run_tests.sh
 ```
 
+Using in a Pair
+---------------
+
+In ```Makefile.am``` add:
+```
+$(PREFIX1).rtx.bin: $(BASENAME).$(PREFIX1).rtx
+	rtx-comp $< $@ $(PREFIX1).rtx.bin2
+
+$(PREFIX2).rtx.bin: $(BASENAME).$(PREFIX2).rtx
+	rtx-comp $< $@ $(PREFIX2).rtx.bin2
+```
+
+and add
+
+```
+$(PREFIX1).rtx.bin \
+$(PREFIX2).rtx.bin
+```
+
+to ```TARGETS_COMMON```.
+
+In ```modes.xml```, replace ```apertium-transfer```, ```apertium-interchunk```, and ```apertium-postchunk``` with:
+```
+<program name="rtx-proc">
+  <file name="abc-xyz.rtx.bin2"/>
+  <file name="abc-xyz.rtx.bin"/>
+</program>
+```
+
 Documentation
 -------------
 

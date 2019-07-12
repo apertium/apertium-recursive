@@ -397,6 +397,14 @@ RTXCompiler::parseAttrRule(wstring categoryName)
   }
   collections.insert(pair<wstring, vector<wstring>>(categoryName, members));
   noOverwrite.insert(pair<wstring, vector<wstring>>(categoryName, noOver));
+  if(noOver.size() > 0)
+  {
+    for(unsigned int i = 0; i < noOver.size(); i++)
+    {
+      noOver[i] = L"<" + noOver[i] + L">";
+    }
+  }
+  collections.insert(make_pair(categoryName + L" over", noOver));
 }
 
 RTXCompiler::Clip*
@@ -782,9 +790,13 @@ RTXCompiler::parseOutputCond()
     wstring mode = StringUtils::tolower(nextToken());
     mode = StringUtils::substitute(mode, L"-", L"");
     mode = StringUtils::substitute(mode, L"_", L"");
-    if(ret->conds.size() == 0 && mode != L"if")
+    if(ret->conds.size() == 0 && mode != L"if" && mode != L"always")
     {
       die(L"If statement must begin with 'if'.");
+    }
+    if(ret->conds.size() > 0 && mode == L"always")
+    {
+      die(L"Always clause must be only clause.");
     }
     if(mode == L"if" || mode == L"elif" || mode == L"elseif")
     {
@@ -794,7 +806,7 @@ RTXCompiler::parseOutputCond()
     {
       break;
     }
-    else if(mode != L"else" && mode != L"otherwise")
+    else if(mode != L"else" && mode != L"otherwise" && mode != L"always")
     {
       die(L"Unknown statement: '" + mode + L"'.");
     }
@@ -827,7 +839,7 @@ RTXCompiler::parseOutputCond()
       parseOutputElement();
       ret->nest.push_back(NULL);
     }
-    if(mode == L"else" || mode == L"otherwise")
+    if(mode == L"else" || mode == L"otherwise" || mode == L"always")
     {
       nextToken(L")");
       break;
@@ -835,7 +847,7 @@ RTXCompiler::parseOutputCond()
   }
   currentChunk = chunkwas;
   currentChoice = choicewas;
-  if(ret->conds.size() == 0)
+  if(ret->chunks.size() == 0)
   {
     die(L"If statement cannot be empty.");
   }
@@ -1235,6 +1247,35 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
   cl += INT;
   cl += src;
   wstring ret = cl;
+  wstring undeftag;
+  wstring deftag;
+  wstring thedefault;
+  wstring blank;
+  blank += DUP;
+  blank += compileString(L"");
+  blank += EQUAL;
+  if(useReplace && undeftag.size() > 0)
+  {
+    blank += OVER;
+    blank += compileTag(undeftag);
+    blank += EQUAL;
+    blank += OR;
+  }
+  if(attrDefaults.find(c->part) != attrDefaults.end())
+  {
+    undeftag = attrDefaults[c->part].first;
+    deftag = attrDefaults[c->part].second;
+    thedefault += DROP;
+    thedefault += compileTag(useReplace ? deftag : undeftag);
+    if(useReplace)
+    {
+      blank += OVER;
+      blank += compileTag(undeftag);
+      blank += EQUAL;
+      blank += OR;
+    }
+  }
+  blank += JUMPONFALSE;
   if(c->src == 0)
   {
     return compileTag(c->part);
@@ -1242,47 +1283,27 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
   else if(c->side == L"sl")
   {
     ret += SOURCECLIP;
+    ret += blank;
+    ret += (wchar_t)thedefault.size();
+    ret += thedefault;
   }
   else if(c->side == L"ref")
   {
     ret += REFERENCECLIP;
+    ret += blank;
+    ret += (wchar_t)thedefault.size();
+    ret += thedefault;
   }
   else if(c->side == L"tl" || c->part == L"lemcase" ||
           (c->src != -1 && !nodeIsSurface[currentRule->pattern[c->src-1][1]]))
   {
     ret += TARGETCLIP;
+    ret += blank;
+    ret += (wchar_t)thedefault.size();
+    ret += thedefault;
   }
   else
   {
-    wstring undeftag;
-    wstring deftag;
-    wstring thedefault;
-    wstring blank;
-    blank += DUP;
-    blank += compileString(L"");
-    blank += EQUAL;
-    if(useReplace && undeftag.size() > 0)
-    {
-      blank += OVER;
-      blank += compileTag(undeftag);
-      blank += EQUAL;
-      blank += OR;
-    }
-    if(attrDefaults.find(c->part) != attrDefaults.end())
-    {
-      undeftag = attrDefaults[c->part].first;
-      deftag = attrDefaults[c->part].second;
-      thedefault += DROP;
-      thedefault += compileTag(useReplace ? deftag : undeftag);
-      if(useReplace)
-      {
-        blank += OVER;
-        blank += compileTag(undeftag);
-        blank += EQUAL;
-        blank += OR;
-      }
-    }
-    blank += JUMPONFALSE;
     ret += TARGETCLIP;
     ret += blank;
     ret += (wchar_t)(6 + 2*cl.size() + 2*blank.size() + thedefault.size());
@@ -1523,6 +1544,14 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
 
     if(pattern.size() == 1 && pattern[0] == L"macro")
     {
+      if(r->nextConjoined)
+      {
+        die(L"Cannot currently conjoin to a macro.");
+      }
+      if(r->conjoined)
+      {
+        die(L"Cannot currently conjoin a macro.");
+      }
       return processOutputChoice(processMacroChoice(macros[patname], r));
     }
     else if(r->conjoined)
@@ -1583,6 +1612,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       }
       else
       {
+        wstring ret_temp;
         vector<wstring> ops = altAttrs[pattern[i]];
         if(ops.size() == 0)
         {
@@ -1602,7 +1632,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
           Clip* cl = new Clip;
           cl->src = r->pos;
           cl->part = pattern[i];
-          ret += compileClip(cl, pattern[i]);
+          ret_temp += compileClip(cl, pattern[i]);
         }
         else if(var == L"")
         {
@@ -1611,41 +1641,46 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
           {
             if(parentTags[t] == pattern[i])
             {
-              ret += compileTag(to_wstring(t+1));
+              ret_temp += compileTag(to_wstring(t+1));
               found = true;
               break;
             }
           }
           if(!found)
           {
-            if(attrDefaults.find(pattern[i]) != attrDefaults.end())
+            if(r->pos == 0 && currentRule->grab_all != -1)
             {
-              ret += compileTag(attrDefaults[pattern[i]].first);
+              ret_temp += compileClip(pattern[i], currentRule->grab_all);
+            }
+            else if(attrDefaults.find(pattern[i]) != attrDefaults.end())
+            {
+              ret_temp += compileTag(attrDefaults[pattern[i]].first);
+            }
+            else if(r->pos == 0)
+            {
+              die(L"Cannot find source for tag '" + pattern[i] + L"'.");
             }
             else
             {
-              Clip* cl = new Clip;
-              cl->src = r->pos;
-              cl->part = pattern[i];
-              if(r->pos == 0)
-              {
-                if(currentRule->grab_all == -1)
-                {
-                  die(L"cannot find source for tag '" + pattern[i] + L"'");
-                }
-                else
-                {
-                  cl->src = currentRule->grab_all;
-                }
-              }
-              ret += compileClip(cl, pattern[i]);
+              ret_temp += compileClip(pattern[i], r->pos);
             }
           }
         }
         else
         {
-          ret += compileClip(r->vars[var], pattern[i]);
+          ret_temp += compileClip(r->vars[var], pattern[i]);
         }
+        if(inOutputRule && noOverwrite[pattern[i]].size() > 0)
+        {
+          ret += compileClip(pattern[i], r->pos, L"tl");
+          ret += DUP;
+          ret += compileString(pattern[i] + L" over");
+          ret += IN;
+          ret += JUMPONTRUE;
+          ret += (wchar_t)(1+ret_temp.size());
+          ret += DROP;
+        }
+        ret += ret_temp;
         ret += APPENDSURFACE;
       }
     }

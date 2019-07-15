@@ -13,16 +13,16 @@ Running
 
 ```bash
 # compile the rules file
-src/rtx-comp rule-file pattern-file bytecode-file
+src/rtx-comp rule-file bytecode-file
 
 # run the rules
-src/rtx-proc bytecode-file pattern-file < input
+src/rtx-proc bytecode-file < input
 
 # decompile the rules and examine the bytecode
 src/rtx-decomp bytecode-file text-file
 
 # compile XML rule files
-src/trx-comp pattern-file bytecode-file xml-files...
+src/trx-comp bytecode-file xml-files...
 ```
 
 Options for ```rtx-proc```:
@@ -46,10 +46,10 @@ Using in a Pair
 In ```Makefile.am``` add:
 ```
 $(PREFIX1).rtx.bin: $(BASENAME).$(PREFIX1).rtx
-	rtx-comp $< $@ $(PREFIX1).rtx.bin2
+	rtx-comp $< $@
 
 $(PREFIX2).rtx.bin: $(BASENAME).$(PREFIX2).rtx
-	rtx-comp $< $@ $(PREFIX2).rtx.bin2
+	rtx-comp $< $@
 ```
 
 and add
@@ -64,7 +64,6 @@ to ```TARGETS_COMMON```.
 In ```modes.xml```, replace ```apertium-transfer```, ```apertium-interchunk```, and ```apertium-postchunk``` with:
 ```
 <program name="rtx-proc">
-  <file name="abc-xyz.rtx.bin2"/>
   <file name="abc-xyz.rtx.bin"/>
 </program>
 ```

@@ -65,7 +65,7 @@ public:
   TRXCompiler();
   ~TRXCompiler();
   void compile(vector<string> files);
-  void write(const char* binfile, const char* bytefile);
+  void write(const char* binfile);
 };
 
 #endif

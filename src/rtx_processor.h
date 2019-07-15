@@ -117,7 +117,7 @@ public:
   RTXProcessor();
   ~RTXProcessor();
 
-  void read(string const &transferfile, string const &datafile);
+  void read(string const &filename);
   void process(FILE *in, FILE *out);
   bool getNullFlush(void);
   void setNullFlush(bool null_flush);

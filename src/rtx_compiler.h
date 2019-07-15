@@ -1,7 +1,7 @@
 #ifndef __RTXCOMPILER__
 #define __RTXCOMPILER__
 
-#include <apertium/transfer_data.h>
+#include <pattern.h>
 #include <bytecode.h>
 
 #include <map>
@@ -87,7 +87,7 @@ private:
   /**
    * Pattern-file generator
    */
-  TransferData td;
+  PatternBuilder PB;
 
   /**
    * Map of names to attribute lists
@@ -446,23 +446,6 @@ private:
   //////////
 
   /**
-   * Adds a lemma to the pattern transducer
-   * @param base - starting point of insertion
-   * @param lemma - lemma to insert
-   * @return end state of insertion
-   */
-  int insertLemma(int const base, wstring const &lemma);
-
-  /**
-   * Adds tags to the pattern transducer
-   * Note: Appends any_tag* to the end of the pattern
-   * @param base - starting point of insertion
-   * @param tags - tags to insert
-   * @return end state of insertion
-   */
-  int insertTags(int const base, wstring const &tags);
-
-  /**
    * Construct the appropriate transducer path for a rule
    * @param ruleid - index of rule in reductionRules
    */
@@ -541,7 +524,7 @@ public:
   RTXCompiler();
   ~RTXCompiler() {}
   void read(string const &filename);
-  void write(string const &patfilename, string const &bytefilename);
+  void write(string const &filename);
 };
 
 #endif

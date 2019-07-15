@@ -12,9 +12,6 @@ RTXCompiler::ANY_CHAR = L"<ANY_CHAR>";
 
 RTXCompiler::RTXCompiler()
 {
-  td.getAlphabet().includeSymbol(ANY_TAG);
-  td.getAlphabet().includeSymbol(ANY_CHAR);
-  td.getAttrItems()[L"pos_tag"] = L"(<[^>]+>)";
   longestPattern = 0;
   currentRule = NULL;
   currentChunk = NULL;
@@ -23,6 +20,7 @@ RTXCompiler::RTXCompiler()
   inOutputRule = false;
   parserIsInChunk = false;
   inMacro = false;
+  PB.starCanBeEmpty = true;
 }
 
 wstring const
@@ -1059,150 +1057,46 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
   }
 }
 
-int
-RTXCompiler::insertLemma(int const base, wstring const &lemma)
-{
-  int retval = base;
-  static int const any_char = td.getAlphabet()(ANY_CHAR);
-  if(lemma == L"")
-  {
-    retval = td.getTransducer().insertSingleTransduction(any_char, retval);
-    td.getTransducer().linkStates(retval, retval, any_char);
-    //int another = td.getTransducer().insertSingleTransduction(L'\\', retval);
-    //td.getTransducer().linkStates(another, retval, any_char);
-  }
-  else
-  {
-    for(unsigned int i = 0, limit = lemma.size();  i != limit; i++)
-    {
-      if(lemma[i] == L'\\')
-      {
-        //retval = td.getTransducer().insertSingleTransduction(L'\\', retval);
-        i++;
-        retval = td.getTransducer().insertSingleTransduction(int(lemma[i]),
-                                                             retval);
-      }
-      else if(lemma[i] == L'*')
-      {
-        retval = td.getTransducer().insertSingleTransduction(any_char, retval);
-        td.getTransducer().linkStates(retval, retval, any_char);
-      }
-      else
-      {
-        retval = td.getTransducer().insertSingleTransduction(int(lemma[i]),
-                                                             retval);
-      }
-    }
-  }
-
-  return retval;
-}
-
-int
-RTXCompiler::insertTags(int const base, wstring const &tags)
-{
-  int retval = base;
-  static int const any_tag = td.getAlphabet()(ANY_TAG);
-  if(tags.size() != 0)
-  {
-    for(unsigned int i = 0, limit = tags.size(); i < limit; i++)
-    {
-      if(tags[i] == L'*')
-      {
-        retval = td.getTransducer().insertSingleTransduction(any_tag, retval);
-        td.getTransducer().linkStates(retval, retval, any_tag);
-        i++;
-      }
-      else
-      {
-        wstring symbol = L"<";
-        for(unsigned int j = i; j != limit; j++)
-        {
-          if(tags[j] == L'.')
-          {
-            symbol.append(tags.substr(i, j-i));
-            i = j;
-            break;
-          }
-        }
-
-        if(symbol == L"<")
-        {
-          symbol.append(tags.substr(i));
-          i = limit;
-        }
-        symbol += L'>';
-        td.getAlphabet().includeSymbol(symbol);
-        retval = td.getTransducer().insertSingleTransduction(td.getAlphabet()(symbol), retval);
-      }
-    }
-  }
-  else
-  {
-    return base; // new line
-  }
-
-  return retval;
-}
-
 void
 RTXCompiler::makePattern(int ruleid)
 {
-  int epsilon = td.getAlphabet()(0, 0);
   Rule* rule = reductionRules[ruleid];
   if(rule->pattern.size() > longestPattern)
   {
     longestPattern = rule->pattern.size();
   }
-  int loc = td.getTransducer().getInitial();
-  vector<wstring> pat;
+  vector<vector<PatternElement*>> pat;
   for(unsigned int i = 0; i < rule->pattern.size(); i++)
   {
-    if(i != 0)
+    vector<wstring> tags;
+    for(unsigned int j = 1; j < rule->pattern[i].size(); j++)
     {
-      loc = td.getTransducer().insertSingleTransduction(L' ', loc);
-      //td.getTransducer().linkStates(loc, loc, td.getAlphabet()(L" "));
+      tags.push_back(rule->pattern[i][j]);
     }
-    loc = td.getTransducer().insertSingleTransduction(L'^', loc);
-    pat = rule->pattern[i];
-    if(pat[0].size() > 0 && pat[0][0] == L'$')
+    tags.push_back(L"*");
+    wstring lem = rule->pattern[i][0];
+    if(lem.size() == 0 || lem[0] != L'$')
     {
-      int lemend;
-      int tmp = loc;
-      vector<wstring> lems = collections[pat[0].substr(1)];
-      for(unsigned int l = 0; l < lems.size(); l++)
-      {
-        lemend = insertLemma(tmp, lems[l]);
-        if(l == 0)
-        {
-          loc = td.getTransducer().insertSingleTransduction(epsilon, lemend);
-        }
-        else
-        {
-          td.getTransducer().linkStates(lemend, loc, epsilon);
-        }
-      }
+      PatternElement* p = new PatternElement;
+      p->lemma = lem;
+      p->tags = tags;
+      pat.push_back(vector<PatternElement*>(1, p));
     }
     else
     {
-      loc = insertLemma(loc, pat[0]);
-    }
-    wstring tags;
-    for(unsigned int t = 1; t < pat.size(); t++)
-    {
-      if(t != 1)
+      vector<wstring> lems = collections[lem.substr(1)];
+      vector<PatternElement*> el;
+      for(unsigned int j = 0; j < lems.size(); j++)
       {
-        tags += L'.';
+        PatternElement* p = new PatternElement;
+        p->lemma = lems[j];
+        p->tags = tags;
+        el.push_back(p);
       }
-      tags += pat[t];
+      pat.push_back(el);
     }
-    loc = insertTags(loc, tags);
-    td.getTransducer().linkStates(loc, loc, td.getAlphabet()(ANY_TAG));
-    loc = td.getTransducer().insertSingleTransduction(L'$', loc);
   }
-  const int symbol = td.countToFinalSymbol(ruleid+1);
-  loc = td.getTransducer().insertSingleTransduction(symbol, loc, rule->weight);
-  td.getTransducer().setFinal(loc);
+  PB.addPattern(pat, ruleid+1, rule->weight);
 }
 
 wstring
@@ -1894,36 +1788,18 @@ RTXCompiler::read(const string &fname)
   processRules();
   for(map<wstring, vector<wstring>>::iterator it=collections.begin(); it != collections.end(); ++it)
   {
-    wstring regex = L"(";
-    for(unsigned int l = 0; l < it->second.size(); l++)
+    set<wstring, Ltstr> vals;
+    for(unsigned int i = 0; i < it->second.size(); i++)
     {
-      td.getLists()[it->first].insert(it->second[l]);
-      wstring attr = it->second[l];
-      if(l != 0)
-      {
-        regex += L'|';
-      }
-      regex += L'<';
-      for(unsigned int c = 0; c < attr.size(); c++)
-      {
-        if(attr[c] == L'.')
-        {
-          regex += L"><";
-        }
-        else
-        {
-          regex += attr[c];
-        }
-      }
-      regex += L'>';
+      vals.insert(it->second[i]);
     }
-    regex += L")";
-    td.getAttrItems()[it->first] = regex;
+    PB.addList(it->first, vals);
+    PB.addAttr(it->first, vals);
   }
 }
 
 void
-RTXCompiler::write(const string &fname, const string &bytename)
+RTXCompiler::write(const string &fname)
 {
   FILE *out = fopen(fname.c_str(), "wb");
   if(!out)
@@ -1933,37 +1809,14 @@ RTXCompiler::write(const string &fname, const string &bytename)
     exit(EXIT_FAILURE);
   }
 
-  td.write(out);
-
-  fclose(out);
-  
-  FILE *out2 = fopen(bytename.c_str(), "wb");
-  if(!out)
-  {
-    cerr << "Error: cannot open '" << bytename;
-    cerr << "' for writing" << endl;
-    exit(EXIT_FAILURE);
-  }
-  fputwc(longestPattern, out2);
-  fputwc(reductionRules.size(), out2);
+  vector<pair<int, wstring>> inRules;
   for(unsigned int i = 0; i < reductionRules.size(); i++)
   {
-    fputwc(reductionRules[i]->compiled.size(), out2);
-    fputwc((reductionRules[i]->pattern.size() * 2) - 1, out2);
-    for(unsigned int c = 0; c < reductionRules[i]->compiled.size(); c++)
-    {
-      fputwc(reductionRules[i]->compiled[c], out2);
-      // char by char because there might be \0s and that could be a problem?
-    }
+    inRules.push_back(make_pair(2*reductionRules[i]->pattern.size() - 1,
+                                reductionRules[i]->compiled));
   }
-  fputwc(outputBytecode.size(), out2);
-  for(unsigned int i = 0; i < outputBytecode.size(); i++)
-  {
-    fputwc(outputBytecode[i].size(), out2);
-    for(unsigned int c = 0; c < outputBytecode[i].size(); c++)
-    {
-      fputwc(outputBytecode[i][c], out2);
-    }
-  }
-  fclose(out2);
+
+  PB.write(out, longestPattern, inRules, outputBytecode);
+
+  fclose(out);
 }

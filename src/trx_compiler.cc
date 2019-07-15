@@ -1595,7 +1595,7 @@ TRXCompiler::processChoose(xmlNode* node)
 }
 
 void
-TRXCompiler::write(const char* binfile, const char* bytefile)
+TRXCompiler::write(const char* binfile)
 {
   FILE* bin = fopen(binfile, "wb");
   if(bin == NULL)
@@ -1603,34 +1603,11 @@ TRXCompiler::write(const char* binfile, const char* bytefile)
     wcerr << L"Error: Cannot open " << binfile << L" for writing." << endl;
     exit(EXIT_FAILURE);
   }
-  PB.write(bin);
-  fclose(bin);
-
-  FILE* byte = fopen(bytefile, "wb");
-  if(byte == NULL)
-  {
-    wcerr << L"Error: Cannot open " << bytefile << L" for writing." << endl;
-    exit(EXIT_FAILURE);
-  }
-  fputwc(longestPattern, byte);
-  fputwc(inputRules.size(), byte);
+  vector<pair<int, wstring>> inRules;
   for(unsigned int i = 0; i < inputRules.size(); i++)
   {
-    fputwc(inputRules[i].size(), byte);
-    fputwc(inputRuleSizes[i], byte);
-    for(unsigned int j = 0; j < inputRules[i].size(); j++)
-    {
-      fputwc(inputRules[i][j], byte);
-    }
+    inRules.push_back(make_pair(inputRuleSizes[i], inputRules[i]));
   }
-  fputwc(outputRules.size(), byte);
-  for(unsigned int i = 0; i < outputRules.size(); i++)
-  {
-    fputwc(outputRules[i].size(), byte);
-    for(unsigned int j = 0; j < outputRules[i].size(); j++)
-    {
-      fputwc(outputRules[i][j], byte);
-    }
-  }
-  fclose(byte);
+  PB.write(bin, longestPattern, inRules, outputRules);
+  fclose(bin);
 }

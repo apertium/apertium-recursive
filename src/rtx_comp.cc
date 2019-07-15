@@ -12,15 +12,15 @@ int main(int argc, char *argv[])
 {
   LtLocale::tryToSetLocale();
 
-  if(argc != 4)
+  if(argc != 3)
   {
-    wcerr << "USAGE: " << basename(argv[0]) << " rules_file pattern_file bytecode_file" << endl;
+    wcerr << "USAGE: " << basename(argv[0]) << " rules_file bytecode_file" << endl;
     exit(EXIT_FAILURE);
   }
 
   RTXCompiler myCompiler;
   myCompiler.read(argv[1]);
-  myCompiler.write(argv[2], argv[3]);
+  myCompiler.write(argv[2]);
 
   return EXIT_SUCCESS;
 }

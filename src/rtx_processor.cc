@@ -96,50 +96,29 @@ RTXProcessor::readData(FILE *in)
 }
 
 void
-RTXProcessor::read(string const &transferfile, string const &datafile)
+RTXProcessor::read(string const &filename)
 {
-  // rules
-  FILE *in = fopen(transferfile.c_str(), "rb");
-  longestPattern = 2*fgetwc(in)-1;
-  int count = fgetwc(in);
-  int len;
-  int patlen;
-  wstring cur;
-  for(int i = 0; i < count; i++)
-  {
-    cur.clear();
-    len = fgetwc(in);
-    patlen = fgetwc(in);
-    for(int j = 0; j < len; j++)
-    {
-      cur.append(1, fgetwc(in));
-    }
-    rule_map.push_back(cur);
-    pat_size.push_back(patlen);
-  }
-  count = fgetwc(in);
-  for(int i = 0; i < count; i++)
-  {
-    cur.clear();
-    len = getwc(in);
-    cur.reserve(len);
-    for(int j = 0; j < len; j++)
-    {
-      cur.append(1, fgetwc(in));
-    }
-    output_rules.push_back(cur);
-  }
-  fclose(in);
+  FILE *in = fopen(filename.c_str(), "rb");
 
-  // datafile
-  FILE *datain = fopen(datafile.c_str(), "rb");
-  if(!datain)
+  longestPattern = 2*Compression::multibyte_read(in) - 1;
+  int count = Compression::multibyte_read(in);
+  pat_size.reserve(count);
+  rule_map.reserve(count);
+  for(int i = 0; i < count; i++)
   {
-    wcerr << "Error: Could not open file '" << datafile << "'." << endl;
-    exit(EXIT_FAILURE);
+    pat_size.push_back(Compression::multibyte_read(in));
+    rule_map.push_back(Compression::wstring_read(in));
   }
-  readData(datain);
-  fclose(datain);
+  count = Compression::multibyte_read(in);
+  output_rules.reserve(count);
+  for(int i = 0; i < count; i++)
+  {
+    output_rules.push_back(Compression::wstring_read(in));
+  }
+
+  readData(in);
+
+  fclose(in);
 }
 
 bool

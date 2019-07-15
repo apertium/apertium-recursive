@@ -6,19 +6,11 @@
 void endProgram(char *name)
 {
   cout << basename(name) << ": compile xml transfer rules to bytecode" << endl;
-  cout << "USAGE: " << basename(name) << " [ -m | -r | -s ] [-n] bytecode_file pattern_file rule_files..." << endl;
+  cout << "USAGE: " << basename(name) << " bytecode_file rule_files..." << endl;
   cout << "Options:" << endl;
 #if HAVE_GETOPT_LONG
-  cout << "  -m, --matches:    print the steps of the pattern transducer" << endl;
-  cout << "  -n, --no-coref:   treat stream as having no coreference LUs" << endl;
-  cout << "  -r, --rules:      print the rules that are being applied" << endl;
-  cout << "  -s, --steps:      print the instructions executed by the stack machine" << endl;
   cout << "  -h, --help:       show this help" << endl;
 #else
-  cout << "  -m:   print the steps of the pattern transducer" << endl;
-  cout << "  -n:   treat stream as having no coreference LUs" << endl;
-  cout << "  -r:   print the rules that are being applied" << endl;
-  cout << "  -s:   print the instructions executed by the stack machine" << endl;
   cout << "  -h:   show this help" << endl;
 #endif
   exit(EXIT_FAILURE);
@@ -31,10 +23,6 @@ int main(int argc, char *argv[])
 #if HAVE_GETOPT_LONG
   static struct option long_options[]=
     {
-      {"matches",           0, 0, 'm'},
-      {"no-coref",          0, 0, 'n'},
-      {"rules",             0, 0, 'r'},
-      {"steps",             0, 0, 's'},
       {"help",              0, 0, 'h'}
     };
 #endif
@@ -43,9 +31,9 @@ int main(int argc, char *argv[])
   {
 #if HAVE_GETOPT_LONG
     int option_index;
-    int c = getopt_long(argc, argv, "mnrsh", long_options, &option_index);
+    int c = getopt_long(argc, argv, "h", long_options, &option_index);
 #else
-    int c = getopt(argc, argv, "mnrsh");
+    int c = getopt(argc, argv, "h");
 #endif
 
     if(c == -1)
@@ -64,16 +52,15 @@ int main(int argc, char *argv[])
 
   LtLocale::tryToSetLocale();
 
-  char* byte = argv[optind];
-  char* bin = argv[optind+1];
+  char* bin = argv[optind];
   vector<string> files;
-  for(int i = optind + 2; i < argc; i++)
+  for(int i = optind + 1; i < argc; i++)
   {
     files.push_back(argv[i]);
   }
 
   p.compile(files);
-  p.write(bin, byte);
+  p.write(bin);
 
   return EXIT_SUCCESS;
 }

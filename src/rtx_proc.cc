@@ -5,7 +5,7 @@
 void endProgram(char *name)
 {
   cout << basename(name) << ": perform structural transfer" << endl;
-  cout << "USAGE: " << basename(name) << " [ -m | -r | -s ] [-n] bytecode_file pattern_file [input_file [output_file]]" << endl;
+  cout << "USAGE: " << basename(name) << " [ -m | -r | -s ] [-n] bytecode_file [input_file [output_file]]" << endl;
   cout << "Options:" << endl;
 #if HAVE_GETOPT_LONG
   cout << "  -m, --matches:    print the steps of the pattern transducer" << endl;
@@ -93,22 +93,22 @@ int main(int argc, char *argv[])
 
   LtLocale::tryToSetLocale();
 
-  if(optind > (argc - 2) || optind < (argc - 4))
+  if(optind > (argc - 1) || optind < (argc - 3))
   {
     endProgram(argv[0]);
   }
 
-  p.read(argv[optind], argv[optind+1]);
+  p.read(argv[optind]);
 
   FILE *input = stdin, *output = stdout;
 
+  if(optind <= (argc - 2))
+  {
+    input = fopen(argv[optind+1], "rb");
+  }
   if(optind <= (argc - 3))
   {
-    input = fopen(argv[optind+2], "rb");
-  }
-  if(optind <= (argc - 4))
-  {
-    output = fopen(argv[optind+3], "wb");
+    output = fopen(argv[optind+2], "wb");
   }
 
   p.process(input, output);

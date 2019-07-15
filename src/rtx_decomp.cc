@@ -1,5 +1,6 @@
 #include <bytecode.h>
 #include <lttoolbox/lt_locale.h>
+#include <lttoolbox/compression.h>
 #include <getopt.h>
 #include <iostream>
 #include <fstream>
@@ -251,36 +252,44 @@ int main(int argc, char *argv[])
     }
   }
 
-  int longestPattern = fgetwc(in);
-  int count = fgetwc(in);
+  //int longestPattern = fgetwc(in);
+  //int count = fgetwc(in);
+  int longestPattern = Compression::multibyte_read(in);
+  int count = Compression::multibyte_read(in);
   fwprintf(out, L"Input rules:\n");
   fwprintf(out, L"Longest pattern: %d chunks\nNumber of rules: %d\n\n", longestPattern, count);
   int len, patlen;
   wstring cur;
   for(int i = 0; i < count; i++)
   {
-    cur.clear();
+    /*cur.clear();
     len = fgetwc(in);
     patlen = fgetwc(in);
     fwprintf(out, L"Rule %d (%d bytes, pattern %d chunks)\n", i+1, len, patlen);
     for(int j = 0; j < len; j++)
     {
       cur.append(1, fgetwc(in));
-    }
+    }*/
+    patlen = Compression::multibyte_read(in);
+    cur = Compression::wstring_read(in);
+    fwprintf(out, L"Rule %d (%d bytes, pattern %d chunks)\n", i+1, cur.size(), patlen);
     writeRule(cur, out);
   }
 
-  count = fgetwc(in);
+  //count = fgetwc(in);
+  count = Compression::multibyte_read(in);
   fwprintf(out, L"Output rules:\nNumber of rules: %d\n\n", count);
   for(int i = 0; i < count; i++)
   {
-    cur.clear();
+    /*cur.clear();
     len = fgetwc(in);
     fwprintf(out, L"Rule %d (%d bytes)\n", i, len);
     for(int j = 0; j < len; j++)
     {
       cur.append(1, fgetwc(in));
-    }
+    }*/
+    cur = Compression::wstring_read(in);
+    fwprintf(out, L"Rule %d (%d bytes)\n", i, cur.size());
     writeRule(cur, out);
   }
 

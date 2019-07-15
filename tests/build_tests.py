@@ -6,23 +6,21 @@ import subprocess, unittest
 class CompilerTest:
     rules_file = ''
     bin_file = ''
-    byte_file = ''
     def test_compiles(self):
         with self.assertRaises(subprocess.CalledProcessError):
-            subprocess.check_output(['../src/rtx-comp', self.rules_file, self.bin_file, self.byte_file],
+            subprocess.check_output(['../src/rtx-comp', self.rules_file, self.bin_file],
                                     stderr=subprocess.STDOUT, universal_newlines=True)
 
 class InterpreterTest:
     rules_file = ''
     bin_file = ''
-    byte_file = ''
     input = ''
     output = ''
     def setUp(self):
-        subprocess.check_output(['../src/rtx-comp', self.rules_file, self.bin_file, self.byte_file],
+        subprocess.check_output(['../src/rtx-comp', self.rules_file, self.bin_file],
                                 stderr=subprocess.STDOUT, universal_newlines=True)
     def test_output(self):
-        actual = subprocess.check_output(['../src/rtx-proc', self.byte_file, self.bin_file],
+        actual = subprocess.check_output(['../src/rtx-proc', self.bin_file],
                                          input=self.input, encoding='utf-8', universal_newlines=True)
         self.maxDiff = None
         self.assertEqual(self.output, actual)
@@ -34,14 +32,12 @@ err = '''
 class {0}(CompilerTest, unittest.TestCase):
     rules_file = '{0}.rtx'
     bin_file = '{0}.bin'
-    byte_file = '{0}.comp'
 '''
 
 run = '''
 class {0}(InterpreterTest, unittest.TestCase):
     rules_file = '{0}.rtx'
     bin_file = '{0}.bin'
-    byte_file = '{0}.comp'
     input = """{1}"""
     output = """{2}"""
 '''

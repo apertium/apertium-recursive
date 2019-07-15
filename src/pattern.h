@@ -145,8 +145,11 @@ public:
       }
       state = end;
     }
-    int fake_cont = transducer.insertSingleTransduction(L' ', state);
-    if(seen_rules.find(state) == seen_rules.end())
+    if(rule == -1)
+    {
+      transducer.setFinal(state);
+    }
+    else if(rule != -1 && seen_rules.find(state) == seen_rules.end())
     {
       seen_rules[state] = rule;
       int symbol = countToFinalSymbol(rule);

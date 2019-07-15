@@ -1810,13 +1810,30 @@ RTXCompiler::write(const string &fname)
     exit(EXIT_FAILURE);
   }
 
+  vector<PatternElement*> glue;
+  set<wstring, Ltstr> seen;
   vector<pair<int, wstring>> inRules;
   for(unsigned int i = 0; i < reductionRules.size(); i++)
   {
     inRules.push_back(make_pair(2*reductionRules[i]->pattern.size() - 1,
                                 reductionRules[i]->compiled));
     PB.inRuleNames.push_back(L"line " + to_wstring(reductionRules[i]->line));
+    wstring tg = reductionRules[i]->result.back();
+    if(seen.find(tg) == seen.end())
+    {
+      PatternElement* p = new PatternElement;
+      p->tags.push_back(tg);
+      p->tags.push_back(L"*");
+      glue.push_back(p);
+      seen.insert(tg);
+    }
   }
+  PatternElement* p = new PatternElement;
+  p->tags.push_back(L"FALL:BACK");
+  vector<vector<PatternElement*>> fb;
+  fb.push_back(glue);
+  fb.push_back(vector<PatternElement*>(1, p));
+  PB.addPattern(fb, -1);
 
   PB.write(out, longestPattern, inRules, outputBytecode);
 

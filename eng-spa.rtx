@@ -57,7 +57,7 @@ prn_type = tn subj;
 adv_type = itg;
 rel_type = nn;
 
-should_have_det = donación empleado equipamiento información;
+should_have_det = empleado equipamiento información;
 
 temps = cni fti ifi imp pii pis inf prs pres past pri pp ger pprs subs;
 
@@ -79,7 +79,9 @@ NP -> n.$number/sl.$gender/tl.$lem/tl {1} |
       1: n %np.$gender.number {1 _1 2} |
       1: n n.$gender/tl.$number/tl {2 _1 de@pr _ 1} |
       n n n {3 _ de@pr _2 2 _ de@pr _1 1} |
-      NP %NP.$lem/tl.$number.gender/tl {2 _1 de@pr _ 1} ;
+      np %n {2 _ de@pr _1 1} |
+      NP %NP.$lem/tl.$number.gender/tl {2 _1 de@pr _ 1} |
+      %NP VP.ger {1 _ que@rel.an.mf.sp _1 2(temps=pri, person=p3, number=$number)} ;
 
 DP -> %NP.$number/tl [$person=p3]
             {(if ((1.lem/tl incl should_have_det) or ($definite = def))
@@ -98,7 +100,9 @@ PP -> pr DP {1 _1 2} |
       cnjsub VP {1 _1 (if (2.temps = past)
                           2(temps = cni)
                        else
-                          2(temps = pri))};
+                          2(temps = pri))} |
+      to@pr VP.inf {para@pr _1 2} |
+      to@pr VP.ger {1 _1 2(temps=inf)} ;
 
 prn_enc: _.<enc>.person.gender.number;
 ser_to_estar: (if ((1.temps = pres) or (1.temps = pri))
@@ -124,11 +128,16 @@ temps > temps: pres pri;
 S: _;
 S -> DP VP {1 _1 2(person=1.person, number=1.number, gender=1.gender)};
 
+!FALLBACK: _;
+!NO_EXISTE: _;
+!FALLBACK -> adj {1} |
+!            gen {} |
+!            det {1(number=1.number/tl)} |
+!            PP {1} |
+!            VP NO_EXISTE {1 _1 2} |
+!            S NO_EXISTE {1 _1 2} |
+!            FALLBACK NO_EXISTE {1 _1 2};
+
 FALLBACK: _;
-NO_EXISTE: _;
-FALLBACK -> adj {1} |
-            gen {} |
-            det {1(number=1.number/tl)} |
-            VP NO_EXISTE {1 _1 2} |
-            S NO_EXISTE {1 _1 2} |
-            FALLBACK NO_EXISTE {1 _1 2};
+NE: _;
+FALLBACK -> adj {1} | det {1(number=1.number/tl)} | FALLBACK NE {1 _1 2};

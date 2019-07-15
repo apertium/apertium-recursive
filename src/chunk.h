@@ -202,7 +202,10 @@ public:
     else
     {
       updateTags(parentTags);
-      if(out == NULL)
+      if(target.size() == 0)
+      {
+      }
+      else if(out == NULL)
       {
         cout << "^" << UtfConverter::toUtf8(target) << "$";
       }

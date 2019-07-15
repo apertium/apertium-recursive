@@ -72,13 +72,6 @@ RTXProcessor::readData(FILE *in)
     variables[cad_k] = Compression::wstring_read(in);
   }
 
-  // macros
-  for(int i = 0, limit = Compression::multibyte_read(in); i != limit; i++)
-  {
-    wstring const cad_k = Compression::wstring_read(in);
-    macros[cad_k] = Compression::multibyte_read(in);
-  }
-
   // lists
   for(int i = 0, limit = Compression::multibyte_read(in); i != limit; i++)
   {
@@ -117,6 +110,17 @@ RTXProcessor::read(string const &filename)
   }
 
   readData(in);
+
+  int nameCount = Compression::multibyte_read(in);
+  for(int i = 0; i < nameCount; i++)
+  {
+    inRuleNames.push_back(Compression::wstring_read(in));
+  }
+  nameCount = Compression::multibyte_read(in);
+  for(int i = 0; i < nameCount; i++)
+  {
+    outRuleNames.push_back(Compression::wstring_read(in));
+  }
 
   fclose(in);
 }
@@ -931,7 +935,12 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
     node->getChunks(currentInput, len-1);
     currentOutput.clear();
     if(printingRules) {
-      wcerr << "Applying rule " << rule << ": ";
+      wcerr << endl << "Applying rule " << rule;
+      if(rule <= inRuleNames.size())
+      {
+        wcerr << " (" << inRuleNames[rule-1] << ")";
+      }
+      wcerr << ": ";
       for(unsigned int i = 0; i < currentInput.size(); i++)
       {
         currentInput[i]->writeTree();
@@ -1018,8 +1027,8 @@ RTXProcessor::outputAll(FILE* out)
     }
     if(ch->rule == -1)
     {
-      if(printingRules) {
-        wcerr << "No rule specified: ";
+      if(printingRules && !ch->isBlank) {
+        wcerr << endl << "No rule specified: ";
         ch->writeTree();
         wcerr << endl;
       }
@@ -1036,7 +1045,12 @@ RTXProcessor::outputAll(FILE* out)
       }
       currentOutput.clear();
       if(printingRules) {
-        wcerr << "Applying output rule " << ch->rule << ": ";
+        wcerr << endl << "Applying output rule " << ch->rule;
+        if(ch->rule < outRuleNames.size())
+        {
+          wcerr << " (" << outRuleNames[ch->rule] << ")";
+        }
+        wcerr << ": ";
         for(unsigned int i = 0; i < currentInput.size(); i++)
         {
           currentInput[i]->writeTree();
@@ -1202,7 +1216,6 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
     {
       parseGraph[0]->getChunks(outputQueue, parseGraph[0]->length-1);
       parseGraph.clear();
-      //min->getChunks(outputQueue, min->length-1);
       outputAll(out);
       wstring s = next->source;
       wstring t = next->target;
@@ -1293,7 +1306,12 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
       }
       currentOutput.clear();
       if(printingRules) {
-        wcerr << "Applying rule " << rule << ": ";
+        wcerr << endl << "Applying rule " << rule;
+        if(rule <= inRuleNames.size())
+        {
+          wcerr << " (" << inRuleNames[rule-1] << ")";
+        }
+        wcerr << ": ";
         for(unsigned int i = 0; i < currentInput.size(); i++)
         {
           currentInput[i]->writeTree();
@@ -1368,7 +1386,12 @@ RTXProcessor::processTRX(FILE *in, FILE *out)
       else
       {
         if(printingRules) {
-          wcerr << L"Applying output rule " << cur->rule << ": ";
+          wcerr << endl << L"Applying output rule " << cur->rule;
+          if(cur->rule < outRuleNames.size())
+          {
+            wcerr << " (" << outRuleNames[cur->rule] << ")";
+          }
+          wcerr << ": ";
           cur->writeTree();
           wcerr << endl;
         }

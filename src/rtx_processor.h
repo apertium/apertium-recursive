@@ -40,6 +40,8 @@ private:
   map<wstring, set<wstring, Ltstr>, Ltstr> listslow;
   vector<wstring> rule_map;
   vector<wstring> output_rules;
+  vector<wstring> inRuleNames;
+  vector<wstring> outRuleNames;
   vector<int> pat_size;
   int longestPattern;
   bool furtherInput;

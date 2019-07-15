@@ -27,7 +27,6 @@ class PatternBuilder
 {
 private:
   map<wstring, wstring, Ltstr> attr_items;
-  map<wstring, int, Ltstr> macros;
   map<wstring, set<wstring, Ltstr>, Ltstr> lists;
   map<wstring, wstring, Ltstr> variables;
   set<int> final_symbols;
@@ -106,6 +105,8 @@ private:
 public:
   // false: * = 1 or more tags, true: * = 0 or more tags
   bool starCanBeEmpty;
+  vector<wstring> inRuleNames;
+  vector<wstring> outRuleNames;
 
   PatternBuilder()
   {
@@ -144,6 +145,7 @@ public:
       }
       state = end;
     }
+    int fake_cont = transducer.insertSingleTransduction(L' ', state);
     if(seen_rules.find(state) == seen_rules.end())
     {
       seen_rules[state] = rule;
@@ -277,15 +279,6 @@ public:
       Compression::wstring_write(it->second, output);
     }
 
-    // macros
-    Compression::multibyte_write(macros.size(), output);
-    for(map<wstring, int, Ltstr>::const_iterator it = macros.begin(), limit = macros.end();
-        it != limit; it++)
-    {
-      Compression::wstring_write(it->first, output);
-      Compression::multibyte_write(it->second, output);
-    }
-
     // lists
     Compression::multibyte_write(lists.size(), output);
     for(map<wstring, set<wstring, Ltstr>, Ltstr>::const_iterator it = lists.begin(), limit = lists.end();
@@ -299,6 +292,18 @@ public:
       {
         Compression::wstring_write(*it2, output);
       }
+    }
+
+    // rule names
+    Compression::multibyte_write(inRuleNames.size(), output);
+    for(unsigned int i = 0; i < inRuleNames.size(); i++)
+    {
+      Compression::wstring_write(inRuleNames[i], output);
+    }
+    Compression::multibyte_write(outRuleNames.size(), output);
+    for(unsigned int i = 0; i < outRuleNames.size(); i++)
+    {
+      Compression::wstring_write(outRuleNames[i], output);
     }
 
   }

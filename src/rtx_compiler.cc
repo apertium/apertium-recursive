@@ -1758,6 +1758,7 @@ RTXCompiler::processRules()
         parentTags = outputRules[ch->pattern];
         inOutputRule = true;
         outputBytecode.push_back(processOutputChoice(cur));
+        PB.outRuleNames.push_back(L"line " + to_wstring(rule->line));
         inOutputRule = false;
         parentTags.clear();
         patidx++;
@@ -1814,6 +1815,7 @@ RTXCompiler::write(const string &fname)
   {
     inRules.push_back(make_pair(2*reductionRules[i]->pattern.size() - 1,
                                 reductionRules[i]->compiled));
+    PB.inRuleNames.push_back(L"line " + to_wstring(reductionRules[i]->line));
   }
 
   PB.write(out, longestPattern, inRules, outputBytecode);

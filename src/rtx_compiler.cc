@@ -21,6 +21,7 @@ RTXCompiler::RTXCompiler()
   parserIsInChunk = false;
   inMacro = false;
   PB.starCanBeEmpty = true;
+  fallbackRule = true;
 }
 
 wstring const
@@ -1833,7 +1834,10 @@ RTXCompiler::write(const string &fname)
   vector<vector<PatternElement*>> fb;
   fb.push_back(glue);
   fb.push_back(vector<PatternElement*>(1, p));
-  PB.addPattern(fb, -1);
+  if(fallbackRule)
+  {
+    PB.addPattern(fb, -1);
+  }
 
   PB.write(out, longestPattern, inRules, outputBytecode);
 

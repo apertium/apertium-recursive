@@ -140,4 +140,4 @@ S -> DP VP {1 _1 2(person=1.person, number=1.number, gender=1.gender)};
 
 FALLBACK: _;
 NE: _;
-FALLBACK -> adj {1} | det {1(number=1.number/tl)} | FALLBACK NE {1 _1 2};
+FALLBACK -> adj {1} | det {1(number=1.number/tl)};

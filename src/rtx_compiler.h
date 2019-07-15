@@ -73,6 +73,17 @@ private:
   };
 
   //////////
+  // SETTINGS
+  //////////
+
+  /**
+   * Whether a default fallback rule should be generated to prevent finished
+   * branches from being discarded
+   * Default: true
+   */
+  bool fallbackRule;
+
+  //////////
   // COLLECTIONS AND DATA STRUCTURES
   //////////
 
@@ -523,6 +534,12 @@ private:
 public:
   RTXCompiler();
   ~RTXCompiler() {}
+
+  void setFallback(bool value)
+  {
+    fallbackRule = value;
+  }
+
   void read(string const &filename);
   void write(string const &filename);
 };

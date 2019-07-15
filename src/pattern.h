@@ -148,6 +148,7 @@ public:
     if(rule == -1)
     {
       transducer.setFinal(state);
+      return -1;
     }
     else if(rule != -1 && seen_rules.find(state) == seen_rules.end())
     {

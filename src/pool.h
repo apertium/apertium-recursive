@@ -53,9 +53,13 @@ public:
   }
   void reset()
   {
-    idx = 0;
     bucketList[0]->inUse = 0;
-    cur = bucketList[idx];
+    while(idx > 0)
+    {
+      bucketList.pop_back();
+      delete cur;
+      cur = bucketList[--idx];
+    }
   }
   ElementType* next()
   {

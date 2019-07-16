@@ -33,6 +33,34 @@ public:
   Chunk(wstring dest, vector<Chunk*>& children, int r = -1)
   : target(dest), isBlank(false), contents(children), rule(r)
   {}
+  Chunk(Chunk& other) // copy constructor
+  {
+    source = other.source;
+    target = other.target;
+    coref = other.coref;
+    isBlank = other.isBlank;
+    contents = other.contents;
+    rule = other.rule;
+  }
+  Chunk(Chunk&& other) // move constructor
+  {
+    source.swap(other.source);
+    target.swap(other.target);
+    coref.swap(other.coref);
+    isBlank = other.isBlank;
+    contents.swap(other.contents);
+    rule = other.rule;
+  }
+  Chunk& operator=(Chunk other)
+  {
+    source.swap(other.source);
+    target.swap(other.target);
+    coref.swap(other.coref);
+    isBlank = other.isBlank;
+    contents.swap(other.contents);
+    rule = other.rule;
+    return *this;
+  }
   Chunk* copy()
   {
     Chunk* ret = new Chunk();

@@ -531,6 +531,11 @@ private:
    */
   void processRules();
 
+  /**
+   * Construct lookahead paths for the transducer
+   */
+  void buildLookahead();
+
 public:
   RTXCompiler();
   ~RTXCompiler() {}

@@ -72,6 +72,7 @@ private:
   MatchNode2* nodes;
   int any_char;
   int any_tag;
+  int lookahead;
   Alphabet* alpha;
   int initial;
   int rejected[RTXStackSize];
@@ -120,6 +121,7 @@ public:
 
     any_char = (*a)(L"<ANY_CHAR>");
     any_tag = (*a)(L"<ANY_TAG>");
+    lookahead = (*a)(L"<LOOK:AHEAD>");
 
     prematchIdx = 0;
   }
@@ -252,6 +254,16 @@ public:
       }
     }
     return false;
+  }
+  bool shouldShift(int* state, int first, int last, const wstring& chunk)
+  {
+    int local_state[RTXStateSize];
+    memcpy(local_state, state, RTXStateSize*sizeof(int));
+    int local_first = first;
+    int local_last = last;
+    step(local_state, local_first, local_last, lookahead);
+    matchChunk(local_state, local_first, local_last, chunk, false);
+    return local_first != local_last;
   }
   int getRule(int* state, int first, int last)
   {
@@ -432,6 +444,10 @@ public:
   bool shouldShift()
   {
     return mx->shouldShift(state, first, last);
+  }
+  bool shouldShift(Chunk* next)
+  {
+    return mx->shouldShift(state, first, last, next->matchSurface());
   }
   bool isDone()
   {

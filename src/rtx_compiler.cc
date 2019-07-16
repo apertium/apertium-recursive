@@ -1772,6 +1772,63 @@ RTXCompiler::processRules()
 }
 
 void
+RTXCompiler::buildLookahead()
+{
+  vector<pair<wstring, vector<wstring>>> rules;
+  map<wstring, set<wstring>> first;
+  for(unsigned int i = 0; i < reductionRules.size(); i++)
+  {
+    vector<wstring> parts;
+    for(unsigned int j = 0; j < reductionRules[i]->pattern.size(); j++)
+    {
+      parts.push_back(reductionRules[i]->pattern[j][1]);
+    }
+    rules.push_back(make_pair(reductionRules[i]->result[0], parts));
+    first[reductionRules[i]->result[0]].insert(parts[0]);
+  }
+  for(unsigned int i = 0; i < rules.size(); i++)
+  {
+    vector<PatternElement*> check;
+    set<wstring> ops;
+    for(unsigned int j = 0; j < rules.size(); j++)
+    {
+      if(rules[j].second.size() <= rules[i].second.size()) continue;
+      bool match = true;
+      for(unsigned int k = 0; k < rules[i].second.size(); k++)
+      {
+        if(rules[i].second[k] != rules[j].second[k])
+        {
+          match = false;
+          break;
+        }
+      }
+      if(!match) continue;
+      wstring next = rules[j].second[rules[i].second.size()];
+      vector<wstring> todo;
+      todo.push_back(next);
+      while(todo.size() > 0)
+      {
+        wstring cur = todo.back();
+        todo.pop_back();
+        if(ops.count(cur) == 0)
+        {
+          ops.insert(cur);
+          PatternElement* p = new PatternElement;
+          p->tags.push_back(cur);
+          p->tags.push_back(L"*");
+          check.push_back(p);
+          if(first.find(cur) != first.end())
+          {
+            todo.insert(todo.end(), first[cur].begin(), first[cur].end());
+          }
+        }
+      }
+    }
+    PB.addLookahead(i, check);
+  }
+}
+
+void
 RTXCompiler::read(const string &fname)
 {
   currentLine = 1;
@@ -1799,6 +1856,7 @@ RTXCompiler::read(const string &fname)
     PB.addList(it->first, vals);
     PB.addAttr(it->first, vals);
   }
+  buildLookahead();
 }
 
 void

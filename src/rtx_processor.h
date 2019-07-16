@@ -56,6 +56,8 @@ private:
   vector<ParseNode*> parseGraph;
   Pool<Chunk> chunkPool;
   Pool<ParseNode> parsePool;
+  list<Chunk*> inputBuffer;
+  vector<vector<Chunk*>*> currentContinuation;
 
   MatchExe2 *attrTransducer;
   vector<wstring> attr_values;
@@ -98,6 +100,7 @@ private:
   bool popBool();
   int popInt();
   wstring popString();
+  void popString(wstring& dest);
   Chunk* popChunk();
   inline void pushStack(bool b)
   {
@@ -109,10 +112,10 @@ private:
     theStack[++stackIdx].mode = 1;
     theStack[stackIdx].i = i;
   }
-  inline void pushStack(wstring s)
+  inline void pushStack(const wstring& s)
   {
     theStack[++stackIdx].mode = 2;
-    theStack[stackIdx].s = s;
+    theStack[stackIdx].s.assign(s);
   }
   inline void pushStack(Chunk* c)
   {

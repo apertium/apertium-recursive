@@ -268,6 +268,24 @@ RTXProcessor::popString()
   }
 }
 
+inline void
+RTXProcessor::popString(wstring& dest)
+{
+  if(theStack[stackIdx].mode == 2)
+  {
+    theStack[stackIdx--].s.swap(dest);
+  }
+  else if(theStack[stackIdx].mode == 3)
+  {
+    dest.assign(theStack[stackIdx--].c->target);
+  }
+  else
+  {
+    wcerr << "tried to pop wstring but mode is " << theStack[stackIdx].mode << endl;
+    exit(1);
+  }
+}
+
 inline Chunk*
 RTXProcessor::popChunk()
 {
@@ -351,7 +369,10 @@ RTXProcessor::clip(Chunk* ch, const wstring& part, const ClipType side)
       int rule = attrTransducer->getRuleUnweighted(state, first, last);
       if(rule != -1)
       {
-        pushStack(attr_values[rule]);
+        stackIdx++;
+        theStack[stackIdx].mode = 2;
+        theStack[stackIdx].s.assign(attr_values[rule]);
+        //pushStack(attr_values[rule]);
         found = true;
         break;
       }
@@ -360,7 +381,7 @@ RTXProcessor::clip(Chunk* ch, const wstring& part, const ClipType side)
     {
       stackIdx++;
       theStack[stackIdx].mode = 2;
-      theStack[stackIdx].s = L"";
+      theStack[stackIdx].s.clear();
     }
   }
 }
@@ -369,9 +390,10 @@ bool
 RTXProcessor::applyRule(const wstring& rule)
 {
   stackIdx = 0;
-  for(unsigned int i = 0; i < rule.size(); i++)
+  const wchar_t* rule_data = rule.data();
+  for(unsigned int i = 0, rule_size = rule.size(); i < rule_size; i++)
   {
-    switch(rule[i])
+    switch(rule_data[i])
     {
       case DROP:
         if(printingSteps) { wcerr << "drop" << endl; }
@@ -398,15 +420,18 @@ RTXProcessor::applyRule(const wstring& rule)
       case STRING:
       {
         if(printingSteps) { wcerr << "string" << endl; }
-        int ct = rule[++i];
-        pushStack(rule.substr(i+1, ct));
+        int ct = rule_data[++i];
+        stackIdx++;
+        theStack[stackIdx].mode = 2;
+        theStack[stackIdx].s.assign(rule, i+1, ct);
+        //pushStack(rule.substr(i+1, ct));
         i += ct;
         if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
       }
         break;
       case INT:
         if(printingSteps) { wcerr << "int " << (int)rule[i+1] << endl; }
-        pushStack((int)rule[++i]);
+        pushStack((int)rule_data[++i]);
         break;
       case PUSHFALSE:
         if(printingSteps) { wcerr << "pushfalse" << endl; }
@@ -418,7 +443,7 @@ RTXProcessor::applyRule(const wstring& rule)
         break;
       case JUMP:
         if(printingSteps) { wcerr << "jump" << endl; }
-        i += rule[++i];
+        i += rule_data[++i];
         break;
       case JUMPONTRUE:
         if(printingSteps) { wcerr << "jumpontrue" << endl; }
@@ -428,7 +453,7 @@ RTXProcessor::applyRule(const wstring& rule)
         }
         else
         {
-          i += rule[++i];
+          i += rule_data[++i];
         }
         break;
       case JUMPONFALSE:
@@ -439,7 +464,7 @@ RTXProcessor::applyRule(const wstring& rule)
         }
         else
         {
-          i += rule[++i];
+          i += rule_data[++i];
         }
         break;
       case AND:
@@ -467,34 +492,10 @@ RTXProcessor::applyRule(const wstring& rule)
         if(printingSteps) { wcerr << "equal" << endl; }
       {
         wstring a;
-        if(theStack[stackIdx].mode == 2)
-        {
-          a = theStack[stackIdx--].s;
-        }
-        else if(theStack[stackIdx].mode == 3)
-        {
-          a = theStack[stackIdx--].c->target;
-        }
-        else
-        {
-          wcerr << "not sure how to do equality on mode " << theStack[stackIdx].mode << endl;
-          exit(1);
-        }
+        popString(a);
         wstring b;
-        if(theStack[stackIdx].mode == 2)
-        {
-          b = theStack[stackIdx--].s;
-        }
-        else if(theStack[stackIdx].mode == 3)
-        {
-          b = theStack[stackIdx--].c->target;
-        }
-        else
-        {
-          wcerr << "not sure how to do equality on mode " << theStack[stackIdx].mode << endl;
-          exit(1);
-        }
-        if(rule[i] == EQUALCL)
+        popString(b);
+        if(rule_data[i] == EQUALCL)
         {
           a = StringUtils::tolower(a);
           b = StringUtils::tolower(b);
@@ -706,7 +707,8 @@ RTXProcessor::applyRule(const wstring& rule)
         if(printingSteps) { wcerr << "sourceclip" << endl; }
       {
         int pos = 2*(popInt()-1);
-        wstring part = popString();
+        wstring part;
+        popString(part);
         Chunk* ch = (pos == -2) ? parentChunk : currentInput[pos];
         //pushStack(ch->chunkPart(attr_items[part], SourceClip));
         clip(ch, part, SourceClip);
@@ -717,7 +719,8 @@ RTXProcessor::applyRule(const wstring& rule)
       {
         int loc = popInt();
         int pos = 2*(loc-1);
-        wstring part = popString();
+        wstring part;
+        popString(part);
         Chunk* ch = NULL;
         if(pos == -2) ch = parentChunk;
         else if(0 <= pos && pos < currentInput.size()) ch = currentInput[pos];
@@ -755,9 +758,9 @@ RTXProcessor::applyRule(const wstring& rule)
         if(printingSteps) { wcerr << "referenceclip" << endl; }
       {
         int pos = 2*(popInt()-1);
-        wstring part = popString();
+        wstring part;
+        popString(part);
         Chunk* ch = (pos == -2) ? parentChunk : currentInput[pos];
-        //pushStack(ch->chunkPart(attr_items[part], ReferenceClip));
         clip(ch, part, ReferenceClip);
       }
         break;
@@ -795,9 +798,13 @@ RTXProcessor::applyRule(const wstring& rule)
       case CONCAT:
         if(printingSteps) { wcerr << "concat" << endl; }
       {
-        wstring result = popString();
-        result = popString() + result;
-        pushStack(result);
+        if(theStack[stackIdx].mode != 2 || theStack[stackIdx-1].mode != 2)
+        {
+          wcerr << L"Cannot CONCAT non-strings." << endl;
+          exit(EXIT_FAILURE);
+        }
+        stackIdx--;
+        theStack[stackIdx].s.insert(0, theStack[stackIdx+1].s);
       }
         break;
       case CHUNK:
@@ -819,9 +826,19 @@ RTXProcessor::applyRule(const wstring& rule)
       case APPENDSURFACE:
         if(printingSteps) { wcerr << "appendsurface" << endl; }
       {
-        wstring s = popString();
-        theStack[stackIdx].c->target += s;
-        if(printingSteps) { wcerr << " -> " << s << endl; }
+        if(theStack[stackIdx].mode != 2)
+        {
+          wcerr << L"Cannot append non-string to chunk surface." << endl;
+          exit(EXIT_FAILURE);
+        }
+        stackIdx--;
+        if(theStack[stackIdx].mode != 3)
+        {
+          wcerr << L"Cannot APPENDSURFACE to non-chunk." << endl;
+          exit(EXIT_FAILURE);
+        }
+        theStack[stackIdx].c->target += theStack[stackIdx+1].s;
+        if(printingSteps) { wcerr << " -> " << theStack[stackIdx+1].s << endl; }
       }
         break;
       case APPENDALLCHILDREN:
@@ -836,7 +853,7 @@ RTXProcessor::applyRule(const wstring& rule)
         break;
       case APPENDALLINPUT:
         if(printingSteps) { wcerr << "appendallinput" << endl; }
-        theStack[stackIdx].c->contents = currentInput;
+        theStack[stackIdx].c->contents.swap(currentInput);
         break;
       case BLANK:
         if(printingSteps) { wcerr << "blank" << endl; }
@@ -862,12 +879,16 @@ RTXProcessor::applyRule(const wstring& rule)
       case DISTAG:
         if(printingSteps) { wcerr << "distag" << endl; }
       {
-        wstring s = popString();
+        if(theStack[stackIdx].mode != 2)
+        {
+          wcerr << L"Cannot DISTAG non-string." << endl;
+          exit(EXIT_FAILURE);
+        }
+        wstring& s = theStack[stackIdx].s;
         if(s.size() > 0 && s[0] == L'<' && s[s.size()-1] == L'>')
         {
           s = s.substr(1, s.size()-2);
         }
-        pushStack(s);
       }
         break;
       case GETRULE:
@@ -1061,6 +1082,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
         checkForReduce(result, cur);
         break;
       }
+      currentContinuation.push_back(&temp);
       vector<ParseNode*> res;
       vector<ParseNode*> res2;
       checkForReduce(res, cur);
@@ -1085,6 +1107,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
       {
         result.push_back(*it);
       }
+      currentContinuation.pop_back();
       break;
     }
     else
@@ -1093,9 +1116,43 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
       rule = node->getRule();
     }
   }
-  if(rule == -1 || node->shouldShift())
+  if(rule == -1)
   {
     result.push_back(node);
+  }
+  else
+  {
+    Chunk* next = NULL;
+    for(vector<vector<Chunk*>*>::reverse_iterator it = currentContinuation.rbegin(),
+          limit = currentContinuation.rend(); it != limit; it++)
+    {
+      for(vector<Chunk*>::reverse_iterator it2 = (*it)->rbegin(), limit2 = (*it)->rend();
+          it2 != limit2; it++)
+      {
+        if(!(*it2)->isBlank)
+        {
+          next = *it2;
+          break;
+        }
+      }
+      if(next != NULL) break;
+    }
+    if(next == NULL)
+    {
+      for(list<Chunk*>::iterator it = inputBuffer.begin(), limit = inputBuffer.end();
+          it != limit; it++)
+      {
+        if(!(*it)->isBlank)
+        {
+          next = *it;
+          break;
+        }
+      }
+    }
+    if(next != NULL && node->shouldShift(next))
+    {
+      result.push_back(node);
+    }
   }
 }
 
@@ -1156,12 +1213,12 @@ RTXProcessor::outputAll(FILE* out)
 bool
 RTXProcessor::filterParseGraph()
 {
-  bool shouldOutput = !furtherInput;
+  bool shouldOutput = !furtherInput && inputBuffer.size() == 1;
   int state[parseGraph.size()];
   const int N = parseGraph.size();
   memset(state, 1, N*sizeof(int));
   int count = N;
-  if(furtherInput)
+  if(furtherInput || inputBuffer.size() > 1)
   {
     for(int i = 0; i < N; i++)
     {
@@ -1276,9 +1333,14 @@ RTXProcessor::filterParseGraph()
 void
 RTXProcessor::processGLR(FILE *in, FILE *out)
 {
-  Chunk* next = readToken(in);
+  while(furtherInput && inputBuffer.size() < 5)
+  {
+    inputBuffer.push_back(readToken(in));
+  }
   while(true)
   {
+    Chunk* next = inputBuffer.front();
+    inputBuffer.pop_front();
     if(parseGraph.size() == 0)
     {
       ParseNode* temp = parsePool.next();
@@ -1297,28 +1359,42 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       }
       parseGraph.swap(temp);
     }
-    next = readToken(in);
+    if(furtherInput) inputBuffer.push_back(readToken(in));
     if(filterParseGraph())
     {
       parseGraph[0]->getChunks(outputQueue, parseGraph[0]->length-1);
       parseGraph.clear();
       outputAll(out);
-      wstring s = next->source;
-      wstring t = next->target;
-      wstring r = next->coref;
-      bool b = next->isBlank;
+      vector<wstring> sources;
+      vector<wstring> targets;
+      vector<wstring> corefs;
+      vector<bool> blanks;
+      int N = inputBuffer.size();
+      for(int i = 0; i < N; i++)
+      {
+        Chunk* temp = inputBuffer.front();
+        sources.push_back(temp->source);
+        targets.push_back(temp->target);
+        corefs.push_back(temp->coref);
+        blanks.push_back(temp->isBlank);
+        inputBuffer.pop_front();
+      }
       chunkPool.reset();
       parsePool.reset();
-      next = chunkPool.next();
-      next->source = s;
-      next->target = t;
-      next->coref = r;
-      next->isBlank = b;
+      for(int i = 0; i < N; i++)
+      {
+        Chunk* c = chunkPool.next();
+        c->source = sources[i];
+        c->target = targets[i];
+        c->coref = corefs[i];
+        c->isBlank = blanks[i];
+        inputBuffer.push_back(c);
+      }
     }
-    if(!furtherInput)
+    if(!furtherInput && inputBuffer.size() == 1)
     {
-      // if stream is empty, next is definitely a blank
-      next->output(out);
+      // if stream is empty, the last token is definitely a blank
+      inputBuffer.front()->output(out);
       break;
     }
   }

@@ -32,6 +32,7 @@ private:
   set<int> final_symbols;
 
   map<int, int> seen_rules;
+  map<int, int> rules_to_states;
 
   Alphabet alphabet;
   Transducer transducer;
@@ -115,6 +116,7 @@ public:
   {
     alphabet.includeSymbol(L"<ANY_TAG>");
     alphabet.includeSymbol(L"<ANY_CHAR>");
+    alphabet.includeSymbol(L"<LOOK:AHEAD>");
     attr_items[L"lem"] = L"^(([^<]|\"\\<\")+)";
     attr_items[L"lemq"] = L"\\#[- _][^<]+";
     attr_items[L"lemh"] = L"^(([^<#]|\"\\<\"|\"\\#\")+)";
@@ -156,6 +158,7 @@ public:
     else if(rule != -1 && seen_rules.find(state) == seen_rules.end())
     {
       seen_rules[state] = rule;
+      rules_to_states[rule] = state;
       int symbol = countToFinalSymbol(rule);
       state = transducer.insertSingleTransduction(symbol, state, weight);
       transducer.setFinal(state);
@@ -206,6 +209,25 @@ public:
   void addVar(wstring name, wstring val)
   {
     variables[name] = val;
+  }
+  void addLookahead(const int rule, const vector<PatternElement*>& options)
+  {
+    // there's a lot of hardcodishness about this function
+    if(options.size() == 0) return;
+    int state = rules_to_states[rule+1];
+    state = transducer.insertSingleTransduction(alphabet(L"<LOOK:AHEAD>"), state);
+    state = transducer.insertSingleTransduction(L'^', state);
+    transducer.linkStates(state, state, alphabet(L"<ANY_CHAR>"));
+    int end = transducer.insertSingleTransduction(alphabet(L"<" + options[0]->tags[0] + L">"), state);
+    transducer.linkStates(end, end, alphabet(L"<ANY_TAG>"));
+    end = transducer.insertSingleTransduction(L'$', end);
+    for(unsigned int i = 1; i < options.size(); i++)
+    {
+      int temp = transducer.insertSingleTransduction(alphabet(L"<" + options[i]->tags[0] + L">"), state);
+      transducer.linkStates(temp, temp, alphabet(L"<ANY_TAG>"));
+      transducer.linkStates(temp, end, L'$');
+    }
+    transducer.setFinal(end);
   }
   void write(FILE* output, int longest, vector<pair<int, wstring>> inputBytecode, vector<wstring> outputBytecode)
   {

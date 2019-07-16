@@ -57,6 +57,11 @@ private:
   Pool<Chunk> chunkPool;
   Pool<ParseNode> parsePool;
 
+  MatchExe2 *attrTransducer;
+  vector<wstring> attr_values;
+  map<wstring, int> attr_symbols;
+  int any_char;
+
   FILE *output;
 
   bool inword;
@@ -73,11 +78,12 @@ private:
   void destroy();
   void readData(FILE *input);
   void readRTXProcessor(string const &input);
+
   wstring caseOf(wstring const &str);
   wstring copycase(wstring const &source_word, wstring const &target_word);
-
   bool beginsWith(wstring const &str1, wstring const &str2) const;
   bool endsWith(wstring const &str1, wstring const &str2) const;
+  void clip(Chunk* ch, wstring const& part, const ClipType side);
   bool applyRule(const wstring& rule);
   Chunk* readToken(FILE *in);
   

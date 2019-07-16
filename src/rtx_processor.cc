@@ -65,6 +65,31 @@ RTXProcessor::readData(FILE *in)
     }
   }
 
+  int attr_count = Compression::multibyte_read(in);
+  attr_values.reserve(attr_count);
+  for(int i = 0; i < attr_count; i++)
+  {
+    attr_values.push_back(Compression::wstring_read(in));
+  }
+  Transducer attr;
+  attr.read(in, alphabet.size());
+  int attr_final_size = Compression::multibyte_read(in);
+  vector<int> attr_size = vector<int>(attr_final_size, 0);
+  map<int, int> attr_map;
+  for(int i = 0; i < attr_final_size; i++)
+  {
+    int key = Compression::multibyte_read(in);
+    attr_map[key] = Compression::multibyte_read(in);
+  }
+  attrTransducer = new MatchExe2(attr, &alphabet, attr_map, attr_size);
+  for(map<wstring, ApertiumRE, Ltstr>::iterator it = attr_items.begin();
+        it != attr_items.end(); it++)
+  {
+    int symbol = alphabet(L"<" + it->first + L">");
+    if(symbol) attr_symbols[it->first] = symbol;
+  }
+  any_char = alphabet(L"<ANY_CHAR>");
+
   // variables
   for(int i = 0, limit = Compression::multibyte_read(in); i != limit; i++)
   {
@@ -278,6 +303,65 @@ RTXProcessor::stackCopy(int src, int dest)
     default:
       wcerr << "Unknown StackElement mode " << theStack[src].mode;
       break;
+  }
+}
+
+inline void
+RTXProcessor::clip(Chunk* ch, const wstring& part, const ClipType side)
+{
+  map<wstring, int>::iterator it = attr_symbols.find(part);
+  if(it == attr_symbols.end())
+  {
+    pushStack(ch->chunkPart(attr_items[part], side));
+  }
+  else
+  {
+    unsigned int x = 0;
+    unsigned int lim;
+    wchar_t* arr;
+    if(side == TargetClip)
+    {
+      lim = ch->target.size();
+      arr = ch->target.data();
+    }
+    else if(side == SourceClip)
+    {
+      lim = ch->source.size();
+      arr = ch->source.data();
+    }
+    else
+    {
+      lim = ch->coref.size();
+      arr = ch->coref.data();
+    }
+    while(x < lim && arr[x] != L'<')
+    {
+      if(arr[x] == L'\\') x++;
+      x++;
+    }
+    int state[RTXStateSize];
+    int first = 0;
+    int last = 1;
+    state[0] = attrTransducer->getInitial();
+    attrTransducer->step(state, first, last, it->second);
+    bool found = false;
+    for(; x < lim; x++)
+    {
+      attrTransducer->step(state, first, last, arr[x], any_char);
+      int rule = attrTransducer->getRuleUnweighted(state, first, last);
+      if(rule != -1)
+      {
+        pushStack(attr_values[rule]);
+        found = true;
+        break;
+      }
+    }
+    if(!found)
+    {
+      stackIdx++;
+      theStack[stackIdx].mode = 2;
+      theStack[stackIdx].s = L"";
+    }
   }
 }
 
@@ -624,7 +708,8 @@ RTXProcessor::applyRule(const wstring& rule)
         int pos = 2*(popInt()-1);
         wstring part = popString();
         Chunk* ch = (pos == -2) ? parentChunk : currentInput[pos];
-        pushStack(ch->chunkPart(attr_items[part], SourceClip));
+        //pushStack(ch->chunkPart(attr_items[part], SourceClip));
+        clip(ch, part, SourceClip);
       }
         break;
       case TARGETCLIP:
@@ -661,7 +746,7 @@ RTXProcessor::applyRule(const wstring& rule)
         }
         else
         {
-          pushStack(ch->chunkPart(attr_items[part], TargetClip));
+          clip(ch, part, TargetClip);
           if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
         }
       }
@@ -672,7 +757,8 @@ RTXProcessor::applyRule(const wstring& rule)
         int pos = 2*(popInt()-1);
         wstring part = popString();
         Chunk* ch = (pos == -2) ? parentChunk : currentInput[pos];
-        pushStack(ch->chunkPart(attr_items[part], ReferenceClip));
+        //pushStack(ch->chunkPart(attr_items[part], ReferenceClip));
+        clip(ch, part, ReferenceClip);
       }
         break;
       case SETCLIP:

@@ -89,25 +89,6 @@ private:
       last = (last+1) % RTXStateSize;
     }
   }
-  void step(int* state, int& first, int& last, int const symbol)
-  {
-    int loclast = last;
-    for(int i = first; i != loclast; i = (i+1)%RTXStateSize)
-    {
-      applySymbol(state[i], symbol, state, last);
-    }
-    first = loclast;
-  }
-  void step(int* state, int& first, int& last, int const symbol, int const alt)
-  {
-    int loclast = last;
-    for(int i = first; i != loclast; i = (i+1)%RTXStateSize)
-    {
-      applySymbol(state[i], symbol, state, last);
-      applySymbol(state[i], alt, state, last);
-    }
-    first = loclast;
-  }
 
 public:
   MatchExe2(Transducer& t, Alphabet* a, map<int, int> const& rules, vector<int> pattern_size)
@@ -149,6 +130,25 @@ public:
   int getInitial()
   {
     return initial;
+  }
+  void step(int* state, int& first, int& last, int const symbol)
+  {
+    int loclast = last;
+    for(int i = first; i != loclast; i = (i+1)%RTXStateSize)
+    {
+      applySymbol(state[i], symbol, state, last);
+    }
+    first = loclast;
+  }
+  void step(int* state, int& first, int& last, int const symbol, int const alt)
+  {
+    int loclast = last;
+    for(int i = first; i != loclast; i = (i+1)%RTXStateSize)
+    {
+      applySymbol(state[i], symbol, state, last);
+      applySymbol(state[i], alt, state, last);
+    }
+    first = loclast;
   }
   void matchBlank(int* state, int& first, int& last)
   {
@@ -289,6 +289,17 @@ public:
       }
     }
     return rule;
+  }
+  int getRuleUnweighted(int* state, int first, int last)
+  {
+    for(int i = first; i != last; i = (i+1)%RTXStateSize)
+    {
+      if(nodes[state[i]].rule != -1)
+      {
+        return nodes[state[i]].rule;
+      }
+    }
+    return -1;
   }
   void resetRejected()
   {

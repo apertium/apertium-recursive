@@ -35,6 +35,9 @@ private:
 
   Alphabet alphabet;
   Transducer transducer;
+  Transducer attributes;
+  map<int, wstring> attr_vals;
+  set<wstring, Ltstr> all_attrs;
 
   int insertLemma(int const base, wstring const &lemma)
   {
@@ -181,6 +184,24 @@ public:
     }
     pat += L")";
     attr_items[name] = pat;
+
+    alphabet.includeSymbol(L"<" + name + L">");
+    int sym = alphabet(L"<" + name + L">");
+    int start = attributes.insertSingleTransduction(sym, attributes.getInitial());
+    attributes.linkStates(start, start, alphabet(L"<ANY_CHAR>"));
+    for(set<wstring, Ltstr>::iterator it = vals.begin(), limit = vals.end();
+            it != limit; it++)
+    {
+      int loc = start;
+      wstring s = L"<" + StringUtils::substitute(*it, L".", L"><") + L">";
+      for(unsigned int i = 0; i < s.size(); i++)
+      {
+        loc = attributes.insertSingleTransduction(s[i], loc);
+      }
+      attributes.setFinal(loc);
+      attr_vals[loc] = s;
+      all_attrs.insert(s);
+    }
   }
   void addVar(wstring name, wstring val)
   {
@@ -272,6 +293,25 @@ public:
       my_re.compile(UtfConverter::toUtf8(it->second));
       my_re.write(output);
       Compression::wstring_write(it->second, output);
+    }
+
+
+    map<wstring, int> attr_loc;
+    Compression::multibyte_write(all_attrs.size(), output);
+    int loc = 0;
+    for(set<wstring, Ltstr>::const_iterator it = all_attrs.begin(), limit = all_attrs.end();
+          it != limit; it++)
+    {
+      Compression::wstring_write(*it, output);
+      attr_loc[*it] = loc++;
+    }
+    attributes.write(output, alphabet.size());
+    Compression::multibyte_write(attr_vals.size(), output);
+    for(map<int, wstring>::const_iterator it = attr_vals.begin(), limit = attr_vals.end();
+        it != limit; it++)
+    {
+      Compression::multibyte_write(it->first, output);
+      Compression::multibyte_write(attr_loc[it->second], output);
     }
 
     // variables

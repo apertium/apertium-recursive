@@ -1243,6 +1243,7 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
       if(rule[i].first.size() > 2 &&
          rule[i].first[0] == L'[' && rule[i].first[1] == L']')
       {
+        cur += DISTAG;
         cur += compileString(rule[i].first.substr(2));
         cur += IN;
       }

@@ -33,9 +33,9 @@ Options for ```rtx-proc```:
  - ```-T``` print the parse tree rather than applying output rules
  - ```-b``` print both the parse tree and the output
  - ```-m``` set the mode of tree output, available modes are:
-  - ```nest``` (default) print the tree as text indented with tabs
-  - ```flat``` print the tree as text
-  - ```latex``` print the tree as tikz-qtree source
+   - ```nest``` (default) print the tree as text indented with tabs
+   - ```flat``` print the tree as text
+   - ```latex``` print the tree as tikz-qtree source
 
 Testing
 -------

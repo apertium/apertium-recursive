@@ -28,10 +28,14 @@ src/trx-comp bytecode-file xml-files...
 Options for ```rtx-proc```:
  - ```-r``` print which rules are applying
  - ```-s``` trace the execution of the bytecode interpreter
- - ```-m``` trace the pattern matcher (Note: this currently has no effect)
  - ```-n``` indicates that the input stream has only source and target sides and not anaphora coreferences
  - ```-t``` mimic the behavior of apertium-transfer and apertium-interchunk
- - ```-T``` print the syntax tree rather than applying output rules
+ - ```-T``` print the parse tree rather than applying output rules
+ - ```-b``` print both the parse tree and the output
+ - ```-m``` set the mode of tree output, available modes are:
+  - ```nest``` (default) print the tree as text indented with tabs
+  - ```flat``` print the tree as text
+  - ```latex``` print the tree as tikz-qtree source
 
 Testing
 -------

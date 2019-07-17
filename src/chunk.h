@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <apertium/apertium_re.h>
+#include <apertium/string_utils.h>
 
 enum ClipType
 {
@@ -16,8 +17,7 @@ enum TreeMode
 {
   TreeModeFlat,
   TreeModeNest,
-  TreeModeLatex,
-  TreeModeDot
+  TreeModeLatex
 };
 
 class Chunk
@@ -278,11 +278,15 @@ public:
       case TreeModeNest: writeTreePlain(out, 0); break;
       case TreeModeLatex:
         if(isBlank) return;
-        if(out == NULL) wcerr << "\\begin{tikzpicture}" << endl << "\\Tree ";
-        else fputs_unlocked("\\begin{tikzpicture}\n\\Tree ", out);
-        writeTreeLatex(out);
-        if(out == NULL) wcerr << endl << "\\end{tikzpicture}" << endl;
-        else fputs_unlocked("\n\\end{tikzpicture}\n", out);
+        else if(contents.size() == 0) writeTreeLatex(out);
+        else
+        {
+          if(out == NULL) wcerr << "\\begin{tikzpicture}" << endl << "\\Tree ";
+          else fputs_unlocked("\\begin{tikzpicture}\n\\Tree ", out);
+          writeTreeLatex(out);
+          if(out == NULL) wcerr << endl << "\\end{tikzpicture}" << endl;
+          else fputs_unlocked("\n\\end{tikzpicture}\n", out);
+        }
         break;
       default:
         wcerr << L"That tree mode has not yet been implemented." << endl;
@@ -359,11 +363,15 @@ public:
   void writeTreeLatex(FILE* out)
   {
     if(isBlank) return;
-    wstring base = L"{";
-    if(source.size() > 0) base += source + L"/";
+    wstring base;
+    if(source.size() > 0) base += source + L" \\\\\\\\ ";
     base += target;
-    if(coref.size() > 0) base += L"/" + coref;
-    base += L"}";
+    if(coref.size() > 0) base += L" \\\\ " + coref;
+    if(source.size() > 0 || coref.size() > 0)
+    {
+      base = L"{ \\begin{tabular} " + base + L" \\end{tabular} }";
+    }
+    base = StringUtils::substitute(base, L"_", L"\\_");
     if(contents.size() == 0)
     {
       if(out == NULL) wcerr << base;
@@ -377,17 +385,18 @@ public:
         wcerr << " ";
         contents[i]->writeTreeLatex(out);
       }
-      wcerr << "]";
+      wcerr << " ]";
     }
     else
     {
-      fputs_unlocked(UtfConverter::toUtf8(L"[." + base).c_str(), out);
+      fputs_unlocked("\\[.", out);
+      fputs_unlocked(UtfConverter::toUtf8(base).c_str(), out);
       for(unsigned int i = 0; i < contents.size(); i++)
       {
         fputc_unlocked(' ', out);
         contents[i]->writeTreeLatex(out);
       }
-      fputc_unlocked(']', out);
+      fputs_unlocked(" \\]", out);
     }
   }
 };

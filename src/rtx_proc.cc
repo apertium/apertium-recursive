@@ -5,23 +5,25 @@
 void endProgram(char *name)
 {
   cout << basename(name) << ": perform structural transfer" << endl;
-  cout << "USAGE: " << basename(name) << " [ -m | -r | -s ] [-n] bytecode_file [input_file [output_file]]" << endl;
+  cout << "USAGE: " << basename(name) << " [ -T | -b ] [ -m mode ] [-r] [-s] [-n] bytecode_file [input_file [output_file]]" << endl;
   cout << "Options:" << endl;
 #if HAVE_GETOPT_LONG
-  cout << "  -m, --matches:    print the steps of the pattern transducer" << endl;
+  cout << "  -b, --both:       print parse trees (as with -T) as well as text" << endl;
+  cout << "  -m, --mode:       set the mode of tree output, options are 'flat', 'nest', 'latex'" << endl;
   cout << "  -n, --no-coref:   treat stream as having no coreference LUs" << endl;
   cout << "  -r, --rules:      print the rules that are being applied" << endl;
   cout << "  -s, --steps:      print the instructions executed by the stack machine" << endl;
   cout << "  -t, --trx:        mimic the behavior of apertium-transfer and apertium-interchunk" << endl;
-  cout << "  -T, --tree:       print generated syntax trees rather than apply output rules" << endl;
+  cout << "  -T, --tree:       print parse trees rather than apply output rules" << endl;
   cout << "  -h, --help:       show this help" << endl;
 #else
-  cout << "  -m:   print the steps of the pattern transducer" << endl;
+  cout << "  -b:   print parse trees (as with -T) as well as text" << endl;
+  cout << "  -m:   set the mode of tree output, options are 'flat', 'nest', 'latex'" << endl;
   cout << "  -n:   treat stream as having no coreference LUs" << endl;
   cout << "  -r:   print the rules that are being applied" << endl;
   cout << "  -s:   print the instructions executed by the stack machine" << endl;
   cout << "  -t:   mimic the behavior of apertium-transfer and apertium-interchunk" << endl;
-  cout << "  -T:   print generated syntax trees rather than apply output rules" << endl;
+  cout << "  -T:   print parse trees rather than apply output rules" << endl;
   cout << "  -h:   show this help" << endl;
 #endif
   exit(EXIT_FAILURE);
@@ -34,7 +36,8 @@ int main(int argc, char *argv[])
 #if HAVE_GETOPT_LONG
   static struct option long_options[]=
     {
-      {"matches",           0, 0, 'm'},
+      {"both",              0, 0, 'b'},
+      {"mode",              1, 0, 'm'},
       {"no-coref",          0, 0, 'n'},
       {"rules",             0, 0, 'r'},
       {"steps",             0, 0, 's'},
@@ -48,9 +51,9 @@ int main(int argc, char *argv[])
   {
 #if HAVE_GETOPT_LONG
     int option_index;
-    int c = getopt_long(argc, argv, "mnrstTh", long_options, &option_index);
+    int c = getopt_long(argc, argv, "bm:nrstTh", long_options, &option_index);
 #else
-    int c = getopt(argc, argv, "mnrstTh");
+    int c = getopt(argc, argv, "bm:nrstTh");
 #endif
 
     if(c == -1)
@@ -60,8 +63,17 @@ int main(int argc, char *argv[])
 
     switch(c)
     {
+    case 'b':
+      p.printTrees(true);
+      p.printText(true);
+      break;
+
     case 'm':
-      p.printMatch(true);
+      if(!p.setOutputMode(optarg))
+      {
+        cout << "\"" << optarg << "\" is not a recognized tree mode. Valid options are \"flat\", \"nest\", and \"latex\"." << endl;
+        exit(EXIT_FAILURE);
+      }
       break;
 
     case 'n':
@@ -82,6 +94,7 @@ int main(int argc, char *argv[])
 
     case 'T':
       p.printTrees(true);
+      p.printText(false);
       break;
 
     case 'h':

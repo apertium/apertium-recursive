@@ -12,6 +12,14 @@ enum ClipType
   ReferenceClip
 };
 
+enum TreeMode
+{
+  TreeModeFlat,
+  TreeModeNest,
+  TreeModeLatex,
+  TreeModeDot
+};
+
 class Chunk
 {
 public:
@@ -262,53 +270,125 @@ public:
   {
     contents.push_back(kid);
   }
-  void writeTree()
+  void writeTree(TreeMode mode, FILE* out)
   {
-    if(!isBlank) wcerr << "^";
-    if(source.size() > 0)
+    switch(mode)
     {
-      wcerr << source << "/";
+      case TreeModeFlat: writeTreePlain(out, -1); break;
+      case TreeModeNest: writeTreePlain(out, 0); break;
+      case TreeModeLatex:
+        if(isBlank) return;
+        if(out == NULL) wcerr << "\\begin{tikzpicture}" << endl << "\\Tree ";
+        else fputs_unlocked("\\begin{tikzpicture}\n\\Tree ", out);
+        writeTreeLatex(out);
+        if(out == NULL) wcerr << endl << "\\end{tikzpicture}" << endl;
+        else fputs_unlocked("\n\\end{tikzpicture}\n", out);
+        break;
+      default:
+        wcerr << L"That tree mode has not yet been implemented." << endl;
     }
-    wcerr << target;
-    if(coref.size() > 0)
-    {
-      wcerr << "/" << coref;
-    }
-    if(contents.size() > 0)
-    {
-      wcerr << "{";
-      for(unsigned int i = 0; i < contents.size(); i++)
-      {
-        contents[i]->writeTree();
-      }
-      wcerr << "}";
-    }
-    if(!isBlank) wcerr << "$";
   }
-  void writeTree(FILE* out)
+  void writeTreePlain(FILE* out, int depth)
   {
-    if(!isBlank) fputc_unlocked('^', out);
+    if(depth >= 0 && isBlank) return;
+    wstring base;
+    for(int i = 0; i < depth; i++)
+    {
+      base += L'\t';
+    }
+    if(!isBlank) base += L"^";
     if(source.size() > 0)
     {
-      fputs_unlocked(UtfConverter::toUtf8(source).c_str(), out);
-      fputc_unlocked('/', out);
+      base += source + L"/";
     }
-    fputs_unlocked(UtfConverter::toUtf8(target).c_str(), out);
+    base += target;
     if(coref.size() > 0)
     {
-      fputc_unlocked('/', out);
-      fputs_unlocked(UtfConverter::toUtf8(coref).c_str(), out);
+      base += L"/" + coref;
+    }
+    if(out == NULL)
+    {
+      wcerr << base;
+    }
+    else
+    {
+      fputs_unlocked(UtfConverter::toUtf8(base).c_str(), out);
     }
     if(contents.size() > 0)
     {
-      fputc_unlocked('{', out);
+      if(out == NULL)
+      {
+        wcerr << "{";
+        if(depth != -1) wcerr << endl;
+      }
+      else
+      {
+        fputc_unlocked('{', out);
+        if(depth != -1) fputc_unlocked('\n', out);
+      }
+      int newdepth = (depth == -1) ? -1 : depth + 1;
       for(unsigned int i = 0; i < contents.size(); i++)
       {
-        contents[i]->writeTree(out);
+        contents[i]->writeTreePlain(out, newdepth);
       }
-      fputc_unlocked('}', out);
+      for(int i  = 0; i < depth; i++)
+      {
+        if(out == NULL) wcerr << "\t";
+        else fputc_unlocked('\t', out);
+      }
+      if(out == NULL)
+      {
+        wcerr << "}";
+      }
+      else
+      {
+        fputc_unlocked('}', out);
+      }
     }
-    if(!isBlank) fputc_unlocked('$', out);
+    if(!isBlank)
+    {
+      if(out == NULL) wcerr << "$";
+      else fputc_unlocked('$', out);
+    }
+    if(depth != -1)
+    {
+      if(out == NULL) wcerr << endl;
+      else fputc_unlocked('\n', out);
+    }
+  }
+  void writeTreeLatex(FILE* out)
+  {
+    if(isBlank) return;
+    wstring base = L"{";
+    if(source.size() > 0) base += source + L"/";
+    base += target;
+    if(coref.size() > 0) base += L"/" + coref;
+    base += L"}";
+    if(contents.size() == 0)
+    {
+      if(out == NULL) wcerr << base;
+      else fputs_unlocked(UtfConverter::toUtf8(base).c_str(), out);
+    }
+    else if(out == NULL)
+    {
+      wcerr << "[." << base;
+      for(unsigned int i = 0; i < contents.size(); i++)
+      {
+        wcerr << " ";
+        contents[i]->writeTreeLatex(out);
+      }
+      wcerr << "]";
+    }
+    else
+    {
+      fputs_unlocked(UtfConverter::toUtf8(L"[." + base).c_str(), out);
+      for(unsigned int i = 0; i < contents.size(); i++)
+      {
+        fputc_unlocked(' ', out);
+        contents[i]->writeTreeLatex(out);
+      }
+      fputc_unlocked(']', out);
+    }
   }
 };
 

@@ -76,6 +76,8 @@ private:
   bool noCoref;
   bool isLinear;
   bool printingTrees;
+  bool printingText;
+  TreeMode treePrintMode;
 
   void destroy();
   void readData(FILE *input);
@@ -157,6 +159,11 @@ public:
   {
     printingTrees = val;
   }
+  void printText(bool val)
+  {
+    printingText = val;
+  }
+  bool setOutputMode(string mode);
 };
 
 #endif

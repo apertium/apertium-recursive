@@ -24,6 +24,8 @@ RTXProcessor::RTXProcessor()
   null_flush = false;
   internal_null_flush = false;
   printingTrees = false;
+  printingText = true;
+  treePrintMode = TreeModeNest;
 }
 
 RTXProcessor::~RTXProcessor()
@@ -1027,6 +1029,30 @@ RTXProcessor::setTrace(bool trace)
   this->trace = trace;
 }
 
+bool
+RTXProcessor::setOutputMode(string mode)
+{
+  if(mode == "flat")
+  {
+    treePrintMode = TreeModeFlat;
+    return true;
+  }
+  else if(mode == "nest")
+  {
+    treePrintMode = TreeModeNest;
+    return true;
+  }
+  else if(mode == "latex")
+  {
+    treePrintMode = TreeModeLatex;
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
 void
 RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
 {
@@ -1050,7 +1076,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
       wcerr << ": ";
       for(unsigned int i = 0; i < currentInput.size(); i++)
       {
-        currentInput[i]->writeTree();
+        currentInput[i]->writeTree(TreeModeFlat, NULL);
       }
       wcerr << endl;
     }
@@ -1159,20 +1185,23 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
 void
 RTXProcessor::outputAll(FILE* out)
 {
+  int queueSize = outputQueue.size() - 1;
   while(outputQueue.size() > 0)
   {
     Chunk* ch = outputQueue.front();
     outputQueue.pop_front();
-    if(printingTrees)
+    if(printingTrees && outputQueue.size() == queueSize)
     {
-      ch->writeTree(out);
-      continue;
+      if(printingText) fputc_unlocked('\n', out);
+      queueSize--;
+      ch->writeTree(treePrintMode, out);
+      if(!printingText) continue;
     }
     if(ch->rule == -1)
     {
       if(printingRules && !ch->isBlank) {
         wcerr << endl << "No rule specified: ";
-        ch->writeTree();
+        ch->writeTree(TreeModeFlat, NULL);
         wcerr << endl;
       }
       ch->output(out);
@@ -1196,7 +1225,7 @@ RTXProcessor::outputAll(FILE* out)
         wcerr << ": ";
         for(unsigned int i = 0; i < currentInput.size(); i++)
         {
-          currentInput[i]->writeTree();
+          currentInput[i]->writeTree(TreeModeFlat, NULL);
         }
         wcerr << endl;
       }
@@ -1476,7 +1505,7 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
         wcerr << ": ";
         for(unsigned int i = 0; i < currentInput.size(); i++)
         {
-          currentInput[i]->writeTree();
+          currentInput[i]->writeTree(TreeModeFlat, NULL);
         }
         wcerr << endl;
       }
@@ -1554,7 +1583,7 @@ RTXProcessor::processTRX(FILE *in, FILE *out)
             wcerr << " (" << outRuleNames[cur->rule] << ")";
           }
           wcerr << ": ";
-          cur->writeTree();
+          cur->writeTree(TreeModeFlat, NULL);
           wcerr << endl;
         }
         parentChunk = cur;

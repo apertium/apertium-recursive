@@ -282,7 +282,7 @@ public:
         if(isBlank) return;
         writeString(L"\\begin{forest}\nwhere n children=0{tier=word}{}\n", out);
         writeTreeLatex(out);
-        writeString(L"\n\\end{forest}\n", out);
+        writeString(L"\n\\end{forest}\n\n", out);
         break;
       case TreeModeDot:
         if(isBlank) return;
@@ -504,7 +504,20 @@ private:
         {
           vector<vector<wstring>> temp = contents[i]->writeTreeBox();
           tree.insert(tree.end(), temp.begin(), temp.end());
-          bounds.push_back(make_pair(tree.size() - temp.size(), tree.size() - 1));
+          if(temp.size() == 1)
+          {
+            bounds.push_back(make_pair(tree.size() -1, tree.size() - 1));
+            continue;
+          }
+          int first = -1, last = -1;
+          for(unsigned int j = tree.size() - temp.size(); j < tree.size(); j++)
+          {
+            if(first == -1 && tree[j][0][0] != L' ') first = j;
+            else if(first != -1 && last == -1 && tree[j][0][0] == L' ') last = j-1;
+          }
+          first = (first == -1) ? tree.size() - temp.size() : first;
+          last = (last == -1) ? tree.size() - 1 : last;
+          bounds.push_back(make_pair((unsigned int)first, (unsigned int)last));
         }
       }
       if(tree.size() == 1)
@@ -550,6 +563,7 @@ private:
           tree[i][0] = wstring(len - sz, L'─') + tree[i][0];
         }
         if(i < firstLine || i > lastLine) tree[i][0] = L' ' + tree[i][0];
+        else if(i == firstLine && i == lastLine) tree[i][0] = L'─' + tree[i][0];
         else if(i == firstLine) tree[i][0] = L'┌' + tree[i][0];
         else if(i > firstLine && i < lastLine)
         {

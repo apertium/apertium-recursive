@@ -265,10 +265,10 @@ public:
     matchChunk(local_state, local_first, local_last, chunk, false);
     return local_first != local_last;
   }
-  int getRule(int* state, int first, int last)
+  pair<int, double> getRule(int* state, int first, int last)
   {
     int rule = -1;
-    double weight;
+    double weight = 0.0;
     int len = 0;
     for(int i = first; i != last; i = (i+1)%RTXStateSize)
     {
@@ -300,7 +300,7 @@ public:
         weight = node.weight;
       }
     }
-    return rule;
+    return make_pair(rule, weight);
   }
   int getRuleUnweighted(int* state, int first, int last)
   {
@@ -437,7 +437,7 @@ public:
     if(n == 0) return this;
     return prev->popNodes(n-1);
   }
-  int getRule()
+  pair<int, double> getRule()
   {
     return mx->getRule(state, first, last);
   }

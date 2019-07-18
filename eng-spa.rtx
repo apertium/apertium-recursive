@@ -91,7 +91,7 @@ NP -> n.$number/sl.$gender/tl.$lem/sl {1} |
       NP cnjcoo %NP { 1 _1 2 _2 3 } |
       NP cm %NP { 1 _1 2 _2 3 } |
       adj n %n { 3 _2 de@pr _ 2 _1 1(gender=2.gender, number=2.number) } |
-      NP %NP { 2 _1 de@pr _ 1 } ;
+      10: NP %NP { 2 _1 de@pr _ 1 } ;
 
 DP -> %NP.$number/tl.$lem [$person=p3]
             {(if ((1.lem/tl incl should_have_det) or ($definite = def))

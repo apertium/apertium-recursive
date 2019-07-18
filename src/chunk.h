@@ -280,7 +280,8 @@ public:
       case TreeModeNest: writeTreePlain(out, 0); break;
       case TreeModeLatex:
         if(isBlank) return;
-        writeString(L"\\begin{forest}\nwhere n children=0{tier=word}{}\n", out);
+        writeString(L"\\begin{forest}\n%where n children=0{tier=word}{}\n", out);
+        writeString(L"% Uncomment the preceding line to make the LUs bottom-aligned.\n", out);
         writeTreeLatex(out);
         writeString(L"\n\\end{forest}\n\n", out);
         break;

@@ -1067,8 +1067,9 @@ void
 RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
 {
   mx->resetRejected();
-  int rule = node->getRule();
-  double weight = node->weight;
+  pair<int, double> rule_and_weight = node->getRule();
+  int rule = rule_and_weight.first;
+  double weight = node->weight + rule_and_weight.second;
   while(rule != -1)
   {
     int len = pat_size[rule-1];
@@ -1105,13 +1106,13 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
       {
         first = 0;
         cur = parsePool.next();
-        cur->init(mx, currentOutput[0], weight + ruleWeights[rule-1]);
+        cur->init(mx, currentOutput[0], weight);
       }
       else
       {
         first = back->lastWord+1;
         cur = parsePool.next();
-        cur->init(back, currentOutput[0], weight + ruleWeights[rule-1]);
+        cur->init(back, currentOutput[0], weight);
       }
       if(temp.size() == 0)
       {
@@ -1149,7 +1150,9 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
     else
     {
       mx->rejectRule(rule);
-      rule = node->getRule();
+      rule_and_weight = node->getRule();
+      rule = rule_and_weight.first;
+      weight = node->weight + rule_and_weight.second;
     }
   }
   if(rule == -1)
@@ -1281,7 +1284,7 @@ RTXProcessor::filterParseGraph()
   //wcerr << L"shouldOutput: " << shouldOutput << L" branch count: " << N << endl;
   for(int i = 0; i < N; i++)
   {
-    //wcerr << "examining node " << i << " ... ";
+    //wcerr << "examining node " << i << "(length: " << parseGraph[i]->length << ", weight: " << parseGraph[i]->weight << ") ... ";
     if(state[i] == 0) continue;
     if(min == -1)
     {
@@ -1346,6 +1349,7 @@ RTXProcessor::filterParseGraph()
       }
     }
   }
+  if(count == N) return shouldOutput;
   vector<ParseNode*> temp;
   temp.reserve(count);
   for(int i = 0; i < N; i++)
@@ -1354,13 +1358,13 @@ RTXProcessor::filterParseGraph()
     {
       temp.push_back(parseGraph[i]);
       //wcerr << L"keeping branch " << i << " first word: " << parseGraph[i]->firstWord << " ending with ";
-      //parseGraph[i]->chunk->writeTree();
+      //parseGraph[i]->chunk->writeTree(TreeModeFlat, NULL);
       //wcerr << endl;
     }
     /*else
     {
       wcerr << L"discarding branch " << i << " first word: " << parseGraph[i]->firstWord << " ending with ";
-      parseGraph[i]->chunk->writeTree();
+      parseGraph[i]->chunk->writeTree(TreeModeFlat, NULL);
       wcerr << endl;
     }*/
   }
@@ -1472,7 +1476,7 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
       {
         if(printingMatch) { wcerr << "  matching chunk " << (*it)->matchSurface() << endl; }
         mx->matchChunk(state, first, last, (*it)->matchSurface(), false);
-        int r = mx->getRule(state, first, last);
+        int r = mx->getRule(state, first, last).first;
         if(r != -1)
         {
           rule = r;

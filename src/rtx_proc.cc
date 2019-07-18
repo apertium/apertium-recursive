@@ -8,7 +8,7 @@ void endProgram(char *name)
   cout << "USAGE: " << basename(name) << " [ -T | -b ] [ -m mode ] [-r] [-s] [-n] bytecode_file [input_file [output_file]]" << endl;
   cout << "Options:" << endl;
 #if HAVE_GETOPT_LONG
-  cout << "  -b, --both:       print parse trees (as with -T) as well as text" << endl;
+  cout << "  -b, --both:       print text (use with -T)" << endl;
   cout << "  -m, --mode:       set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
   cout << "  -n, --no-coref:   treat stream as having no coreference LUs" << endl;
   cout << "  -r, --rules:      print the rules that are being applied" << endl;
@@ -17,7 +17,7 @@ void endProgram(char *name)
   cout << "  -T, --tree:       print parse trees rather than apply output rules" << endl;
   cout << "  -h, --help:       show this help" << endl;
 #else
-  cout << "  -b:   print parse trees (as with -T) as well as text" << endl;
+  cout << "  -b:   print text (use with -T)" << endl;
   cout << "  -m:   set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
   cout << "  -n:   treat stream as having no coreference LUs" << endl;
   cout << "  -r:   print the rules that are being applied" << endl;
@@ -47,6 +47,9 @@ int main(int argc, char *argv[])
     };
 #endif
 
+  bool haveB = false;
+  bool haveT = false;
+
   while(true)
   {
 #if HAVE_GETOPT_LONG
@@ -64,8 +67,7 @@ int main(int argc, char *argv[])
     switch(c)
     {
     case 'b':
-      p.printTrees(true);
-      p.printText(true);
+      haveB = true;
       break;
 
     case 'm':
@@ -93,8 +95,7 @@ int main(int argc, char *argv[])
       break;
 
     case 'T':
-      p.printTrees(true);
-      p.printText(false);
+      haveT = true;
       break;
 
     case 'h':
@@ -103,6 +104,9 @@ int main(int argc, char *argv[])
       break;
     }
   }
+
+  p.printTrees(haveT);
+  p.printText(haveB || (!haveT && !haveB));
 
   LtLocale::tryToSetLocale();
 

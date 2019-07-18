@@ -12,6 +12,7 @@ monthdate:: _;
 caldate:: _;
 date:: _;
 PP:: _;
+cnjcoo: _;
 CONJ:: _;
 age:: _;
 NP:: _.number.gender.person;
@@ -117,6 +118,8 @@ VP -> %vblex {%1(temps=$temps, person=$person, number=$number)} |
       %vbdo not@adv VP.inf
           {2 _2 %3(temps=$temps, person=$person, number=$number, gender=$gender)} |
       20: %vbser VP.pp
+          {1[ser_to_estar](temps=$temps, person=$person, number=$number) _1 2(number=$number, gender=$gender)} |
+      20: %vbser VP.ger
           {1[ser_to_estar](temps=$temps, person=$person, number=$number) _1 2(number=$number, gender=$gender)} |
       %vaux VP.inf
           {1(temps=$temps, person=$person, number=$number) _1 2(number=$number, gender=$gender)} |

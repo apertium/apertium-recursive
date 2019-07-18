@@ -280,13 +280,9 @@ public:
       case TreeModeNest: writeTreePlain(out, 0); break;
       case TreeModeLatex:
         if(isBlank) return;
-        else if(contents.size() == 0) writeTreeLatex(out);
-        else
-        {
-          writeString(L"\\begin{tikzpicture}\n\\Tree ", out);
-          writeTreeLatex(out);
-          writeString(L"\n\\end{tikzpicture}\n", out);
-        }
+        writeString(L"\\begin{forest}\n", out);
+        writeTreeLatex(out);
+        writeString(L"\n\\end{forest}\n", out);
         break;
       case TreeModeDot:
         if(isBlank) return;
@@ -299,7 +295,7 @@ public:
         if(isBlank) return;
         vector<vector<wstring>> tree = writeTreeBox();
         if(tree.size() == 0) return;
-        int tr = 4, sl = 12, st = 11, tl = 12, tt = 11, rl = 0, rt = 0;
+        unsigned int tr = 4, sl = 12, st = 11, tl = 12, tt = 11, rl = 0, rt = 0;
         for(unsigned int i = 0; i < tree.size(); i++)
         {
           if(tree[i][0].size() > tr) tr = tree[i][0].size();
@@ -312,7 +308,7 @@ public:
         }
         bool doCoref = (rl > 0 || rt > 0);
         if(doCoref && rl < 17) rl = 17;
-        if(doCoref && rt < 16) rl = 16;
+        if(doCoref && rt < 16) rt = 16;
         writeString(L"Tree" + wstring(tr-3, L' '), out);
         writeString(L"Source Lemma" + wstring(sl - 11, L' '), out);
         writeString(L"Source Tags" + wstring(st - 10, L' '), out);
@@ -321,7 +317,8 @@ public:
         if(doCoref)
         {
           writeString(L"Coreference Lemma" + wstring(rl - 16, L' '), out);
-          writeString(L"Coreference Tags" + wstring(rt - 16, L' '), out);
+          writeString(L"Coreference Tags", out);
+          if(rt > 16) writeString(wstring(rt - 16, L' '), out);
         }
         writeString(L"\n", out);
         writeString(wstring(tr, L'─') + L" ", out);
@@ -354,6 +351,25 @@ public:
     }
   }
 private:
+  static pair<wstring, wstring> chopString(wstring s)
+  {
+    wstring lem;
+    wstring tags;
+    for(unsigned int i = 0; i < s.size(); i++)
+    {
+      if(s[i] == L'<')
+      {
+        lem = s.substr(0, i);
+        tags = s.substr(i+1, s.size()-i-2);
+        break;
+      }
+    }
+    if(lem.size() == 0 && tags.size() == 0 && s.size() > 0)
+    {
+      lem = s;
+    }
+    return make_pair(lem, StringUtils::substitute(tags, L"><", L"."));
+  }
   static void writeString(wstring s, FILE* out)
   {
     if(out == NULL) wcerr << s;
@@ -398,26 +414,26 @@ private:
   void writeTreeLatex(FILE* out)
   {
     if(isBlank) return;
+    wstring nl = L" \\\\ ";
     wstring base;
-    if(source.size() > 0) base += source + L" \\\\\\\\ ";
-    base += target;
-    if(coref.size() > 0) base += L" \\\\ " + coref;
-    if(source.size() > 0 || coref.size() > 0)
+    pair<wstring, wstring> p;
+    if(source.size() > 0)
     {
-      base = L"{ \\begin{tabular} " + base + L" \\end{tabular} }";
+      p = chopString(source);
+      base += p.first + nl + p.second + nl;
     }
+    p = chopString(target);
+    base += p.first + nl + p.second;
+    if(coref.size() > 0)
+    {
+      p = chopString(coref);
+      base += nl + p.first + nl + p.second;
+    }
+    base = L"[{ \\begin{tabular}{c} " + base + L" \\end{tabular} } ";
     base = StringUtils::substitute(base, L"_", L"\\_");
-    if(contents.size() == 0) writeString(base, out);
-    else
-    {
-      writeString(L"\\[." + base, out);
-      for(unsigned int i = 0; i < contents.size(); i++)
-      {
-        writeString(L" ", out);
-        contents[i]->writeTreeLatex(out);
-      }
-      writeString(L" \\]", out);
-    }
+    writeString(base, out);
+    for(unsigned int i = 0; i < contents.size(); i++) contents[i]->writeTreeLatex(out);
+    writeString(L" ]", out);
   }
   wstring writeTreeDot(FILE* out)
   {
@@ -444,25 +460,6 @@ private:
     }
     return name;
   }
-  static pair<wstring, wstring> chopString(wstring s)
-  {
-    wstring lem;
-    wstring tags;
-    for(unsigned int i = 0; i < s.size(); i++)
-    {
-      if(s[i] == L'<')
-      {
-        lem = s.substr(0, i);
-        tags = s.substr(i+1, s.size()-i-2);
-        break;
-      }
-    }
-    if(lem.size() == 0 && tags.size() == 0 && s.size() > 0)
-    {
-      lem = s;
-    }
-    return make_pair(lem, StringUtils::substitute(tags, L"><", L"."));
-  }
   vector<vector<wstring>> writeTreeBox()
   {
     if(contents.size() == 0)
@@ -479,7 +476,7 @@ private:
     }
     else
     {
-      vector<pair<int, int>> bounds;
+      vector<pair<unsigned int, unsigned int>> bounds;
       vector<vector<wstring>> tree;
       for(unsigned int i = 0; i < contents.size(); i++)
       {
@@ -495,24 +492,24 @@ private:
         tree[0][0] = L"─" + tree[0][0];
         return tree;
       }
-      int center = tree.size() / 2;
+      unsigned int center = tree.size() / 2;
       unsigned int len = 0;
       for(unsigned int i = 0; i < tree.size(); i++)
       {
         if(tree[i][0].size() > len) len = tree[i][0].size();
       }
-      set<int> lines;
+      set<unsigned int> lines;
       for(unsigned int i = 0; i < bounds.size(); i++)
       {
         if(bounds[i].second < center) lines.insert(bounds[i].second);
         else if(bounds[i].first > center) lines.insert(bounds[i].first);
         else lines.insert(center);
       }
-      int firstLine = *lines.begin();
-      int lastLine = *lines.rbegin();
+      unsigned int firstLine = *lines.begin();
+      unsigned int lastLine = *lines.rbegin();
       for(unsigned int i = 0; i < tree.size(); i++)
       {
-        int sz = tree[i][0].size();
+        unsigned int sz = tree[i][0].size();
         if(lines.count(i) == 0)
         {
           tree[i][0] = wstring(len - sz, L' ') + tree[i][0];

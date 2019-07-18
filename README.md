@@ -35,7 +35,7 @@ Options for ```rtx-proc```:
  - ```-m``` set the mode of tree output, available modes are:
    - ```nest``` (default) print the tree as text indented with tabs
    - ```flat``` print the tree as text
-   - ```latex``` print the tree as tikz-qtree source
+   - ```latex``` print the tree as LaTeX source using the ```forest``` library
    - ```dot``` print the tree as a Dot graph
    - ```box``` print the tree using [box-drawing characters](https://en.wikipedia.org/wiki/Box-drawing_character)
 

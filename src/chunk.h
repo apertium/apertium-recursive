@@ -280,7 +280,7 @@ public:
       case TreeModeNest: writeTreePlain(out, 0); break;
       case TreeModeLatex:
         if(isBlank) return;
-        writeString(L"\\begin{forest}\n", out);
+        writeString(L"\\begin{forest}\nwhere n children=0{tier=word}{}\n", out);
         writeTreeLatex(out);
         writeString(L"\n\\end{forest}\n", out);
         break;
@@ -420,14 +420,34 @@ private:
     if(source.size() > 0)
     {
       p = chopString(source);
-      base += p.first + nl + p.second + nl;
+      base += L"\\textbf{" + p.first + L"}" + nl + L"\\texttt{" + p.second + L"}" + nl;
     }
     p = chopString(target);
-    base += p.first + nl + p.second;
+    if(contents.size() == 0)
+    {
+      base += L"\\textit{" + p.first + L"}" + nl + L"\\texttt{" + p.second + L"}";
+    }
+    else
+    {
+      unsigned int i = 0;
+      for(; i < p.second.size(); i++)
+      {
+        if(p.second[i] == L'.') break;
+      }
+      if(i < p.second.size())
+      {
+        base += p.second.substr(0, i) + nl + L"\\textit{" + p.first + L"}";
+        base += nl + L"\\texttt{" + p.second.substr(i+1) + L"}";
+      }
+      else
+      {
+        base += p.second + nl + L"\\textit{" + p.first + L"}";
+      }
+    }
     if(coref.size() > 0)
     {
       p = chopString(coref);
-      base += nl + p.first + nl + p.second;
+      base += nl + L"\\textit{" + p.first + L"}" + nl + L"\\texttt{" + p.second + L"}";
     }
     base = L"[{ \\begin{tabular}{c} " + base + L" \\end{tabular} } ";
     base = StringUtils::substitute(base, L"_", L"\\_");

@@ -37,7 +37,7 @@ Options for ```rtx-proc```:
    - ```flat``` print the tree as text
    - ```latex``` print the tree as tikz-qtree source
    - ```dot``` print the tree as a Dot graph
-   - ```box``` print the tree using (https://en.wikipedia.org/wiki/Box-drawing_character)[box-drawing characters]
+   - ```box``` print the tree using [https://en.wikipedia.org/wiki/Box-drawing_character](box-drawing characters)
 
 Testing
 -------

@@ -9,7 +9,7 @@ void endProgram(char *name)
   cout << "Options:" << endl;
 #if HAVE_GETOPT_LONG
   cout << "  -b, --both:       print parse trees (as with -T) as well as text" << endl;
-  cout << "  -m, --mode:       set the mode of tree output, options are 'flat', 'nest', 'latex'" << endl;
+  cout << "  -m, --mode:       set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
   cout << "  -n, --no-coref:   treat stream as having no coreference LUs" << endl;
   cout << "  -r, --rules:      print the rules that are being applied" << endl;
   cout << "  -s, --steps:      print the instructions executed by the stack machine" << endl;
@@ -18,7 +18,7 @@ void endProgram(char *name)
   cout << "  -h, --help:       show this help" << endl;
 #else
   cout << "  -b:   print parse trees (as with -T) as well as text" << endl;
-  cout << "  -m:   set the mode of tree output, options are 'flat', 'nest', 'latex'" << endl;
+  cout << "  -m:   set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
   cout << "  -n:   treat stream as having no coreference LUs" << endl;
   cout << "  -r:   print the rules that are being applied" << endl;
   cout << "  -s:   print the instructions executed by the stack machine" << endl;
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
     case 'm':
       if(!p.setOutputMode(optarg))
       {
-        cout << "\"" << optarg << "\" is not a recognized tree mode. Valid options are \"flat\", \"nest\", and \"latex\"." << endl;
+        cout << "\"" << optarg << "\" is not a recognized tree mode. Valid options are \"flat\", \"nest\", \"latex\", \"dot\", and \"box\"." << endl;
         exit(EXIT_FAILURE);
       }
       break;

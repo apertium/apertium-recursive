@@ -1047,6 +1047,16 @@ RTXProcessor::setOutputMode(string mode)
     treePrintMode = TreeModeLatex;
     return true;
   }
+  else if(mode == "dot")
+  {
+    treePrintMode = TreeModeDot;
+    return true;
+  }
+  else if(mode == "box")
+  {
+    treePrintMode = TreeModeBox;
+    return true;
+  }
   else
   {
     return false;

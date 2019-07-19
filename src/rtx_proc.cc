@@ -15,6 +15,7 @@ void endProgram(char *name)
   cout << "  -s, --steps:      print the instructions executed by the stack machine" << endl;
   cout << "  -t, --trx:        mimic the behavior of apertium-transfer and apertium-interchunk" << endl;
   cout << "  -T, --tree:       print parse trees rather than apply output rules" << endl;
+  cout << "  -z, --null-flush: flush output on \\0" << endl;
   cout << "  -h, --help:       show this help" << endl;
 #else
   cout << "  -b:   print text (use with -T)" << endl;
@@ -24,6 +25,7 @@ void endProgram(char *name)
   cout << "  -s:   print the instructions executed by the stack machine" << endl;
   cout << "  -t:   mimic the behavior of apertium-transfer and apertium-interchunk" << endl;
   cout << "  -T:   print parse trees rather than apply output rules" << endl;
+  cout << "  -z:   flush output on \\0" << endl;
   cout << "  -h:   show this help" << endl;
 #endif
   exit(EXIT_FAILURE);
@@ -43,6 +45,7 @@ int main(int argc, char *argv[])
       {"steps",             0, 0, 's'},
       {"trx",               0, 0, 't'},
       {"tree",              0, 0, 'T'},
+      {"null-flush",        0, 0, 'z'},
       {"help",              0, 0, 'h'}
     };
 #endif
@@ -54,9 +57,9 @@ int main(int argc, char *argv[])
   {
 #if HAVE_GETOPT_LONG
     int option_index;
-    int c = getopt_long(argc, argv, "bm:nrstTh", long_options, &option_index);
+    int c = getopt_long(argc, argv, "bm:nrstTzh", long_options, &option_index);
 #else
-    int c = getopt(argc, argv, "bm:nrstTh");
+    int c = getopt(argc, argv, "bm:nrstTzh");
 #endif
 
     if(c == -1)
@@ -96,6 +99,10 @@ int main(int argc, char *argv[])
 
     case 'T':
       haveT = true;
+      break;
+
+    case 'z':
+      p.setNullFlush(true);
       break;
 
     case 'h':

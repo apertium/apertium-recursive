@@ -25,7 +25,7 @@ RTXCompiler::RTXCompiler()
 }
 
 wstring const
-RTXCompiler::SPECIAL_CHARS = L"!@$%()={}[]|/:;<>,.~→";
+RTXCompiler::SPECIAL_CHARS = L"!@$%()={}[]|/:;<>,.→";
 
 void
 RTXCompiler::die(wstring message)
@@ -411,7 +411,7 @@ RTXCompiler::parseClip(int src = -2)
 {
   Clip* ret = new Clip;
   eatSpaces();
-  if(src != -2)
+  if(src != -2 && src != -3)
   {
     ret->src = src;
   }
@@ -436,7 +436,7 @@ RTXCompiler::parseClip(int src = -2)
   {
     die(L"Clip source is out of bounds (position " + to_wstring(ret->src) + L" requested, but rule has only " + to_wstring(currentRule->pattern.size()) + L" elements in its pattern).");
   }
-  ret->part = parseIdent();
+  ret->part = (src == -3) ? nextToken() : parseIdent();
   if(isNextToken(L'/'))
   {
     if(ret->src == 0)
@@ -464,93 +464,127 @@ RTXCompiler::parseClip(int src = -2)
   return ret;
 }
 
+wchar_t
+RTXCompiler::lookupOperator(wstring op)
+{
+  wstring key = StringUtils::tolower(op);
+  key = StringUtils::substitute(key, L"-", L"");
+  key = StringUtils::substitute(key, L"_", L"");
+  for(unsigned int i = 0; i < OPERATORS.size(); i++)
+  {
+    if(key == OPERATORS[i].first)
+    {
+      return OPERATORS[i].second;
+    }
+  }
+  return 0;
+}
+
 RTXCompiler::Cond*
 RTXCompiler::parseCond()
 {
-  Cond* ret = new Cond;
-  ret->op = 0;
+  // TODO: if anyone wants (1.lem = and) things will go wrong
+  // maybe something with (1.lem = "and") ?
   nextToken(L"(");
   eatSpaces();
-  if(isNextToken(L'~'))
+  vector<Cond*> parts;
+  while(!source.eof() && source.peek() != L')')
   {
-    Cond* left = new Cond;
-    left->op = NOT;
-    left->right = parseCond();
-    ret->left = left;
-  }
-  else if(!source.eof() && source.peek() == L'(')
-  {
-    ret->left = parseCond();
-  }
-  else
-  {
-    Cond* left = new Cond;
-    left->op = 0;
-    left->val = parseClip();
-    ret->left = left;
-  }
-  while(true)
-  {
-    bool isNotted = false;
-    wstring op = nextToken();
-    if(op == L")")
+    if(source.peek() == L'(')
     {
-      return ret->left;
+      parts.push_back(parseCond());
     }
     else
     {
-      if(op == L"not")
-      {
-        isNotted = true;
-        op = nextToken();
-      }
-      bool found = false;
-      wstring key = StringUtils::tolower(op);
-      key = StringUtils::substitute(key, L"-", L"");
-      key = StringUtils::substitute(key, L"_", L"");
-      for(unsigned int i = 0; i < OPERATORS.size(); i++)
-      {
-        if(key == OPERATORS[i].first)
-        {
-          ret->op = OPERATORS[i].second;
-          found = true;
-          break;
-        }
-      }
-      if(!found)
-      {
-        die(L"unknown operator '" + op + L"'");
-      }
+      Cond* p = new Cond;
+      p->op = 0;
+      p->val = parseClip(-3);
+      parts.push_back(p);
     }
     eatSpaces();
-    if(!source.eof() && source.peek() == L'(')
+  }
+  nextToken(L")");
+  if(parts.size() == 0) die(L"Empty conditional.");
+  vector<pair<bool, Cond*>> denot;
+  bool negated = false;
+  for(unsigned int i = 0; i < parts.size(); i++)
+  {
+    if(i != parts.size() - 1 && parts[i]->op == 0
+       && parts[i]->val->src == 0)
     {
-      ret->right = parseCond();
+      wchar_t op = lookupOperator(parts[i]->val->part);
+      if(op == NOT)
+      {
+        negated = !negated;
+        continue;
+      }
     }
-    else if(isNextToken(L'~'))
+    denot.push_back(make_pair(negated, parts[i]));
+    negated = false;
+  }
+  vector<pair<bool, Cond*>> destring;
+  for(unsigned int i = 0; i < denot.size(); i++)
+  {
+    if(i != 0 && i != denot.size() - 1 && denot[i].second->op == 0
+       && denot[i].second->val->src == 0)
     {
-      eatSpaces();
-      ret->right = new Cond;
-      ret->right->op = NOT;
-      ret->right->right = parseCond();
+      wchar_t op = lookupOperator(denot[i].second->val->part);
+      if(op != 0 && op != AND && op != OR && op != NOT)
+      {
+        if(destring.back().second->op == 0 && denot[i+1].second->op == 0)
+        {
+          if(destring.back().first || denot[i+1].first)
+          {
+            die(L"Cannot negate string (I can't parse 'not a = b', use 'not (a = b)' or 'a not = b' instead).");
+          }
+          denot[i].second->left = destring.back().second;
+          denot[i].second->right = denot[i+1].second;
+          destring.pop_back();
+          denot[i].second->op = op;
+          denot[i].second->val = NULL;
+          destring.push_back(denot[i]);
+          i++;
+          continue;
+        }
+      }
     }
-    else
-    {
-      ret->right = new Cond;
-      ret->right->op = 0;
-      ret->right->val = parseClip();
-    }
+    destring.push_back(denot[i]);
+  }
+  Cond* ret;
+  if(destring[0].first)
+  {
+    ret = new Cond;
+    ret->op = NOT;
+    ret->right = destring[0].second;
+  }
+  else ret = destring[0].second;
+  if(destring.size() % 2 == 0) die(L"ANDs, ORs, and conditions don't come out evenly.");
+  for(unsigned int i = 1; i < destring.size(); i += 2)
+  {
+    if(destring[i].second->op != 0) die(L"Expected operator, found condition.");
+    if(destring[i].second->val->src != 0) die(L"Expected operator, found clip.");
+    wchar_t op = lookupOperator(destring[i].second->val->part);
+    if(op == 0) die(L"Unknown operator '" + destring[i].second->val->part + L"'.");
     Cond* temp = ret;
-    if(isNotted)
-    {
-      ret = new Cond;
-      ret->op = NOT;
-      ret->right = temp;
-      temp = ret;
-    }
     ret = new Cond;
     ret->left = temp;
+    ret->op = op;
+    if(destring[i+1].first)
+    {
+      ret->right = new Cond;
+      ret->right->right = destring[i+1].second;
+      ret->op = NOT;
+    }
+    else ret->right = destring[i+1].second;
+    if(destring[i].first)
+    {
+      temp = ret;
+      ret = new Cond;
+      ret->right = temp;
+      ret->op = NOT;
+    }
   }
+  return ret;
 }
 
 void

@@ -306,12 +306,23 @@ private:
    */
   Cond* parseCond();
 
+  /**
+   * Convert a string to an operator
+   * @param op - the string from the rule
+   * @return bytecode for corresponding operation or L'\0' if not found
+   */
+  wchar_t lookupOperator(wstring op);
+
   const vector<pair<wstring, wchar_t>> OPERATORS = {
     make_pair(L"and", AND),
     make_pair(L"&", AND),
 
     make_pair(L"or", OR),
     make_pair(L"|", OR),
+
+    make_pair(L"not", NOT),
+    make_pair(L"~", NOT),
+    make_pair(L"⌐", NOT),
 
     make_pair(L"equal", EQUAL),
     make_pair(L"=", EQUAL),

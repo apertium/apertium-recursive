@@ -714,6 +714,7 @@ RTXProcessor::applyRule(const wstring& rule)
         Chunk* ch = (pos == -2) ? parentChunk : currentInput[pos];
         //pushStack(ch->chunkPart(attr_items[part], SourceClip));
         clip(ch, part, SourceClip);
+        if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
       }
         break;
       case TARGETCLIP:

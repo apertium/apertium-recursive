@@ -1,0 +1,553 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage[cm]{fullpage}
+\usepackage{forest}
+
+\title{Transfer Example}
+\author{Daniel Swanson}
+\date{July 19 2019}
+
+\begin{document}
+
+\maketitle
+
+\section{The Input}
+
+\begin{quote}
+    In a hole in the ground there lived a Hobbit.
+\end{quote}
+
+This reaches transfer as
+
+\begin{verbatim}
+^In<pr>/En<pr>$ ^a<det><ind><sg>/uno<det><ind><GD><sg>$ ^hole<n><sg>/agujero<n><m><sg>$
+^in<pr>/en<pr>$ ^the<det><def><sp>/el<det><def><GD><ND>$ ^ground<n><sg>/tierra<n><f><sg>$
+^there<adv>/allí<adv>$ ^live<vblex><past>/vivir<vblex><past>$ 
+^a<det><ind><sg>/uno<det><ind><GD><sg>$ ^Hobbit<n><sg>/Hobbit<n><m><sg>$
+^.<sent>/.<sent>$^.<sent>/.<sent>$
+\end{verbatim}
+
+\clearpage
+\section{The Rules}
+
+\begin{verbatim}
+gender = m f;
+number = (ND sg) sg pl ND;
+definite = def ind;
+tense = past pres ifi;
+person = (PD p3) p1 p2 p3 PD;
+
+tense > tense : past ifi;
+
+n: _.gender.number;
+det: _.definite.gender.number;
+pr: _;
+vblex: _.tense.person.number;
+adv: _;
+
+NP: _.gender.number;
+DP: _.gender.number;
+PP: _;
+VP: _.tense.person.number;
+
+NP -> %n { 1 } |
+      10: %n PP { 1 _1 2 } ;
+
+PP -> pr DP { 1 _1 2 } ;
+
+DP -> det %NP { 1(gender=2.gender, number=2.number) _1 2 } ;
+
+VP -> %vblex DP { 1(tense=$tense, person=$person, number=$number) _1 2 } |
+      adv %VP (if (1.lem/sl = there) 
+                  { %2 }
+               else
+                  { 1 _1 %2 } ) |
+      PP %VP { 1 _1 %2 } ;
+\end{verbatim}
+
+\clearpage
+\section{The Process}
+
+\subsection{Read Some Input}
+
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ]
+\end{forest}
+
+\subsection{Fork the Stack}
+
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ]
+\end{forest}
+
+\subsection{NP $\rightarrow$ n}
+
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ]]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ]
+\end{forest}
+
+\subsection{DP $\rightarrow$ det NP}
+
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ]
+\end{forest}
+
+\subsection{PP $\rightarrow$ pr DP}
+
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ]
+\end{forest}
+
+\subsection{Read Some Input}
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ]
+\end{forest}
+
+\subsection{NP $\rightarrow$ n}
+
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ]
+\end{forest}
+
+\subsection{DP $\rightarrow$ det NP}
+
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ]
+\end{forest}
+
+\subsection{PP $\rightarrow$ pr DP}
+
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+
+\subsection{NP $\rightarrow$ n PP}
+
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ]
+\end{forest}
+
+\subsection{DP $\rightarrow$ det NP}
+
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ] ]
+\end{forest}
+
+\subsection{PP $\rightarrow$ pr DP}
+
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ] ] ]
+\end{forest}
+
+\subsection{Read Some Input}
+
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ]
+\end{forest}
+
+\subsection{NP $\rightarrow$ n}
+
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ]
+\end{forest}
+
+
+\subsection{DP $\rightarrow$ det NP}
+
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ]
+\end{forest}
+
+
+\subsection{VP $\rightarrow$ vblex DP}
+
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+
+
+\subsection{VP $\rightarrow$ adv VP}
+
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ]
+\end{forest}
+
+\subsection{VP $\rightarrow$ PP VP}
+
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ] ] ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ] ]
+\end{forest}
+
+
+\subsection{VP $\rightarrow$ PP VP}
+
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} }
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ]
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ] ] ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ] ]
+\end{forest}
+
+
+\subsection{VP $\rightarrow$ PP VP}
+
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} }
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} }
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ]
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ] ] ]
+\end{forest}
+
+\noindent
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ] ] ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ] ]
+\end{forest}
+
+\subsection{Prune Branches}
+
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ] ] ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ] ]
+\end{forest}
+
+
+\end{document}

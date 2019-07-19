@@ -1,0 +1,32 @@
+gender = m f;
+number = (ND sg) sg pl ND;
+definite = def ind;
+tense = past pres ifi;
+person = (PD p3) p1 p2 p3 PD;
+
+tense > tense : past ifi;
+
+n: _.gender.number;
+det: _.definite.gender.number;
+pr: _;
+vblex: _.tense.person.number;
+adv: _;
+
+ NP: _.gender.number;
+ DP: _.gender.number;
+ PP: _;
+ VP: _.tense.person.number;
+ 
+ NP -> %n { 1 } |
+       10: %n PP { 1 _1 2 } ;
+ 
+ PP -> pr DP { 1 _1 2 } ;
+ 
+ DP -> det %NP { 1(gender=2.gender, number=2.number) _1 2 } ;
+ 
+ VP -> %vblex DP { 1(tense=$tense, person=$person, number=$number) _1 2 } |
+       adv %VP (if (1.lem/sl = there) 
+                   { %2 }
+                else
+                   { 1 _1 %2 } ) |
+       PP %VP { 1 _1 %2 } ;

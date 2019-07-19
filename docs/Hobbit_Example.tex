@@ -67,7 +67,7 @@ VP -> %vblex DP { 1(tense=$tense, person=$person, number=$number) _1 2 } |
 \end{verbatim}
 
 \clearpage
-\section{The Process}
+\section{The Parsing}
 
 \subsection{Read Some Input}
 
@@ -549,5 +549,123 @@ VP -> %vblex DP { 1(tense=$tense, person=$person, number=$number) _1 2 } |
 [{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ] ] ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ] ]
 \end{forest}
 
+\clearpage
+\section{The Output}
+\subsection{Output Step for VP $\rightarrow$ PP VP}
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{In} \\ \texttt{pr} \\ \textit{En} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{ifi.p3.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ]
+\end{forest}
+
+
+\subsection{Output Step for PP $\rightarrow$ pr DP}
+\begin{forest}
+[{ \begin{tabular}{c} \textit{En} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{ifi.p3.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ]
+\end{forest}
+
+\subsection{Output Step for DP $\rightarrow$ det NP}
+\begin{forest}
+[{ \begin{tabular}{c} \textit{uno} \\ \texttt{det.ind.m.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{hole} \\ \texttt{n.sg} \\ \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ][{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{ifi.p3.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ]
+\end{forest}
+
+\subsection{Output Step for NP $\rightarrow$ n PP}
+\begin{forest}
+[{ \begin{tabular}{c} \textit{agujero} \\ \texttt{n.m.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} PP \\ \textit{unknown} \end{tabular} } [{ \begin{tabular}{c} \textbf{in} \\ \texttt{pr} \\ \textit{en} \\ \texttt{pr} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{ifi.p3.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ]
+\end{forest}
+
+\subsection{Output Step for PP $\rightarrow$ pr DP}
+\begin{forest}
+[{ \begin{tabular}{c} \textit{en} \\ \texttt{pr} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{the} \\ \texttt{det.def.sp} \\ \textit{el} \\ \texttt{det.def.GD.ND} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{ifi.p3.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ]
+\end{forest}
+
+\subsection{Output Step for DP $\rightarrow$ det NP}
+\begin{forest}
+[{ \begin{tabular}{c} \textit{el} \\ \texttt{det.def.f.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{f.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{ground} \\ \texttt{n.sg} \\ \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ] ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{ifi.p3.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ]
+\end{forest}
+
+\subsection{Output Step for NP $\rightarrow$ n}
+\begin{forest}
+[{ \begin{tabular}{c} \textit{tierra} \\ \texttt{n.f.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{ifi.p3.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{there} \\ \texttt{adv} \\ \textit{allí} \\ \texttt{adv} \end{tabular} }  ][{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{past.PD.ND} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ] ]
+\end{forest}
+
+
+\subsection{Output Step for VP $\rightarrow$ adv VP}
+\begin{forest}
+[{ \begin{tabular}{c} VP \\ \textit{unknown} \\ \texttt{ifi.p3.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{live} \\ \texttt{vblex.past} \\ \textit{vivir} \\ \texttt{vblex.past} \end{tabular} }  ][{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ] ]
+\end{forest}
+
+
+\subsection{Output Step for VP $\rightarrow$ vblex DP}
+\begin{forest}
+[{ \begin{tabular}{c} \textit{vivir} \\ \texttt{vblex.ifi.p3.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} DP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{a} \\ \texttt{det.ind.sg} \\ \textit{uno} \\ \texttt{det.ind.GD.sg} \end{tabular} }  ][{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ] ]
+\end{forest}
+
+
+\subsection{Output Step for DP $\rightarrow$ det NP}
+\begin{forest}
+[{ \begin{tabular}{c} \textit{uno} \\ \texttt{det.ind.m.sg} \end{tabular} }  ]
+\end{forest}
+\begin{forest}
+[{ \begin{tabular}{c} NP \\ \textit{unknown} \\ \texttt{m.sg} \end{tabular} } [{ \begin{tabular}{c} \textbf{Hobbit} \\ \texttt{n.sg} \\ \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ] ]
+\end{forest}
+
+\subsection{Output Step for NP $\rightarrow$ n}
+\begin{forest}
+[{ \begin{tabular}{c} \textit{Hobbit} \\ \texttt{n.m.sg} \end{tabular} }  ]
+\end{forest}
+
+\section{The Result}
+
+The immediate result:
+
+\begin{verbatim}
+^En<pr>$ ^uno<det><ind><m><sg>$ ^agujero<n><m><sg>$ ^en<pr>$ ^el<det><def><f><sg>$ ^tierra<n><f><sg>$
+^vivir<vblex><ifi><p3><sg>$ ^uno<det><ind><m><sg>$ ^Hobbit<n><m><sg>$^.<sent>$^.<sent>$
+\end{verbatim}
+
+Final output:
+
+\begin{quote}
+    En un agujero en la tierra vivió un Hobbit.
+\end{quote}
 
 \end{document}
+

@@ -73,6 +73,7 @@ private:
   bool printingSteps;
   bool printingRules;
   bool printingMatch;
+  bool printingBranches;
   bool noCoref;
   bool isLinear;
   bool printingTrees;
@@ -146,6 +147,10 @@ public:
   void printMatch(bool val)
   {
     printingMatch = val;
+  }
+  void printFilter(bool val)
+  {
+    printingBranches = val;
   }
   void withoutCoref(bool val)
   {

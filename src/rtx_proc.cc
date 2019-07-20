@@ -9,6 +9,7 @@ void endProgram(char *name)
   cout << "Options:" << endl;
 #if HAVE_GETOPT_LONG
   cout << "  -b, --both:       print text (use with -T)" << endl;
+  cout << "  -f, --filter:     trace filterParseGraph()" << endl;
   cout << "  -m, --mode:       set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
   cout << "  -n, --no-coref:   treat stream as having no coreference LUs" << endl;
   cout << "  -r, --rules:      print the rules that are being applied" << endl;
@@ -19,6 +20,7 @@ void endProgram(char *name)
   cout << "  -h, --help:       show this help" << endl;
 #else
   cout << "  -b:   print text (use with -T)" << endl;
+  cout << "  -f:   trace filterParseGraph()" << endl;
   cout << "  -m:   set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
   cout << "  -n:   treat stream as having no coreference LUs" << endl;
   cout << "  -r:   print the rules that are being applied" << endl;
@@ -39,6 +41,7 @@ int main(int argc, char *argv[])
   static struct option long_options[]=
     {
       {"both",              0, 0, 'b'},
+      {"filter",            0, 0, 'f'},
       {"mode",              1, 0, 'm'},
       {"no-coref",          0, 0, 'n'},
       {"rules",             0, 0, 'r'},
@@ -57,9 +60,9 @@ int main(int argc, char *argv[])
   {
 #if HAVE_GETOPT_LONG
     int option_index;
-    int c = getopt_long(argc, argv, "bm:nrstTzh", long_options, &option_index);
+    int c = getopt_long(argc, argv, "bfm:nrstTzh", long_options, &option_index);
 #else
-    int c = getopt(argc, argv, "bm:nrstTzh");
+    int c = getopt(argc, argv, "bfm:nrstTzh");
 #endif
 
     if(c == -1)
@@ -71,6 +74,10 @@ int main(int argc, char *argv[])
     {
     case 'b':
       haveB = true;
+      break;
+
+    case 'f':
+      p.printFilter(true);
       break;
 
     case 'm':

@@ -42,6 +42,7 @@ private:
 
   int insertLemma(int const base, wstring const &lemma)
   {
+    wcerr << "insertLemma(" << lemma << L")" << endl;
     int retval = base;
     static int const any_char = alphabet(L"<ANY_CHAR>");
     if(lemma == L"")
@@ -78,6 +79,12 @@ private:
 
   int insertTags(int const base, const vector<wstring>& tags)
   {
+    wcerr << L"insertTags([";
+    for(unsigned int i = 0; i < tags.size(); i++)
+    {
+      wcerr << tags[i] << " ";
+    }
+    wcerr << L"])" << endl;
     int retval = base;
     static int const any_tag = alphabet(L"<ANY_TAG>");
     for(unsigned int i = 0; i < tags.size(); i++)

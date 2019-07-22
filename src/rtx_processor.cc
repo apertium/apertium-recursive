@@ -776,6 +776,7 @@ RTXProcessor::applyRule(const wstring& rule)
         if(pos >= 0)
         {
           currentInput[pos]->setChunkPart(attr_items[part], popString());
+          if(printingSteps) { wcerr << " -> " << currentInput[pos]->target << endl; }
         }
         else
         {
@@ -808,7 +809,7 @@ RTXProcessor::applyRule(const wstring& rule)
           exit(EXIT_FAILURE);
         }
         stackIdx--;
-        theStack[stackIdx].s.insert(0, theStack[stackIdx+1].s);
+        theStack[stackIdx].s.append(theStack[stackIdx+1].s);
       }
         break;
       case CHUNK:
@@ -830,7 +831,7 @@ RTXProcessor::applyRule(const wstring& rule)
       case APPENDSURFACE:
         if(printingSteps) { wcerr << "appendsurface" << endl; }
       {
-        if(theStack[stackIdx].mode != 2)
+        if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
           wcerr << L"Cannot append non-string to chunk surface." << endl;
           exit(EXIT_FAILURE);
@@ -841,7 +842,14 @@ RTXProcessor::applyRule(const wstring& rule)
           wcerr << L"Cannot APPENDSURFACE to non-chunk." << endl;
           exit(EXIT_FAILURE);
         }
-        theStack[stackIdx].c->target += theStack[stackIdx+1].s;
+        if(theStack[stackIdx+1].mode == 2)
+        {
+          theStack[stackIdx].c->target += theStack[stackIdx+1].s;
+        }
+        else
+        {
+          theStack[stackIdx].c->target += theStack[stackIdx+1].c->target;
+        }
         if(printingSteps) { wcerr << " -> " << theStack[stackIdx+1].s << endl; }
       }
         break;
@@ -1208,7 +1216,6 @@ RTXProcessor::outputAll(FILE* out)
     outputQueue.pop_front();
     if(printingTrees && outputQueue.size() == queueSize)
     {
-      wcerr.flush();
       if(printingText) fputc_unlocked('\n', out);
       queueSize--;
       ch->writeTree(treePrintMode, out);
@@ -1218,13 +1225,12 @@ RTXProcessor::outputAll(FILE* out)
     if(ch->rule == -1)
     {
       if(printingRules && !ch->isBlank) {
+        fflush(out);
         wcerr << endl << "No rule specified: ";
         ch->writeTree(TreeModeFlat, NULL);
         wcerr << endl;
       }
-      wcerr.flush();
       ch->output(out);
-      fflush(out);
     }
     else
     {
@@ -1237,6 +1243,7 @@ RTXProcessor::outputAll(FILE* out)
       }
       currentOutput.clear();
       if(printingRules) {
+        fflush(out);
         wcerr << endl << "Applying output rule " << ch->rule;
         if(ch->rule < outRuleNames.size())
         {
@@ -1249,6 +1256,7 @@ RTXProcessor::outputAll(FILE* out)
         }
         wcerr << endl;
       }
+      fflush(out);
       applyRule(output_rules[ch->rule]);
       for(vector<Chunk*>::reverse_iterator it = currentOutput.rbegin(),
               limit = currentOutput.rend(); it != limit; it++)

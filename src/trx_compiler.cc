@@ -564,6 +564,29 @@ TRXCompiler::processRules(xmlNode* node)
         }
         act = true;
         wstring action;
+        if(inOutput)
+        {
+          action += STRING;
+          action += (wchar_t)3;
+          action += L"lem";
+          action += INT;
+          action += (wchar_t)1;
+          action += TARGETCLIP;
+          action += STRING;
+          action += (wchar_t)3;
+          action += L"lem";
+          action += INT;
+          action += (wchar_t)0;
+          action += TARGETCLIP;
+          action += GETCASE;
+          action += SETCASE;
+          action += STRING;
+          action += (wchar_t)3;
+          action += L"lem";
+          action += INT;
+          action += (wchar_t)1;
+          action += SETCLIP;
+        }
         for(xmlNode* state = part->children; state != NULL; state = state->next)
         {
           if(state->type != XML_ELEMENT_NODE) continue;
@@ -687,7 +710,7 @@ TRXCompiler::processStatement(xmlNode* node)
       ret += INT;
       ret += (wchar_t)getPos(var);
       ret += SETCLIP;
-      if(part == L"lem" || part == L"lemh" || part == L"lemq")
+      if(!inOutput && (part == L"lem" || part == L"lemh" || part == L"lemq"))
       {
         ret += INT;
         ret += (wchar_t)(outputRules.size()-1);
@@ -1169,7 +1192,7 @@ TRXCompiler::processValue(xmlNode* node)
         else
         {
           ret += APPENDSURFACE;
-          if(prt == L"lem" || prt == L"lemh")
+          if(!inOutput && (prt == L"lem" || prt == L"lemh"))
           {
             ret += INT;
             ret += (wchar_t)getPos(part);

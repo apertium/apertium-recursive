@@ -630,6 +630,10 @@ RTXCompiler::parsePatternElement(Rule* rule)
       }
       rule->vars[cl->part] = cl;
     }
+    else if(cur == L"[")
+    {
+      pat.push_back(L"[" + parseIdent() + nextToken(L"]"));
+    }
     else
     {
       pat.push_back(cur);
@@ -1103,19 +1107,48 @@ RTXCompiler::makePattern(int ruleid)
   vector<vector<PatternElement*>> pat;
   for(unsigned int i = 0; i < rule->pattern.size(); i++)
   {
-    vector<wstring> tags;
+    vector<vector<wstring>> tags;
+    tags.push_back(vector<wstring>());
     for(unsigned int j = 1; j < rule->pattern[i].size(); j++)
     {
-      tags.push_back(rule->pattern[i][j]);
+      wstring tg = rule->pattern[i][j];
+      if(rule->pattern[i][j][0] == L'[')
+      {
+        tg = tg.substr(1, tg.size()-2);
+        vector<vector<wstring>> tmp;
+        for(auto tls : tags)
+        {
+          for(auto t : collections[tg])
+          {
+            vector<wstring> tmp2;
+            tmp2.assign(tls.begin(), tls.end());
+            tmp2.push_back(t);
+            tmp.push_back(tmp2);
+          }
+        }
+        tags.swap(tmp);
+      }
+      else
+      {
+        for(unsigned int t = 0; t < tags.size(); t++)
+        {
+          tags[t].push_back(tg);
+        }
+      }
     }
-    tags.push_back(L"*");
+    for(unsigned int t = 0; t < tags.size(); t++) tags[t].push_back(L"*");
     wstring lem = rule->pattern[i][0];
     if(lem.size() == 0 || lem[0] != L'$')
     {
-      PatternElement* p = new PatternElement;
-      p->lemma = lem;
-      p->tags = tags;
-      pat.push_back(vector<PatternElement*>(1, p));
+      vector<PatternElement*> pel;
+      for(auto tls : tags)
+      {
+        PatternElement* p = new PatternElement;
+        p->lemma = lem;
+        p->tags = tls;
+        pel.push_back(p);
+      }
+      pat.push_back(pel);
     }
     else
     {
@@ -1123,10 +1156,13 @@ RTXCompiler::makePattern(int ruleid)
       vector<PatternElement*> el;
       for(unsigned int j = 0; j < lems.size(); j++)
       {
-        PatternElement* p = new PatternElement;
-        p->lemma = lems[j];
-        p->tags = tags;
-        el.push_back(p);
+        for(auto tls : tags)
+        {
+          PatternElement* p = new PatternElement;
+          p->lemma = lems[j];
+          p->tags = tls;
+          el.push_back(p);
+        }
       }
       pat.push_back(el);
     }

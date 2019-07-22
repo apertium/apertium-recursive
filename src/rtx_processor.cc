@@ -1249,7 +1249,7 @@ RTXProcessor::outputAll(FILE* out)
         {
           wcerr << " (" << outRuleNames[ch->rule] << ")";
         }
-        wcerr << ": ";
+        wcerr << ": " << parentChunk->target << " -> ";
         for(unsigned int i = 0; i < currentInput.size(); i++)
         {
           currentInput[i]->writeTree(TreeModeFlat, NULL);

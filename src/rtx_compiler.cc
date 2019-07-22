@@ -1704,17 +1704,74 @@ RTXCompiler::processCond(Cond* cond)
     ret += PUSHTRUE;
     return ret;
   }
-  if(cond->op == AND && (cond->left->op == 0 || cond->right->op == 0))
+  if(cond->op == AND)
   {
-    die(L"Cannot evaluate AND with string as operand (try adding parentheses).");
+    if(cond->left->op == 0 || cond->right->op == 0)
+    {
+      die(L"Cannot evaluate AND with string as operand (try adding parentheses).");
+    }
   }
-  if(cond->op == OR && (cond->left->op == 0 || cond->right->op == 0))
+  else if(cond->op == OR)
   {
-    die(L"Cannot evaluate OR with string as operand (try adding parentheses).");
+    if(cond->left->op == 0 || cond->right->op == 0)
+    {
+      die(L"Cannot evaluate OR with string as operand (try adding parentheses).");
+    }
   }
-  if(cond->op == NOT && cond->right->op == 0)
+  else if(cond->op == NOT)
   {
-    die(L"Attempt to negate string value.");
+    if(cond->right->op == 0)
+    {
+      die(L"Attempt to negate string value.");
+    }
+  }
+  else if(cond->op != 0 && (cond->left->op != 0 || cond->right->op != 0))
+  {
+    die(L"String operator cannot take condition as operand.");
+  }
+  else if(cond->op == EQUAL)
+  {
+    wstring lit;
+    wstring attr;
+    wstring rew;
+    Clip* l = cond->left->val;
+    if(l->src == 0) lit = l->part;
+    else
+    {
+      attr = l->part;
+      if(l->rewrite.size() > 0) rew = l->rewrite;
+    }
+    Clip* r = cond->right->val;
+    if(r->src == 0) lit = r->part;
+    else
+    {
+      attr = r->part;
+      if(r->rewrite.size() > 0) rew = r->rewrite;
+    }
+    if(lit.size() > 0 && attr.size() > 0 && collections.find(attr) != collections.end())
+    {
+      bool found = false;
+      for(auto tag : collections[attr])
+      {
+        if(tag == lit)
+        {
+          found = true;
+          break;
+        }
+      }
+      if(rew.size() > 0 && !found)
+      {
+        for(auto tag : collections[rew])
+        {
+          if(tag == lit)
+          {
+            found = true;
+            break;
+          }
+        }
+      }
+      if(!found) die(L"'" + lit + L"' is not an element of list '" + attr + L"', so this check will always fail.");
+    }
   }
   if(cond->op == 0)
   {

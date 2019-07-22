@@ -632,7 +632,8 @@ RTXCompiler::parsePatternElement(Rule* rule)
     }
     else if(cur == L"[")
     {
-      pat.push_back(L"[" + parseIdent() + nextToken(L"]"));
+      pat.push_back(L"[" + parseIdent() + L"]");
+      nextToken(L"]");
     }
     else
     {

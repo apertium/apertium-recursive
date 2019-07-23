@@ -283,7 +283,7 @@ public:
         writeString(L"\\begin{forest}\n%where n children=0{tier=word}{}\n", out);
         writeString(L"% Uncomment the preceding line to make the LUs bottom-aligned.\n", out);
         writeTreeLatex(out);
-        writeString(L"\n\\end{forest}\n\n", out);
+        writeString(L"\n\\end{forest}\n", out);
         break;
       case TreeModeDot:
         if(isBlank) return;

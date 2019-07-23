@@ -1748,7 +1748,8 @@ RTXCompiler::processCond(Cond* cond)
       attr = r->part;
       if(r->rewrite.size() > 0) rew = r->rewrite;
     }
-    if(lit.size() > 0 && attr.size() > 0 && collections.find(attr) != collections.end())
+    if(lit.size() > 0 && attr.size() > 0 && rew.size() == 0
+        && collections.find(attr) != collections.end())
     {
       bool found = false;
       for(auto tag : collections[attr])
@@ -1757,17 +1758,6 @@ RTXCompiler::processCond(Cond* cond)
         {
           found = true;
           break;
-        }
-      }
-      if(rew.size() > 0 && !found)
-      {
-        for(auto tag : collections[rew])
-        {
-          if(tag == lit)
-          {
-            found = true;
-            break;
-          }
         }
       }
       if(!found) die(L"'" + lit + L"' is not an element of list '" + attr + L"', so this check will always fail.");

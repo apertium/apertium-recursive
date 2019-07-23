@@ -5,13 +5,14 @@
 void endProgram(char *name)
 {
   cout << basename(name) << ": perform structural transfer" << endl;
-  cout << "USAGE: " << basename(name) << " [ -T | -b ] [ -m mode ] [-r] [-s] [-n] bytecode_file [input_file [output_file]]" << endl;
+  cout << "USAGE: " << basename(name) << " [-a] [-t] [-z] [ -T | -b ] [ -m mode ] [ -e | -f | -r | -s ] bytecode_file [input_file [output_file]]" << endl;
   cout << "Options:" << endl;
 #if HAVE_GETOPT_LONG
+  cout << "  -a, --anaphora:   expect coreference LUs from apertium-anaphora" << endl;
   cout << "  -b, --both:       print text (use with -T)" << endl;
+  cout << "  -e, --everything: print a complete trace of execution" << endl;
   cout << "  -f, --filter:     trace filterParseGraph()" << endl;
   cout << "  -m, --mode:       set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
-  cout << "  -n, --no-coref:   treat stream as having no coreference LUs" << endl;
   cout << "  -r, --rules:      print the rules that are being applied" << endl;
   cout << "  -s, --steps:      print the instructions executed by the stack machine" << endl;
   cout << "  -t, --trx:        mimic the behavior of apertium-transfer and apertium-interchunk" << endl;
@@ -19,10 +20,11 @@ void endProgram(char *name)
   cout << "  -z, --null-flush: flush output on \\0" << endl;
   cout << "  -h, --help:       show this help" << endl;
 #else
+  cout << "  -a:   expect coreference LUs from apertium-anaphora" << endl;
   cout << "  -b:   print text (use with -T)" << endl;
+  cout << "  -e:   print a complete trace of execution" << endl;
   cout << "  -f:   trace filterParseGraph()" << endl;
   cout << "  -m:   set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
-  cout << "  -n:   treat stream as having no coreference LUs" << endl;
   cout << "  -r:   print the rules that are being applied" << endl;
   cout << "  -s:   print the instructions executed by the stack machine" << endl;
   cout << "  -t:   mimic the behavior of apertium-transfer and apertium-interchunk" << endl;
@@ -40,10 +42,11 @@ int main(int argc, char *argv[])
 #if HAVE_GETOPT_LONG
   static struct option long_options[]=
     {
+      {"anaphora",          0, 0, 'a'},
       {"both",              0, 0, 'b'},
+      {"everything",        0, 0, 'e'},
       {"filter",            0, 0, 'f'},
       {"mode",              1, 0, 'm'},
-      {"no-coref",          0, 0, 'n'},
       {"rules",             0, 0, 'r'},
       {"steps",             0, 0, 's'},
       {"trx",               0, 0, 't'},
@@ -55,14 +58,15 @@ int main(int argc, char *argv[])
 
   bool haveB = false;
   bool haveT = false;
+  p.withoutCoref(true);
 
   while(true)
   {
 #if HAVE_GETOPT_LONG
     int option_index;
-    int c = getopt_long(argc, argv, "bfm:nrstTzh", long_options, &option_index);
+    int c = getopt_long(argc, argv, "abefm:rstTzh", long_options, &option_index);
 #else
-    int c = getopt(argc, argv, "bfm:nrstTzh");
+    int c = getopt(argc, argv, "abefm:rstTzh");
 #endif
 
     if(c == -1)
@@ -72,8 +76,16 @@ int main(int argc, char *argv[])
 
     switch(c)
     {
+    case 'a':
+      p.withoutCoref(false);
+      break;
+
     case 'b':
       haveB = true;
+      break;
+
+    case 'e':
+      p.completeTrace(true);
       break;
 
     case 'f':
@@ -86,10 +98,6 @@ int main(int argc, char *argv[])
         cout << "\"" << optarg << "\" is not a recognized tree mode. Valid options are \"flat\", \"nest\", \"latex\", \"dot\", and \"box\"." << endl;
         exit(EXIT_FAILURE);
       }
-      break;
-
-    case 'n':
-      p.withoutCoref(true);
       break;
 
     case 'r':

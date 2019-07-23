@@ -20,13 +20,15 @@ RTXProcessor::RTXProcessor()
   printingRules = false;
   printingMatch = false;
   printingBranches = false;
-  noCoref = false;
+  printingAll = false;
+  noCoref = true;
   isLinear = false;
   null_flush = false;
   internal_null_flush = false;
   printingTrees = false;
   printingText = true;
   treePrintMode = TreeModeNest;
+  newBranchId = 0;
 }
 
 RTXProcessor::~RTXProcessor()
@@ -1076,6 +1078,7 @@ RTXProcessor::setOutputMode(string mode)
 void
 RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
 {
+  if(printingAll) wcerr << "Checking for reductions for branch " << node->id << endl;
   mx->resetRejected();
   pair<int, double> rule_and_weight = node->getRule();
   int rule = rule_and_weight.first;
@@ -1088,21 +1091,30 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
     currentInput.resize(len);
     node->getChunks(currentInput, len-1);
     currentOutput.clear();
-    if(printingRules) {
-      wcerr << endl << "Applying rule " << rule;
+    if(printingRules || printingAll) {
+      if(printingAll && treePrintMode == TreeModeLatex) wcerr << "\\subsection{";
+      else wcerr << endl;
+      wcerr << "Applying rule " << rule;
       if(rule <= inRuleNames.size())
       {
         wcerr << " (" << inRuleNames[rule-1] << ")";
       }
-      wcerr << ": ";
+      if(printingAll) wcerr << " to branch " << node->id;
+      if(printingAll && treePrintMode == TreeModeLatex) wcerr << "}" << endl << endl;
+      else wcerr << ": ";
       for(unsigned int i = 0; i < currentInput.size(); i++)
       {
-        currentInput[i]->writeTree(TreeModeFlat, NULL);
+        currentInput[i]->writeTree((printingAll ? treePrintMode : TreeModeFlat), NULL);
       }
       wcerr << endl;
     }
     if(applyRule(rule_map[rule-1]))
     {
+      if(printingAll)
+      {
+        for(auto c : currentOutput) c->writeTree(treePrintMode, NULL);
+        wcerr << endl;
+      }
       vector<Chunk*> temp;
       temp.reserve(currentOutput.size());
       while(currentOutput.size() > 1)
@@ -1111,19 +1123,18 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
         currentOutput.pop_back();
       }
       ParseNode* back = node->popNodes(len);
-      ParseNode* cur;
+      ParseNode* cur = parsePool.next();
       if(back == NULL)
       {
         first = 0;
-        cur = parsePool.next();
         cur->init(mx, currentOutput[0], weight);
       }
       else
       {
         first = back->lastWord+1;
-        cur = parsePool.next();
         cur->init(back, currentOutput[0], weight);
       }
+      cur->id = node->id;
       if(temp.size() == 0)
       {
         checkForReduce(result, cur);
@@ -1160,6 +1171,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
     else
     {
       if(printingRules) { wcerr << " -> rule was rejected" << endl; }
+      if(printingAll) wcerr << "This rule was rejeced." << endl << endl;
       mx->rejectRule(rule);
       rule_and_weight = node->getRule();
       rule = rule_and_weight.first;
@@ -1168,6 +1180,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
   }
   if(rule == -1)
   {
+    if(printingAll) wcerr << "No further reductions possible for branch " << node->id << "." << endl;
     result.push_back(node);
   }
   else
@@ -1201,6 +1214,8 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
     }
     if(next != NULL && node->shouldShift(next))
     {
+      node->id = ++newBranchId;
+      if(printingAll) wcerr << endl << "Splitting stack and creating branch " << node->id << endl;
       result.push_back(node);
     }
   }
@@ -1224,10 +1239,18 @@ RTXProcessor::outputAll(FILE* out)
     }
     if(ch->rule == -1)
     {
-      if(printingRules && !ch->isBlank) {
+      if(printingRules && !ch->isBlank)
+      {
         fflush(out);
         wcerr << endl << "No rule specified: ";
         ch->writeTree(TreeModeFlat, NULL);
+        wcerr << endl;
+      }
+      if(printingAll && !ch->isBlank)
+      {
+        if(treePrintMode == TreeModeLatex) wcerr << "\\subsubsection{Output Node}" << endl;
+        else wcerr << "Output Node:" << endl;
+        ch->writeTree(treePrintMode, NULL);
         wcerr << endl;
       }
       ch->output(out);
@@ -1256,6 +1279,26 @@ RTXProcessor::outputAll(FILE* out)
         }
         wcerr << endl;
       }
+      if(printingAll)
+      {
+        if(treePrintMode == TreeModeLatex)
+        {
+          wcerr << "\\subsubsection{Applying Output Rule " << ch->rule;
+          if(ch->rule < outRuleNames.size())
+          {
+            wcerr << ": " << outRuleNames[ch->rule] << "}" << endl << endl;
+          }
+        }
+        else
+        {
+          wcerr << "Applying Output Rule " << ch->rule;
+          if(ch->rule < outRuleNames.size())
+          {
+            wcerr << ": " << outRuleNames[ch->rule] << endl << endl;
+          }
+        }
+        ch->writeTree(treePrintMode, NULL);
+      }
       fflush(out);
       applyRule(output_rules[ch->rule]);
       for(vector<Chunk*>::reverse_iterator it = currentOutput.rbegin(),
@@ -1270,6 +1313,14 @@ RTXProcessor::outputAll(FILE* out)
 bool
 RTXProcessor::filterParseGraph()
 {
+  if(printingAll)
+  {
+    if(treePrintMode == TreeModeLatex)
+    {
+      wcerr << "\\subsection{Filtering Branches}\n\n\\begin{itemize}" << endl;
+    }
+    else wcerr << endl << "Filtering Branches:" << endl;
+  }
   bool shouldOutput = !furtherInput && inputBuffer.size() == 1;
   int state[parseGraph.size()];
   const int N = parseGraph.size();
@@ -1287,10 +1338,26 @@ RTXProcessor::filterParseGraph()
     }
     if(count == 0)
     {
+      if(printingAll)
+      {
+        if(treePrintMode == TreeModeLatex)
+        {
+          wcerr << L"\\item No branch can accept further input." << endl;
+        }
+        else wcerr << L"No branch can accept further input." << endl;
+      }
       shouldOutput = true;
       memset(state, 1, N*sizeof(int));
       count = N;
     }
+  }
+  else if(printingAll)
+  {
+    if(treePrintMode == TreeModeLatex)
+    {
+      wcerr << "\\item Input buffer is empty." << endl;
+    }
+    else wcerr << L"Input buffer is empty." << endl;
   }
   int min = -1;
   ParseNode* minNode = NULL;
@@ -1300,9 +1367,19 @@ RTXProcessor::filterParseGraph()
   for(int i = 0; i < N; i++)
   {
     if(printingBranches) { wcerr << "examining node " << i << "(length: " << parseGraph[i]->length << ", weight: " << parseGraph[i]->weight << ") ... "; }
-    if(state[i] == 0) continue;
+    if(printingAll)
+    {
+      if(treePrintMode == TreeModeLatex) wcerr << "\\item ";
+      wcerr << "Branch " << parseGraph[i]->id << " ";
+    }
+    if(state[i] == 0)
+    {
+      if(printingAll) wcerr << " has no possible continuations." << endl;
+      continue;
+    }
     if(min == -1)
     {
+      if(printingAll) wcerr << " has no active branch to compare to." << endl;
       if(printingBranches) { wcerr << "FIRST!" << endl; }
       min = i;
       minNode = parseGraph[i];
@@ -1318,6 +1395,7 @@ RTXProcessor::filterParseGraph()
             || (cur->length == minNode->length && cur->weight > minNode->weight))
         {
           if(printingBranches) { wcerr << i << L" beats " << min << " in length or weight" << endl; }
+          if(printingAll) wcerr << " has fewer partial parses or a higher weight than branch " << minNode->id << "." << endl;
           state[min] = 0;
           min = i;
           minNode = cur;
@@ -1326,6 +1404,7 @@ RTXProcessor::filterParseGraph()
         {
           state[i] = 0;
           if(printingBranches) {wcerr << min << L" beats " << i << " in length or weight" << endl; }
+          if(printingAll) wcerr << " has more partial parses or a lower weight than branch " << minNode->id << "." << endl;
         }
         count--;
       }
@@ -1333,6 +1412,7 @@ RTXProcessor::filterParseGraph()
       {
         filter[cur->firstWord].push_back(i);
         if(printingBranches) { wcerr << i << " has nothing to compare with" << endl; }
+        if(printingAll) wcerr << " has no prior branch covering the same final span." << endl;
       }
       else
       {
@@ -1341,12 +1421,19 @@ RTXProcessor::filterParseGraph()
         if(w > cur->weight)
         {
           if(printingBranches) { wcerr << i << L" has lower weight - discarding." << endl; }
+          if(printingAll) wcerr << " has a lower weight than branch " << parseGraph[other[0]]->id << " and will be discarded." << endl;
           state[i] = 0;
           count--;
         }
         else if(w < cur->weight)
         {
           if(printingBranches) { wcerr << i << L" has higher weight - discarding others." << endl; }
+          if(printingAll)
+          {
+            wcerr << " has a higher weight than ";
+            for(auto it : other) wcerr << "branch " << parseGraph[it]->id << ", ";
+            wcerr << "which will be discarded." << endl;
+          }
           for(vector<int>::iterator it = other.begin(), limit = other.end();
                 it != limit; it++)
           {
@@ -1359,11 +1446,13 @@ RTXProcessor::filterParseGraph()
         else
         {
           if(printingBranches) { wcerr << i << " has same weight - keeping all." << endl; }
+          if(printingAll) wcerr << " has the same weight as branch " << parseGraph[other[0]]->id << "." << endl;
           other.push_back(i);
         }
       }
     }
   }
+  if(printingAll && treePrintMode == TreeModeLatex) wcerr << "\\end{itemize}" << endl << endl;
   if(count == N) return shouldOutput;
   vector<ParseNode*> temp;
   temp.reserve(count);
@@ -1394,18 +1483,34 @@ RTXProcessor::filterParseGraph()
 void
 RTXProcessor::processGLR(FILE *in, FILE *out)
 {
+  int sentenceId = 1;
+  if(printingAll && treePrintMode == TreeModeLatex)
+  {
+    wcerr << "\\section{Sentence " << sentenceId << "}" << endl << endl;
+  }
   while(furtherInput && inputBuffer.size() < 5)
   {
     inputBuffer.push_back(readToken(in));
   }
+  bool real_printingAll = printingAll;
   while(true)
   {
     Chunk* next = inputBuffer.front();
+    if(next->isBlank) printingAll = false;
+    if(printingAll)
+    {
+      wcerr << endl;
+      if(treePrintMode == TreeModeLatex) wcerr << "\\subsection{Reading Input}" << endl << endl;
+      else wcerr << "Reading Input:" << endl;
+      next->writeTree(treePrintMode, NULL);
+      wcerr << endl;
+    }
     inputBuffer.pop_front();
     if(parseGraph.size() == 0)
     {
       ParseNode* temp = parsePool.next();
       temp->init(mx, next);
+      temp->id = ++newBranchId;
       checkForReduce(parseGraph, temp);
     }
     else
@@ -1416,6 +1521,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       {
         ParseNode* tempNode = parsePool.next();
         tempNode->init(parseGraph[i], next, true);
+        tempNode->id = parseGraph[i]->id;
         checkForReduce(temp, tempNode);
       }
       parseGraph.swap(temp);
@@ -1424,6 +1530,11 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
     if(filterParseGraph())
     {
       wcerr.flush();
+      if(printingAll)
+      {
+        if(treePrintMode == TreeModeLatex) wcerr << "\\subsection{Outputting Branch " << parseGraph[0]->id << "}" << endl << endl;
+        else wcerr << "Outputting Branch " << parseGraph[0]->id << endl << endl;
+      }
       parseGraph[0]->getChunks(outputQueue, parseGraph[0]->length-1);
       parseGraph.clear();
       outputAll(out);
@@ -1444,6 +1555,12 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       }
       chunkPool.reset();
       parsePool.reset();
+      newBranchId = 0;
+      if(printingAll) sentenceId++;
+      if((furtherInput || inputBuffer.size() > 1) && printingAll && treePrintMode == TreeModeLatex)
+      {
+        wcerr << endl << endl << "\\section{Sentence " << sentenceId << "}" << endl << endl;
+      }
       for(int i = 0; i < N; i++)
       {
         Chunk* c = chunkPool.next();
@@ -1454,6 +1571,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
         inputBuffer.push_back(c);
       }
     }
+    printingAll = real_printingAll;
     if(!furtherInput && inputBuffer.size() == 1)
     {
       // if stream is empty, the last token is definitely a blank
@@ -1642,6 +1760,15 @@ RTXProcessor::processTRX(FILE *in, FILE *out)
 void
 RTXProcessor::process(FILE* in, FILE* out)
 {
+  if(printingAll && treePrintMode == TreeModeLatex)
+  {
+    wcerr << "\\documentclass{article}" << endl;
+    wcerr << "\\usepackage{fontspec}" << endl;
+    wcerr << "\\setmainfont{FreeSans}" << endl;
+    wcerr << "\\usepackage{forest}" << endl;
+    wcerr << "\\usepackage[cm]{fullpage}" << endl << endl;
+    wcerr << "\\begin{document}" << endl << endl;
+  }
   output = out;
   if(null_flush)
   {
@@ -1678,5 +1805,9 @@ RTXProcessor::process(FILE* in, FILE* out)
   else
   {
     processGLR(in, out);
+  }
+  if(printingAll && treePrintMode == TreeModeLatex)
+  {
+    wcerr << endl << endl << "\\end{document}" << endl;
   }
 }

@@ -26,9 +26,10 @@ src/trx-comp bytecode-file xml-files...
 ```
 
 Options for ```rtx-proc```:
+ - ```-a``` indicates that the input comes from apertium-anaphora
+ - ```-f``` trace which parse branches are discarded
  - ```-r``` print which rules are applying
  - ```-s``` trace the execution of the bytecode interpreter
- - ```-n``` indicates that the input stream has only source and target sides and not anaphora coreferences
  - ```-t``` mimic the behavior of apertium-transfer and apertium-interchunk
  - ```-T``` print the parse tree rather than applying output rules
  - ```-b``` print both the parse tree and the output
@@ -38,6 +39,8 @@ Options for ```rtx-proc```:
    - ```latex``` print the tree as LaTeX source using the ```forest``` library
    - ```dot``` print the tree as a Dot graph
    - ```box``` print the tree using [box-drawing characters](https://en.wikipedia.org/wiki/Box-drawing_character)
+ - ```-e``` a combination of ```-f``` and ```-r```
+   - Intended use: ```rtx-proc -e -m latex rules.bin < input.txt 2> trace.tex```
 
 Testing
 -------

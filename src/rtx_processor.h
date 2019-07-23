@@ -74,11 +74,13 @@ private:
   bool printingRules;
   bool printingMatch;
   bool printingBranches;
+  bool printingAll;
   bool noCoref;
   bool isLinear;
   bool printingTrees;
   bool printingText;
   TreeMode treePrintMode;
+  int newBranchId;
 
   void destroy();
   void readData(FILE *input);
@@ -167,6 +169,10 @@ public:
   void printText(bool val)
   {
     printingText = val;
+  }
+  void completeTrace(bool val)
+  {
+    printingAll = val;
   }
   bool setOutputMode(string mode);
 };

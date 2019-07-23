@@ -336,8 +336,9 @@ public:
   double weight;
   int firstWord;
   int lastWord;
+  int id;
   ParseNode()
-  : first(0), last(0), firstWord(0), lastWord(0)
+  : first(0), last(0), firstWord(0), lastWord(0), id(-1)
   {}
   void init(MatchExe2* m, Chunk* ch, double w = 0.0)
   {

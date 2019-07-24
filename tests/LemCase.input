@@ -3,3 +3,4 @@
 ^potato<n>/PATATA<n>$ ^green<adj>/Verde<adj>$^,<cm>/,<cm>$
 ^potato<n>/paTAta<n>$ ^green<adj>/Verde<adj>$^,<cm>/,<cm>$
 ^the<det>/el<det>$ ^potato<n>/PATATA<n>$ ^green<adj>/verde<adj>/Bloop<adj>$
+^the<det>/el<det>$ ^potato<n>/PATATA<n>$ ^green<adj>/verde<adj>/Bloop<adj>$ ^yop<v>/yop<v>$

@@ -30,7 +30,7 @@ private:
   vector<wstring> inputRules;
   vector<int> inputRuleSizes;
   vector<wstring> outputRules;
-  vector<int> macroPosShift;
+  vector<vector<int>> macroPosShift;
   bool inOutput;
   xmlDoc* curDoc;
   int curPatternSize;

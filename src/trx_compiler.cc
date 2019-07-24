@@ -110,6 +110,35 @@ TRXCompiler::makeDefaultOutputRule()
     cond[it->second] += eq;
   }
   wstring ret;
+  ret += STRING;
+  ret += (wchar_t)3;
+  ret += L"lem";
+  ret += INT;
+  ret += (wchar_t)0;
+  ret += TARGETCLIP;
+  ret += GETCASE;
+  ret += STRING;
+  ret += (wchar_t)2;
+  ret += L"Aa";
+  ret += EQUAL;
+  ret += JUMPONFALSE;
+  ret += (wchar_t)21;
+  ret += STRING;
+  ret += (wchar_t)3;
+  ret += L"lem";
+  ret += INT;
+  ret += (wchar_t)1;
+  ret += TARGETCLIP;
+  ret += STRING;
+  ret += (wchar_t)2;
+  ret += L"Aa";
+  ret += SETCASE;
+  ret += STRING;
+  ret += (wchar_t)3;
+  ret += L"lem";
+  ret += INT;
+  ret += (wchar_t)1;
+  ret += SETCLIP;
   ret += OUTPUTALL;
   for(vector<wstring>::reverse_iterator c = cond.rbegin(), limit = cond.rend(), a = outputRules.rbegin();
           c != limit; c++, a++)
@@ -236,7 +265,7 @@ TRXCompiler::getPos(xmlNode* node, bool isBlank = false)
   {
     return ret;
   }
-  int limit = macroPosShift.size() > 0 ? macroPosShift.size() : curPatternSize;
+  int limit = macroPosShift.size() > 0 ? macroPosShift.back().size() : curPatternSize;
   if(ret <= 0 || ret > limit || (ret == limit && isBlank))
   {
     if(isBlank)
@@ -248,7 +277,7 @@ TRXCompiler::getPos(xmlNode* node, bool isBlank = false)
   }
   if(macroPosShift.size() > 0)
   {
-    ret = macroPosShift[ret-1];
+    ret = macroPosShift.back()[ret-1];
   }
   return ret;
 }
@@ -570,15 +599,24 @@ TRXCompiler::processRules(xmlNode* node)
           action += (wchar_t)3;
           action += L"lem";
           action += INT;
-          action += (wchar_t)1;
+          action += (wchar_t)0;
           action += TARGETCLIP;
+          action += GETCASE;
+          action += STRING;
+          action += (wchar_t)2;
+          action += L"Aa";
+          action += EQUAL;
+          action += JUMPONFALSE;
+          action += (wchar_t)21;
           action += STRING;
           action += (wchar_t)3;
           action += L"lem";
           action += INT;
-          action += (wchar_t)0;
+          action += (wchar_t)1;
           action += TARGETCLIP;
-          action += GETCASE;
+          action += STRING;
+          action += (wchar_t)2;
+          action += L"Aa";
           action += SETCASE;
           action += STRING;
           action += (wchar_t)3;
@@ -760,23 +798,23 @@ TRXCompiler::processStatement(xmlNode* node)
         temp.push_back(getPos(param));
       }
     }
-    int shouldbe = macros[name].first;
+    unsigned int shouldbe = macros[name].first;
     if(shouldbe < temp.size())
     {
-      die(node, L"Too many parameters, expected " + to_wstring(shouldbe) + L", got " + to_wstring(temp.size()) + L".");
+      die(node, L"Too many parameters, macro '" + name + L"' expects " + to_wstring(shouldbe) + L", got " + to_wstring(temp.size()) + L".");
     }
     if(shouldbe > temp.size())
     {
-      die(node, L"Not enough parameters, expected " + to_wstring(shouldbe) + L", got " + to_wstring(temp.size()) + L".");
+      die(node, L"Not enough parameters, macro '" + name + L"' expects " + to_wstring(shouldbe) + L", got " + to_wstring(temp.size()) + L".");
     }
-    temp.swap(macroPosShift);
+    macroPosShift.push_back(temp);
     xmlNode* mac = macros[name].second;
     for(xmlNode* state = mac->children; state != NULL; state = state->next)
     {
       if(state->type != XML_ELEMENT_NODE) continue;
       ret += processStatement(state);
     }
-    macroPosShift.swap(temp);
+    macroPosShift.pop_back();
   }
   else if(!xmlStrcmp(node->name, (const xmlChar*) "append"))
   {
@@ -925,7 +963,7 @@ TRXCompiler::processValue(xmlNode* node)
     ret += L"lem";
     ret += INT;
     ret += (wchar_t)getPos(node);
-    ret += SOURCECLIP;
+    ret += (inOutput ? TARGETCLIP : SOURCECLIP);
     ret += SETCASE;
   }
   else if(!xmlStrcmp(node->name, (const xmlChar*) "case-of"))

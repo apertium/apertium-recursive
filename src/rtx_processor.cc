@@ -206,7 +206,12 @@ RTXProcessor::copycase(wstring const &source_word, wstring const &target_word)
 
   if(!uppercase || (sizeone && uppercase))
   {
-    result = StringUtils::tolower(target_word);
+    if(isLinear)
+    {
+      result = target_word;
+      result[0] = towlower(result[0]);
+    }
+    else result = StringUtils::tolower(target_word);
   }
   else
   {
@@ -333,7 +338,7 @@ inline void
 RTXProcessor::clip(Chunk* ch, const wstring& part, const ClipType side)
 {
   map<wstring, int>::iterator it = attr_symbols.find(part);
-  if(it == attr_symbols.end())
+  if(true || it == attr_symbols.end())
   {
     pushStack(ch->chunkPart(attr_items[part], side));
   }
@@ -826,7 +831,26 @@ RTXProcessor::applyRule(const wstring& rule)
         if(printingSteps) { wcerr << "appendchild" << endl; }
       {
         Chunk* kid = popChunk();
-        theStack[stackIdx].c->contents.push_back(kid);
+        if(isLinear && kid->target[0] == L'^')
+        {
+          unsigned int j = 0;
+          for(; j < kid->target.size(); j++)
+          {
+            if(kid->target[j] == L'$') break;
+          }
+          Chunk* ch = chunkPool.next();
+          ch->isBlank = false;
+          ch->target = kid->target.substr(1, j-1);
+          theStack[stackIdx].c->contents.push_back(ch);
+          ch = chunkPool.next();
+          ch->isBlank = true;
+          ch->target = kid->target.substr(j+1);
+          theStack[stackIdx].c->contents.push_back(ch);
+        }
+        else
+        {
+          theStack[stackIdx].c->contents.push_back(kid);
+        }
         if(printingSteps) { wcerr << " -> child with surface '" << kid->target << L"' appended" << endl; }
       }
         break;

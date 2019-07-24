@@ -121,6 +121,17 @@ RTXCompiler::nextTokenNoSpace()
   {
     die(L"unexpected comment");
   }
+  else if(c == L'"')
+  {
+    next = source.get();
+    while(!source.eof() && next != L'"')
+    {
+      if(next == L'\\') next = source.get();
+      ret += next;
+      if(source.eof()) die(L"Unexpected end of file.");
+      next = source.get();
+    }
+  }
   else
   {
     ret = wstring(1, c);
@@ -738,38 +749,49 @@ RTXCompiler::parseOutputElement()
   }
   else
   {
-    if(ret->getall)
-    {
-      die(L"% not currently supported on output literals");
-    }
     ret->lemma = parseIdent();
-    ret->mode = nextToken(L"@");
-    while(true)
+    ret->pos = 0;
+    wstring mode = nextToken(L"@", L"[");
+    if(mode == L"@")
     {
-      wstring cur = nextToken();
-      wstring var = to_wstring(ret->tags.size());
-      ret->tags.push_back(var);
-      Clip* cl = new Clip;
-      if(cur == L"$")
+      if(ret->getall)
       {
-        cl->src = -1;
-        cl->part = parseIdent();
+        die(L"% not supported on output literals with @. Use %lemma[pos].");
       }
-      else if(cur == L"[")
+      ret->mode = L"@";
+      while(true)
       {
-        cl = parseClip();
-        nextToken(L"]");
+        wstring cur = nextToken();
+        wstring var = to_wstring(ret->tags.size());
+        ret->tags.push_back(var);
+        Clip* cl = new Clip;
+        if(cur == L"$")
+        {
+          cl->src = -1;
+          cl->part = parseIdent();
+        }
+        else if(cur == L"[")
+        {
+          cl = parseClip();
+          nextToken(L"]");
+        }
+        else
+        {
+          cl->src = 0;
+          cl->part = cur;
+        }
+        ret->vars[var] = cl;
+        if(!isNextToken(L'.'))
+        {
+          break;
+        }
       }
-      else
-      {
-        cl->src = 0;
-        cl->part = cur;
-      }
-      ret->vars[var] = cl;
-      if(!isNextToken(L'.'))
-      {
-        break;
-      }
+    }
+    else
+    {
+      ret->mode = L"#@";
+      ret->pattern = parseIdent(true);
+      nextToken(L"]");
     }
   }
   if(isNextToken(L'('))
@@ -1244,7 +1266,11 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
   blank += JUMPONFALSE;
   if(c->src == 0)
   {
-    return compileTag(c->part);
+    if(c->rewrite == L"lem" || c->rewrite == L"lemh" || c->rewrite == L"lemq")
+    {
+      return compileString(c->part);
+    }
+    else return compileTag(c->part);
   }
   else if(c->side == L"sl")
   {
@@ -1476,7 +1502,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       ret += processOutputChoice(r->children[i]);
     }
   }
-  else if(r->mode == L"#")
+  else if(r->mode == L"#" || r->mode == L"#@")
   {
     wstring pos;
     if(r->pos != 0)
@@ -1530,37 +1556,55 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     {
       ret += CHUNK;
     }
+    if(r->mode == L"#@")
+    {
+      unsigned int j;
+      for(j = 0; j < r->lemma.size(); j++)
+      {
+        if(r->lemma[j] == L'#') break;
+      }
+      if(j < r->lemma.size())
+      {
+        ret += compileString(r->lemma.substr(0, j));
+        Clip* c = new Clip;
+        c->part = r->lemma.substr(j);
+        c->src = 0;
+        c->rewrite = L"lemq";
+        r->vars[L"lemq"] = c;
+      }
+      else ret += compileString(r->lemma);
+    }
+    else if(r->vars.find(L"lem") != r->vars.end())
+    {
+      ret += compileClip(r->vars[L"lem"], L"lem");
+    }
+    else if(r->vars.find(L"lemh") != r->vars.end())
+    {
+      ret += compileClip(r->vars[L"lemh"], L"lemh");
+    }
+    else if(r->pos == 0)
+    {
+      ret += compileString(L"unknown");
+    }
+    else
+    {
+      Clip* c = new Clip;
+      c->part = L"lemh";
+      c->src = r->pos;
+      c->side = L"tl";
+      c->rewrite = L"lemh";
+      ret += compileClip(c);
+    }
+    if(r->vars.find(L"lemcase") != r->vars.end())
+    {
+      ret += compileClip(r->vars[L"lemcase"], L"lemcase");
+      ret += SETCASE;
+    }
+    ret += APPENDSURFACE;
     for(unsigned int i = 0; i < pattern.size(); i++)
     {
       if(pattern[i] == L"_")
       {
-        if(r->vars.find(L"lem") != r->vars.end())
-        {
-          ret += compileClip(r->vars[L"lem"], L"lem");
-        }
-        else if(r->vars.find(L"lemh") != r->vars.end())
-        {
-          ret += compileClip(r->vars[L"lemh"], L"lemh");
-        }
-        else if(r->pos == 0)
-        {
-          ret += compileString(L"unknown");
-        }
-        else
-        {
-          Clip* c = new Clip;
-          c->part = L"lemh";
-          c->src = r->pos;
-          c->side = L"tl";
-          c->rewrite = L"lemh";
-          ret += compileClip(c);
-        }
-        if(r->vars.find(L"lemcase") != r->vars.end())
-        {
-          ret += compileClip(r->vars[L"lemcase"], L"lemcase");
-          ret += SETCASE;
-        }
-        ret += APPENDSURFACE;
         if(r->pos != 0)
         {
           //ret += compileTag(currentRule->pattern[r->pos-1][1]);

@@ -115,7 +115,7 @@ public:
     string surf = UtfConverter::toUtf8(target);
     if(part.match(surf).size() == 0)
     {
-      target += value;
+      //target += value;
     }
     else
     {

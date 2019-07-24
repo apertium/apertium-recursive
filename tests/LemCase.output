@@ -3,3 +3,4 @@
 ^patata<n>$ ^VERDE<adj>$^,<cm>$
 ^patata<n>$ ^verde<adj>$^,<cm>$
 ^El<det>$ ^patata<n>$ ^VERDE<adj>$
+^El<det>$ ^patata<n>$ ^VERDE<adj>$ ^yop<v>$ ^De<n># yoop$

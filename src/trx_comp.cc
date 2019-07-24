@@ -52,6 +52,8 @@ int main(int argc, char *argv[])
 
   LtLocale::tryToSetLocale();
 
+  if(argc - optind < 2) endProgram(argv[0]);
+
   char* bin = argv[optind];
   vector<string> files;
   for(int i = optind + 1; i < argc; i++)

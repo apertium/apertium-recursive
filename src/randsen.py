@@ -11,7 +11,7 @@ class Rule:
         self.parts = parts
         Rule.allRules[' '.join(result)].append(self)
     def generate(node):
-        print('Generating %s' % node)
+        #print('Generating %s' % node)
         if node in Rule.allRules:
             try:
                 rl = random.choice(Rule.allRules[node])
@@ -40,11 +40,12 @@ class Rule:
                 sys.exit()
             n = random.choice(ls)
             s = ET.tostring(n, encoding='unicode')[3:-4].replace('<b />', '# ').replace('<s n="', '<').replace('" />', '>')
-            print('beginning hfst-expand %s' % ['hfst-expand', '-n', '100', '-p', s, Rule.trans])
-            proc = subprocess.run(['hfst-expand', '-n', '100', '-p', s, Rule.trans], stdout=subprocess.PIPE, check=True)
-            print('done expanding')
-            yield '^' + random.choice(proc.stdout.decode('utf-8').splitlines()) + '$'
-        print('done generating %s' % node)
+            #print('beginning hfst-expand %s' % ['hfst-expand', '-n', '100', '-p', s, Rule.trans])
+            #proc = subprocess.run(['hfst-expand', '-n', '100', '-p', s, Rule.trans], stdout=subprocess.PIPE, check=True)
+            #print('done expanding')
+            #yield '^' + random.choice(proc.stdout.decode('utf-8').splitlines()) + '$'
+            yield '^' + s + '$'
+        #print('done generating %s' % node)
                 
 def name(s):
     return os.path.dirname(s) or os.path.basename(s)
@@ -95,3 +96,4 @@ if __name__ == '__main__':
     Rule.mode = 'l' if (pairname == langname + '-' + lang2) else 'r'
     for w in Rule.generate(node):
         print(w, end=' ')
+    print('')

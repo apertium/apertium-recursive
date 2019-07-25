@@ -15,7 +15,6 @@ RTXProcessor::RTXProcessor()
 {
   furtherInput = true;
   inword = false;
-  allDone = false;
   printingSteps = false;
   printingRules = false;
   printingMatch = false;
@@ -53,7 +52,6 @@ RTXProcessor::readData(FILE *in)
   {
     int key = Compression::multibyte_read(in);
     finals[key] = Compression::multibyte_read(in);
-    ruleWeights[finals[key]] = finalWeights[key];
   }
 
   mx = new MatchExe2(*t, &alphabet, finals, pat_size);
@@ -69,31 +67,6 @@ RTXProcessor::readData(FILE *in)
       attr_items[cad_k].compile(UtfConverter::toUtf8(fallback));
     }
   }
-
-  int attr_count = Compression::multibyte_read(in);
-  attr_values.reserve(attr_count);
-  for(int i = 0; i < attr_count; i++)
-  {
-    attr_values.push_back(Compression::wstring_read(in));
-  }
-  Transducer attr;
-  attr.read(in, alphabet.size());
-  int attr_final_size = Compression::multibyte_read(in);
-  vector<int> attr_size = vector<int>(attr_final_size, 0);
-  map<int, int> attr_map;
-  for(int i = 0; i < attr_final_size; i++)
-  {
-    int key = Compression::multibyte_read(in);
-    attr_map[key] = Compression::multibyte_read(in);
-  }
-  attrTransducer = new MatchExe2(attr, &alphabet, attr_map, attr_size);
-  for(map<wstring, ApertiumRE, Ltstr>::iterator it = attr_items.begin();
-        it != attr_items.end(); it++)
-  {
-    int symbol = alphabet(L"<" + it->first + L">");
-    if(symbol) attr_symbols[it->first] = symbol;
-  }
-  any_char = alphabet(L"<ANY_CHAR>");
 
   // variables
   for(int i = 0, limit = Compression::multibyte_read(in); i != limit; i++)
@@ -122,6 +95,11 @@ void
 RTXProcessor::read(string const &filename)
 {
   FILE *in = fopen(filename.c_str(), "rb");
+  if(in == NULL)
+  {
+    wcerr << "Unable to open file " << filename.c_str() << endl;
+    exit(EXIT_FAILURE);
+  }
 
   longestPattern = 2*Compression::multibyte_read(in) - 1;
   int count = Compression::multibyte_read(in);
@@ -331,68 +309,6 @@ RTXProcessor::stackCopy(int src, int dest)
     default:
       wcerr << "Unknown StackElement mode " << theStack[src].mode;
       break;
-  }
-}
-
-inline void
-RTXProcessor::clip(Chunk* ch, const wstring& part, const ClipType side)
-{
-  map<wstring, int>::iterator it = attr_symbols.find(part);
-  if(true || it == attr_symbols.end())
-  {
-    pushStack(ch->chunkPart(attr_items[part], side));
-  }
-  else
-  {
-    unsigned int x = 0;
-    unsigned int lim;
-    wchar_t* arr;
-    if(side == TargetClip)
-    {
-      lim = ch->target.size();
-      arr = ch->target.data();
-    }
-    else if(side == SourceClip)
-    {
-      lim = ch->source.size();
-      arr = ch->source.data();
-    }
-    else
-    {
-      lim = ch->coref.size();
-      arr = ch->coref.data();
-    }
-    while(x < lim && arr[x] != L'<')
-    {
-      if(arr[x] == L'\\') x++;
-      x++;
-    }
-    int state[RTXStateSize];
-    int first = 0;
-    int last = 1;
-    state[0] = attrTransducer->getInitial();
-    attrTransducer->step(state, first, last, it->second);
-    bool found = false;
-    for(; x < lim; x++)
-    {
-      attrTransducer->step(state, first, last, arr[x], any_char);
-      int rule = attrTransducer->getRuleUnweighted(state, first, last);
-      if(rule != -1)
-      {
-        stackIdx++;
-        theStack[stackIdx].mode = 2;
-        theStack[stackIdx].s.assign(attr_values[rule]);
-        //pushStack(attr_values[rule]);
-        found = true;
-        break;
-      }
-    }
-    if(!found)
-    {
-      stackIdx++;
-      theStack[stackIdx].mode = 2;
-      theStack[stackIdx].s.clear();
-    }
   }
 }
 
@@ -720,8 +636,7 @@ RTXProcessor::applyRule(const wstring& rule)
         wstring part;
         popString(part);
         Chunk* ch = (pos == -2) ? parentChunk : currentInput[pos];
-        //pushStack(ch->chunkPart(attr_items[part], SourceClip));
-        clip(ch, part, SourceClip);
+        pushStack(ch->chunkPart(attr_items[part], SourceClip));
         if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
       }
         break;
@@ -760,7 +675,7 @@ RTXProcessor::applyRule(const wstring& rule)
         }
         else
         {
-          clip(ch, part, TargetClip);
+          pushStack(ch->chunkPart(attr_items[part], TargetClip));
           if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
         }
       }
@@ -772,7 +687,7 @@ RTXProcessor::applyRule(const wstring& rule)
         wstring part;
         popString(part);
         Chunk* ch = (pos == -2) ? parentChunk : currentInput[pos];
-        clip(ch, part, ReferenceClip);
+        pushStack(ch->chunkPart(attr_items[part], ReferenceClip));
       }
         break;
       case SETCLIP:

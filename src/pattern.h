@@ -36,9 +36,6 @@ private:
 
   Alphabet alphabet;
   Transducer transducer;
-  Transducer attributes;
-  map<int, wstring> attr_vals;
-  set<wstring, Ltstr> all_attrs;
 
   int insertLemma(int const base, wstring const &lemma)
   {
@@ -105,6 +102,95 @@ private:
     const int symbol = alphabet(count_sym);
     final_symbols.insert(symbol);
     return symbol;
+  }
+  struct TrieNode
+  {
+    wchar_t self;
+    vector<TrieNode*> next;
+  };
+  vector<TrieNode*> buildTrie(vector<wstring> parts)
+  {
+    vector<TrieNode*> ret;
+    vector<vector<wstring>> p2;
+    for(auto p : parts)
+    {
+      if(p.size() == 0) continue;
+      bool found = false;
+      for(unsigned int t = 0; t < p2.size(); t++)
+      {
+        if(ret[t]->self == p[0])
+        {
+          p2[t].push_back(p.substr(1));
+          found = true;
+          break;
+        }
+      }
+      if(!found)
+      {
+        TrieNode* t = new TrieNode;
+        t->self = p[0];
+        ret.push_back(t);
+        p2.push_back(vector<wstring>(1, p.substr(1)));
+      }
+    }
+    for(unsigned int i = 0; i < ret.size(); i++)
+    {
+      ret[i]->next = buildTrie(p2[i]);
+    }
+    return ret;
+  }
+  wstring unbuildTrie(TrieNode* t)
+  {
+    if(t->self == L'\0') return L"";
+    wstring single;
+    bool end = false;
+    vector<wstring> groups;
+    int ct = t->next.size();
+    for(auto it : t->next)
+    {
+      wstring blob = unbuildTrie(it);
+      if(blob.size() == 0)
+      {
+        end = true;
+        ct--;
+      }
+      else if(blob.size() == 1)
+      {
+        if(single.size() > 0) ct--;
+        single += blob;
+      }
+      else groups.push_back(blob);
+    }
+    wstring ret;
+    ret += t->self;
+    if(single.size() == 0 && groups.size() == 0) return ret;
+    if(single.size() > 1) single = L"[" + single + L"]";
+    if(ct > 1 || (groups.size() == 1 && end)) ret += L"(?:";
+    for(unsigned int i = 0; i < groups.size(); i++)
+    {
+      if(i > 0) ret += L"|";
+      ret += groups[i];
+    }
+    if(single.size() > 0)
+    {
+      if(groups.size() > 0) ret += L"|";
+      ret += single;
+    }
+    if(ct > 1 || (groups.size() == 1 && end)) ret += L")";
+    if(end) ret += L"?";
+    return ret;
+  }
+  wstring trie(vector<wstring> parts)
+  {
+    if(parts.size() == 0) return L"";
+    for(unsigned int i = 0; i < parts.size(); i++)
+    {
+      parts[i] = L"<" + parts[i];
+      parts[i] += L'\0';
+    }
+    vector<TrieNode*> l = buildTrie(parts);
+    // they all start with L'<', so there will only be 1.
+    return L"(" + unbuildTrie(l[0]) + L">)";
   }
 public:
   // false: * = 1 or more tags, true: * = 0 or more tags
@@ -176,7 +262,7 @@ public:
   }
   void addAttr(wstring name, set<wstring, Ltstr> vals)
   {
-    wstring pat = L"(";
+    /*wstring pat = L"(";
     for(set<wstring, Ltstr>::iterator it = vals.begin(); it != vals.end(); it++)
     {
       if(pat.size() > 1)
@@ -186,25 +272,17 @@ public:
       pat += L"<" + StringUtils::substitute(*it, L".", L"><") + L">";
     }
     pat += L")";
-    attr_items[name] = pat;
-
-    alphabet.includeSymbol(L"<" + name + L">");
-    int sym = alphabet(L"<" + name + L">");
-    int start = attributes.insertSingleTransduction(sym, attributes.getInitial());
-    attributes.linkStates(start, start, alphabet(L"<ANY_CHAR>"));
-    for(set<wstring, Ltstr>::iterator it = vals.begin(), limit = vals.end();
-            it != limit; it++)
+    attr_items[name] = pat;*/
+    vector<wstring> pat;
+    for(auto it : vals)
     {
-      int loc = start;
-      wstring s = L"<" + StringUtils::substitute(*it, L".", L"><") + L">";
-      for(unsigned int i = 0; i < s.size(); i++)
-      {
-        loc = attributes.insertSingleTransduction(s[i], loc);
-      }
-      attributes.setFinal(loc);
-      attr_vals[loc] = s;
-      all_attrs.insert(s);
+      wstring p = StringUtils::substitute(it, L"\\.", L"<>");
+      p = StringUtils::substitute(p, L".", L"><");
+      pat.push_back(StringUtils::substitute(p, L"<>", L"\\."));
     }
+    wstring pt = trie(pat);
+    //wcerr << name << "\t" << pt << endl;
+    attr_items[name] = pt;
   }
   void addVar(wstring name, wstring val)
   {
@@ -315,25 +393,6 @@ public:
       my_re.compile(UtfConverter::toUtf8(it->second));
       my_re.write(output);
       Compression::wstring_write(it->second, output);
-    }
-
-
-    map<wstring, int> attr_loc;
-    Compression::multibyte_write(all_attrs.size(), output);
-    int loc = 0;
-    for(set<wstring, Ltstr>::const_iterator it = all_attrs.begin(), limit = all_attrs.end();
-          it != limit; it++)
-    {
-      Compression::wstring_write(*it, output);
-      attr_loc[*it] = loc++;
-    }
-    attributes.write(output, alphabet.size());
-    Compression::multibyte_write(attr_vals.size(), output);
-    for(map<int, wstring>::const_iterator it = attr_vals.begin(), limit = attr_vals.end();
-        it != limit; it++)
-    {
-      Compression::multibyte_write(it->first, output);
-      Compression::multibyte_write(attr_loc[it->second], output);
     }
 
     // variables

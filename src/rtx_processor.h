@@ -35,7 +35,6 @@ private:
   MatchExe2 *mx;
   map<wstring, ApertiumRE, Ltstr> attr_items;
   map<wstring, wstring, Ltstr> variables;
-  map<wstring, int, Ltstr> macros;
   map<wstring, set<wstring, Ltstr>, Ltstr> lists;
   map<wstring, set<wstring, Ltstr>, Ltstr> listslow;
   vector<wstring> rule_map;
@@ -43,10 +42,8 @@ private:
   vector<wstring> inRuleNames;
   vector<wstring> outRuleNames;
   vector<int> pat_size;
-  int longestPattern;
+  unsigned int longestPattern;
   bool furtherInput;
-  bool allDone;
-  map<int, double> ruleWeights;
   StackElement theStack[32];
   int stackIdx;
   vector<Chunk*> currentInput;
@@ -58,11 +55,6 @@ private:
   Pool<ParseNode> parsePool;
   list<Chunk*> inputBuffer;
   vector<vector<Chunk*>*> currentContinuation;
-
-  MatchExe2 *attrTransducer;
-  vector<wstring> attr_values;
-  map<wstring, int> attr_symbols;
-  int any_char;
 
   FILE *output;
 
@@ -90,7 +82,6 @@ private:
   wstring copycase(wstring const &source_word, wstring const &target_word);
   bool beginsWith(wstring const &str1, wstring const &str2) const;
   bool endsWith(wstring const &str1, wstring const &str2) const;
-  void clip(Chunk* ch, wstring const& part, const ClipType side);
   bool applyRule(const wstring& rule);
   Chunk* readToken(FILE *in);
   

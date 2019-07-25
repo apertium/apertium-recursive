@@ -83,6 +83,12 @@ private:
    */
   bool fallbackRule;
 
+  /**
+   * If true, write the output and pattern of each rule to stderr
+   * Default: false
+   */
+  bool summarizing;
+
   //////////
   // COLLECTIONS AND DATA STRUCTURES
   //////////
@@ -554,6 +560,10 @@ public:
   void setFallback(bool value)
   {
     fallbackRule = value;
+  }
+  void setSummarizing(bool value)
+  {
+    summarizing = value;
   }
 
   void read(string const &filename);

@@ -22,6 +22,7 @@ RTXCompiler::RTXCompiler()
   inMacro = false;
   PB.starCanBeEmpty = true;
   fallbackRule = true;
+  summarizing = false;
 }
 
 wstring const
@@ -1877,6 +1878,13 @@ RTXCompiler::processRules()
   for(unsigned int ruleid = 0; ruleid < reductionRules.size(); ruleid++)
   {
     rule = reductionRules[ruleid];
+    if(summarizing)
+    {
+      for(auto it : rule->result) wcerr << it << " ";
+      wcerr << "->";
+      for(auto it : rule->pattern) wcerr << " " << it[1];
+      wcerr << endl;
+    }
     currentRule = rule;
     currentChunk = NULL;
     currentChoice = NULL;

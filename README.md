@@ -23,6 +23,9 @@ src/rtx-decomp bytecode-file text-file
 
 # compile XML rule files
 src/trx-comp bytecode-file xml-files...
+
+# generate random sentences from a rules file
+apertium-recursive/src/randsen.py start_node pair_directory source_language_directory
 ```
 
 Options for ```rtx-proc```:

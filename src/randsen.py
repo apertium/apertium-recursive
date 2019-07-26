@@ -44,7 +44,9 @@ class Rule:
             #proc = subprocess.run(['hfst-expand', '-n', '100', '-p', s, Rule.trans], stdout=subprocess.PIPE, check=True)
             #print('done expanding')
             #yield '^' + random.choice(proc.stdout.decode('utf-8').splitlines()) + '$'
-            yield '^' + s + '$'
+            #yield '^' + s + '$'
+            proc = subprocess.run(['random-path', Rule.trans, s], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            yield '^' + proc.stdout.decode('utf-8').strip() + '$'
         #print('done generating %s' % node)
                 
 def name(s):
@@ -65,10 +67,9 @@ if __name__ == '__main__':
         sys.exit()
     pairname = '-'.join(name(pairdir).split('-')[-2:])
     langname = name(langdir).split('-')[-1]
-    trans = os.path.join(langdir, '.deps/%s.LR.hfst' % langname)
+    trans = os.path.join(langdir, '%s.autogen.bin' % langname)
     if not os.path.isfile(trans):
         print('Unable to access transducer %s' % trans)
-        print('This program currently only supports generation in HFST modules.')
         sys.exit()
     Rule.trans = trans
     lang2 = pairname.replace(langname, '').replace('-', '')

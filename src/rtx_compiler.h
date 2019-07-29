@@ -470,6 +470,15 @@ private:
   void parseReduceRule(wstring firstnode, wstring next);
 
   //////////
+  // ANALYSIS
+  //////////
+
+  /**
+   * Checks for possible mistakes in tag-rewrite rules and issues warnings
+   */
+  void processRetagRules();
+
+  //////////
   // COMPILATION
   //////////
 

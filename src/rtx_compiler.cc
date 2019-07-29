@@ -340,12 +340,26 @@ RTXCompiler::parseRetagRule(wstring srcTag)
       break;
     }
   }
-  retagRules.push_back(rule);
-  if(altAttrs.find(destTag) == altAttrs.end())
+  bool found = false;
+  for(auto other : retagRules)
   {
-    altAttrs[destTag].push_back(destTag);
+    if(other[0].first == srcTag && other[0].second == destTag)
+    {
+      found = true;
+      wcerr << "Warning: Tag-rewrite rule '" << srcTag << "' > '" << destTag << "' is defined multiple times. Mappings in earlier definition may be overwritten." << endl;
+      other.insert(other.begin()+1, rule.begin()+1, rule.end());
+      break;
+    }
   }
-  altAttrs[destTag].push_back(srcTag);
+  if(!found)
+  {
+    retagRules.push_back(rule);
+    if(altAttrs.find(destTag) == altAttrs.end())
+    {
+      altAttrs[destTag].push_back(destTag);
+    }
+    altAttrs[destTag].push_back(srcTag);
+  }
 }
 
 void
@@ -1116,6 +1130,73 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     if(nextToken(L"|", L";") == L";")
     {
       break;
+    }
+  }
+}
+
+void
+RTXCompiler::processRetagRules()
+{
+  for(auto rule : retagRules)
+  {
+    map<wstring, vector<wstring>> vals;
+    wstring src = rule[0].first;
+    wstring dest = rule[0].second;
+    if(!PB.isAttrDefined(src) && collections.find(src) == collections.end())
+    {
+      wcerr << L"Warning: Source category for tag-rewrite rule '" << src << "' > '" << dest << "' is undefined." << endl;
+      continue;
+    }
+    if(!PB.isAttrDefined(dest) && collections.find(dest) == collections.end())
+    {
+      wcerr << L"Warning: Destination category for tag-rewrite rule '" << src << "' > '" << dest << "' is undefined." << endl;
+      continue;
+    }
+    if(collections.find(src) == collections.end() || collections.find(dest) == collections.end()) continue;
+    for(unsigned int i = 1; i < rule.size(); i++)
+    {
+      if(rule[i].first[0] == L'[')
+      {
+        wstring cat = rule[i].first.substr(1, rule[i].first.size()-2);
+        if(collections.find(cat) == collections.end())
+        {
+          wcerr << L"Warning: Tag-rewrite rule '" << src << "' > '" << dest << "' contains mapping from undefined category '" << cat << "'." << endl;
+          continue;
+        }
+        for(auto v : collections[cat]) vals[v].push_back(rule[i].second);
+      }
+      else
+      {
+        vals[rule[i].first].push_back(rule[i].second);
+      }
+    }
+    if(src != dest)
+    {
+      for(auto a : collections[src])
+      {
+        if(vals.find(a) == vals.end())
+        {
+          bool found = false;
+          for(auto b : collections[dest])
+          {
+            if(a == b)
+            {
+              found = true;
+              break;
+            }
+          }
+          if(!found)
+          {
+            wcerr << L"Warning: Tag-rewrite rule '" << src << "' > '" << dest << "' does not convert '" << a << "'." << endl;
+          }
+        }
+        else if(vals[a].size() > 1)
+        {
+          wcerr << L"Warning: Tag-rewrite rule '" << src << "' > '" << dest << "' converts '" << a << "' to multiple values: ";
+          for(auto b : vals[a]) wcerr << "'" << b << "', ";
+          wcerr << "defaulting to '" << vals[a][0] << "'." << endl;
+        }
+      }
     }
   }
 }
@@ -2015,6 +2096,7 @@ RTXCompiler::read(const string &fname)
   }
   source.close();
   errorsAreSyntax = false;
+  processRetagRules();
   processRules();
   for(map<wstring, vector<wstring>>::iterator it=collections.begin(); it != collections.end(); ++it)
   {

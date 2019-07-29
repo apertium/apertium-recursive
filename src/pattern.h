@@ -284,6 +284,10 @@ public:
     //wcerr << name << "\t" << pt << endl;
     attr_items[name] = pt;
   }
+  bool isAttrDefined(wstring name)
+  {
+    return attr_items.find(name) != attr_items.end();
+  }
   void addVar(wstring name, wstring val)
   {
     variables[name] = val;

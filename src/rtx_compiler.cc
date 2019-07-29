@@ -807,6 +807,29 @@ RTXCompiler::parseOutputElement()
       ret->mode = L"#@";
       ret->pattern = parseIdent(true);
       nextToken(L"]");
+      unsigned int i = 0;
+      for(; i < ret->lemma.size(); i++)
+      {
+        if(ret->lemma[i] == L'#') break;
+      }
+      Clip* lemh = new Clip;
+      lemh->part = ret->lemma.substr(0, i);
+      lemh->src = 0;
+      lemh->rewrite = L"lemh";
+      ret->vars[L"lemh"] = lemh;
+      if(i < ret->lemma.size())
+      {
+        Clip* lemq = new Clip;
+        lemq->part = ret->lemma.substr(i+2);
+        lemq->src = 0;
+        lemq->rewrite = L"lemq";
+        ret->vars[L"lemq"] = lemq;
+      }
+      Clip* lem = new Clip;
+      lem->part = ret->lemma;
+      lem->src = 0;
+      lem->rewrite = L"lem";
+      ret->vars[L"lem"] = lem;
     }
   }
   if(isNextToken(L'('))
@@ -832,7 +855,6 @@ RTXCompiler::parseOutputElement()
   if(currentChoice != NULL)
   {
     currentChoice->chunks.push_back(ret);
-    currentChoice->nest.push_back(NULL);
   }
   else
   {
@@ -1464,7 +1486,7 @@ RTXCompiler::processMacroClip(Clip* mac, OutputChunk* arg)
   ret->part = mac->part;
   ret->side = mac->side;
   ret->rewrite = mac->rewrite;
-  if(arg->pos == 0 && mac->src == 1)
+  if(mac->src == 1)
   {
     if(arg->vars.find(mac->part) != arg->vars.end())
     {
@@ -1474,15 +1496,13 @@ RTXCompiler::processMacroClip(Clip* mac, OutputChunk* arg)
       ret->rewrite = other->rewrite; // TODO: what if they both have rewrite?
       ret->src = other->src;
     }
-    else
+    else if(arg->pos == 0)
     {
       die(L"Macro not given value for attribute '" + mac->part + L"'.");
     }
+    else ret->src = arg->pos;
   }
-  else
-  {
-    ret->src = (mac->src == 1) ? arg->pos : mac->src;
-  }
+  else ret->src = mac->src;
   return ret;
 }
 
@@ -1497,7 +1517,7 @@ RTXCompiler::processMacroCond(Cond* mac, OutputChunk* arg)
   }
   else
   {
-    ret->left = processMacroCond(mac->left, arg);
+    if(mac->op != NOT) ret->left = processMacroCond(mac->left, arg);
     ret->right = processMacroCond(mac->right, arg);
   }
   return ret;
@@ -1805,7 +1825,12 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
   }
   else
   {
-    ret += CHUNK;
+    if(r->conjoined)
+    {
+      ret += compileString(L"+");
+      ret += APPENDSURFACE;
+    }
+    else ret += CHUNK;
     ret += compileString(r->lemma);
     ret += APPENDSURFACE;
     for(unsigned int i = 0; i < r->tags.size(); i++)

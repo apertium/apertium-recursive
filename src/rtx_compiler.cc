@@ -1157,7 +1157,7 @@ RTXCompiler::processRetagRules()
     {
       if(rule[i].first[0] == L'[')
       {
-        wstring cat = rule[i].first.substr(1, rule[i].first.size()-2);
+        wstring cat = rule[i].first.substr(2);
         if(collections.find(cat) == collections.end())
         {
           wcerr << L"Warning: Tag-rewrite rule '" << src << "' > '" << dest << "' contains mapping from undefined category '" << cat << "'." << endl;

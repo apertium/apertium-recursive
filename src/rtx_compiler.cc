@@ -1998,6 +1998,14 @@ RTXCompiler::processRules()
         ch->pos = 0;
         ch->getall = true;
         ch->vars = rule->vars;
+        if(ch->vars.find(L"lemcase") == ch->vars.end())
+        {
+          Clip* lemcase = new Clip;
+          lemcase->src = 1;
+          lemcase->part = L"lemcase";
+          lemcase->side = L"sl";
+          ch->vars[L"lemcase"] = lemcase;
+        }
         ch->conjoined = false;
         ch->nextConjoined = false;
         ch->pattern = rule->result[patidx];

@@ -244,7 +244,10 @@ public:
     else if(rule != -1 && seen_rules.find(state) == seen_rules.end())
     {
       seen_rules[state] = rule;
-      rules_to_states[rule] = state;
+      if(rules_to_states.find(rule) == rules_to_states.end())
+      {
+        rules_to_states[rule] = state;
+      }
       int symbol = countToFinalSymbol(rule);
       state = transducer.insertSingleTransduction(symbol, state, weight);
       transducer.setFinal(state);

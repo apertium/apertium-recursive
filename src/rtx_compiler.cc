@@ -1063,6 +1063,11 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     rule->result = outNodes;
     eatSpaces();
     rule->line = currentLine;
+    if(!source.eof() && source.peek() == L'"')
+    {
+      rule->name = parseIdent();
+      eatSpaces();
+    }
     if(isdigit(source.peek()))
     {
       rule->weight = parseWeight();
@@ -1294,7 +1299,29 @@ RTXCompiler::makePattern(int ruleid)
       pat.push_back(el);
     }
   }
-  PB.addPattern(pat, ruleid+1, rule->weight);
+  if(excluded.find(rule->name) == excluded.end())
+  {
+    PB.addPattern(pat, ruleid+1, rule->weight);
+    if(lexicalizations.find(rule->name) != lexicalizations.end())
+    {
+      for(auto pr : lexicalizations[rule->name])
+      {
+        if(pr.second.size() == pat.size())
+        {
+          vector<vector<PatternElement*>> p2;
+          for(auto el : pr.second)
+          {
+            p2.push_back(vector<PatternElement*>(1, el));
+          }
+          PB.addPattern(p2, ruleid+1, pr.first);
+        }
+        else
+        {
+          wcerr << L"Lexicalization for rule '" << rule->name << "' with weight " << pr.first << " has " << pr.second.size() << " elements in its pattern where the base rule has " << pat.size() << ". It will be ignored." << endl;
+        }
+      }
+    }
+  }
 }
 
 wstring
@@ -2044,7 +2071,14 @@ RTXCompiler::processRules()
         parentTags = outputRules[ch->pattern];
         inOutputRule = true;
         outputBytecode.push_back(processOutputChoice(cur));
-        PB.outRuleNames.push_back(L"line " + to_wstring(rule->line));
+        if(rule->name.size() > 0)
+        {
+          PB.outRuleNames.push_back(rule->name + L" - line " + to_wstring(rule->line));
+        }
+        else
+        {
+          PB.outRuleNames.push_back(L"line " + to_wstring(rule->line));
+        }
         inOutputRule = false;
         parentTags.clear();
         patidx++;
@@ -2113,11 +2147,62 @@ RTXCompiler::buildLookahead()
 }
 
 void
+RTXCompiler::loadLex(const string& fname)
+{
+  wifstream lex;
+  lex.open(fname);
+  if(!lex.is_open())
+  {
+    wcerr << "Unable to open file " << fname.c_str() << " for reading." << endl;
+    exit(EXIT_FAILURE);
+  }
+  while(!lex.eof())
+  {
+    wstring name;
+    while(!lex.eof() && lex.peek() != L'\t') name += lex.get();
+    lex.get();
+    wstring weight;
+    while(!lex.eof() && lex.peek() != L'\t') weight += lex.get();
+    lex.get();
+    if(lex.eof()) break;
+    vector<PatternElement*> pat;
+    wcerr << endl << name << endl;
+    while(!lex.eof() && lex.peek() != L'\n')
+    {
+      PatternElement* p = new PatternElement;
+      while(lex.peek() != L'@') p->lemma += lex.get();
+      lex.get();
+      wstring tag;
+      while(lex.peek() != L' ' && lex.peek() != L'\n')
+      {
+        if(lex.peek() == L'.')
+        {
+          lex.get();
+          p->tags.push_back(tag);
+          tag.clear();
+        }
+        else tag += lex.get();
+      }
+      p->tags.push_back(tag);
+      if(lex.peek() == L' ') lex.get();
+      pat.push_back(p);
+    }
+    lex.get();
+    lexicalizations[name].push_back(make_pair(stod(weight), pat));
+  }
+}
+
+void
 RTXCompiler::read(const string &fname)
 {
   currentLine = 1;
   sourceFile = fname;
   source.open(fname);
+  if(!source.is_open())
+  {
+    wcerr << L"Unable to open file " << fname.c_str() << " for reading." << endl;
+    exit(EXIT_FAILURE);
+  }
   while(true)
   {
     eatSpaces();
@@ -2162,7 +2247,14 @@ RTXCompiler::write(const string &fname)
   {
     inRules.push_back(make_pair(2*reductionRules[i]->pattern.size() - 1,
                                 reductionRules[i]->compiled));
-    PB.inRuleNames.push_back(L"line " + to_wstring(reductionRules[i]->line));
+    if(reductionRules[i]->name.size() > 0)
+    {
+      PB.inRuleNames.push_back(reductionRules[i]->name + L" - line " + to_wstring(reductionRules[i]->line));
+    }
+    else
+    {
+      PB.inRuleNames.push_back(L"line " + to_wstring(reductionRules[i]->line));
+    }
     wstring tg = reductionRules[i]->result.back();
     if(seen.find(tg) == seen.end())
     {

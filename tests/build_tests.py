@@ -16,12 +16,16 @@ class InterpreterTest:
     bin_file = ''
     input = ''
     output = ''
+    lex_file = ''
     def setUp(self):
-        subprocess.check_output(['../src/rtx-comp', self.rules_file, self.bin_file],
-                                stderr=subprocess.STDOUT, universal_newlines=True)
+        args = ['../src/rtx-comp']
+        if len(self.lex_file) > 0:
+            args += ['-l', self.lex_file]
+        args += [self.rules_file, self.bin_file]
+        subprocess.check_output(args, stderr=subprocess.STDOUT, universal_newlines=True)
     def test_output(self):
-        actual = subprocess.check_output(['../src/rtx-proc', '-a', self.bin_file],
-                                         input=self.input, encoding='utf-8', universal_newlines=True)
+        args = ['../src/rtx-proc', '-a', self.bin_file]
+        actual = subprocess.check_output(args, input=self.input, encoding='utf-8', universal_newlines=True)
         self.maxDiff = None
         self.assertEqual(self.output, actual)
 
@@ -55,6 +59,8 @@ for fname in ls:
             o = fo.read()
             fo.close()
             f.write(run.format(base, i, o))
+            if (base + '.lex') in ls:
+                f.write("    lex_file = '%s.lex'\n" % base)
         else:
             f.write(err.format(base))
 f.write('''

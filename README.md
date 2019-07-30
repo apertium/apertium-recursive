@@ -49,7 +49,7 @@ Testing
 -------
 
 ```bash
-./run_tests.sh
+make test
 ```
 
 Using in a Pair

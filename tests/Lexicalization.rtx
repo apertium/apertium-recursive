@@ -1,0 +1,9 @@
+n: _.number;
+pr: _;
+NP: _;
+
+number = sg pl sp;
+
+NP -> "gen" n de@pr n { 3 + 's@gen _ 1 } |
+      "of"  n de@pr n { 1 _ 2 _ 3 } |
+      "n-n" n de@pr n { 3 _ 1 } ;

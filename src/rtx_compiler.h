@@ -64,6 +64,7 @@ private:
     int line;
     int grab_all;
     float weight;
+    wstring name;
     vector<vector<wstring>> pattern;
     vector<OutputChoice*> output;
     map<wstring, Clip*> vars;
@@ -88,6 +89,16 @@ private:
    * Default: false
    */
   bool summarizing;
+
+  /**
+   * Names of rules that should be excluded from the pattern transducer
+   */
+  set<wstring> excluded;
+
+  /**
+   * Lexically specified alternate weights for rules
+   */
+  map<wstring, vector<pair<double, vector<PatternElement*>>>> lexicalizations;
 
   //////////
   // COLLECTIONS AND DATA STRUCTURES
@@ -574,6 +585,11 @@ public:
   {
     summarizing = value;
   }
+  void excludeRule(wstring name)
+  {
+    excluded.insert(name);
+  }
+  void loadLex(const string& filename);
 
   void read(string const &filename);
   void write(string const &filename);

@@ -2013,6 +2013,7 @@ RTXCompiler::processRules()
     rule = reductionRules[ruleid];
     if(summarizing)
     {
+      if(rule->name.size() > 0) wcerr << "\"" << rule->name << "\": ";
       for(auto it : rule->result) wcerr << it << " ";
       wcerr << "->";
       for(auto it : rule->pattern) wcerr << " " << it[1];
@@ -2166,7 +2167,6 @@ RTXCompiler::loadLex(const string& fname)
     lex.get();
     if(lex.eof()) break;
     vector<PatternElement*> pat;
-    wcerr << endl << name << endl;
     while(!lex.eof() && lex.peek() != L'\n')
     {
       PatternElement* p = new PatternElement;

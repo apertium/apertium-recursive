@@ -92,7 +92,8 @@ if __name__ == '__main__':
         sys.exit()
     os.remove(rtxbin)
     for line in proc.stderr.decode('utf-8').splitlines():
-        o, p = line.strip().split(' -> ')
+        if '->' not in line: continue
+        o, p = line.strip().split('"')[-1].split(' -> ')
         Rule(o.split(), p.split())
     Rule.mode = 'l' if (pairname == langname + '-' + lang2) else 'r'
     for w in Rule.generate(node):

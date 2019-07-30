@@ -144,10 +144,20 @@ int main(int argc, char *argv[])
   if(optind <= (argc - 2))
   {
     input = fopen(argv[optind+1], "rb");
+    if(input == NULL)
+    {
+      wcerr << "Unable to open " << argv[optind+1] << " for reading." << endl;
+      exit(EXIT_FAILURE);
+    }
   }
   if(optind <= (argc - 3))
   {
     output = fopen(argv[optind+2], "wb");
+    if(input == NULL)
+    {
+      wcerr << "Unable to open " << argv[optind+2] << " for writing." << endl;
+      exit(EXIT_FAILURE);
+    }
   }
 
   p.process(input, output);

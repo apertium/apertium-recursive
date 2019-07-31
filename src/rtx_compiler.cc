@@ -745,10 +745,6 @@ RTXCompiler::parseOutputElement()
       ret->pattern = parseIdent();
       nextToken(L"]");
     }
-    else
-    {
-      ret->pattern = currentRule->pattern[ret->pos-1][1];
-    }
   }
   else if(isNextToken(L'*'))
   {
@@ -1640,13 +1636,13 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       {
         die(L"could not find tag order for element " + to_wstring(r->pos));
       }
-      wstring pos = currentRule->pattern[r->pos-1][1];
+      pos = currentRule->pattern[r->pos-1][1];
     }
     wstring patname = (r->pattern != L"") ? r->pattern : pos;
     pos = (pos != L"") ? pos : patname;
     if(outputRules.find(patname) == outputRules.end())
     {
-      die(L"could not find output pattern '" + patname + L"'");
+      die(L"Could not find output pattern '" + patname + L"'.");
     }
     vector<wstring> pattern = outputRules[patname];
 

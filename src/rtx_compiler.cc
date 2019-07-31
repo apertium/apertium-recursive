@@ -2229,10 +2229,9 @@ void
 RTXCompiler::write(const string &fname)
 {
   FILE *out = fopen(fname.c_str(), "wb");
-  if(!out)
+  if(out == NULL)
   {
-    cerr << "Error: cannot open '" << fname;
-    cerr << "' for writing" << endl;
+    cerr << "Error: cannot open '" << fname << "' for writing" << endl;
     exit(EXIT_FAILURE);
   }
 

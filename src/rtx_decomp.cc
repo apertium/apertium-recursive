@@ -238,7 +238,7 @@ int main(int argc, char *argv[])
     in = fopen(argv[optind], "rb");
     if(in == NULL)
     {
-      wcerr << L"Error: could not open file " << argv[optind] << endl;
+      wcerr << L"Error: could not open file " << argv[optind] << " for reading." << endl;
       exit(EXIT_FAILURE);
     }
   }
@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
     out = fopen(argv[optind+1], "wb");
     if(out == NULL)
     {
-      wcerr << L"Error: could not open file " << argv[optind+1] << endl;
+      wcerr << L"Error: could not open file " << argv[optind+1] << " for writing." << endl;
       exit(EXIT_FAILURE);
     }
   }

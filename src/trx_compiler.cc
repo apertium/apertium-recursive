@@ -74,6 +74,7 @@ TRXCompiler::compile(vector<string> files)
     curDoc = nonpost[i].second;
     processFile(nonpost[i].first);
   }
+  buildLookahead();
 }
 
 void
@@ -513,6 +514,7 @@ TRXCompiler::processRules(xmlNode* node)
     wstring id = toWstring(getAttr(rule, (const xmlChar*) "id"));
     wstring weight = toWstring(getAttr(rule, (const xmlChar*) "weight"));
     wstring firstChunk = toWstring(getAttr(rule, (const xmlChar*) "firstChunk"));
+    if(firstChunk == L"") firstChunk = L"*";
     bool pat = false;
     bool act = false;
     for(xmlNode* part = rule->children; part != NULL; part = part->next)
@@ -1732,6 +1734,7 @@ TRXCompiler::buildLookahead()
       }
       if(!match) continue;
       vector<wstring> todo = rules[j].second[rules[i].second.size()];
+      todo.push_back(L"*");
       while(todo.size() > 0)
       {
         wstring cur = todo.back();

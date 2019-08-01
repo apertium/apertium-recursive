@@ -35,6 +35,8 @@ private:
   xmlDoc* curDoc;
   int curPatternSize;
   int longestPattern;
+  vector<pair<wstring, vector<vector<PatternElement*>>>> lookahead;
+  map<wstring, vector<pair<double, vector<vector<PatternElement*>>>>> lexicalizations;
 
   void die(xmlNode* node, wstring msg);
   void warn(xmlNode* node, wstring msg);
@@ -61,9 +63,13 @@ private:
   wstring processValue(xmlNode* node);
   wstring processCond(xmlNode* node);
   wstring processChoose(xmlNode* node);
+
+  void buildLookahead();
+
 public:
   TRXCompiler();
   ~TRXCompiler();
+  void loadLex(const string& fname);
   void compile(vector<string> files);
   void write(const char* binfile);
 };

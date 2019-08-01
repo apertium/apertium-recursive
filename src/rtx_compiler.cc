@@ -365,9 +365,10 @@ RTXCompiler::parseRetagRule(wstring srcTag)
 void
 RTXCompiler::parseAttrRule(wstring categoryName)
 {
-  if(collections.find(categoryName) != collections.end())
+  if(collections.find(categoryName) != collections.end()
+     || PB.isAttrDefined(categoryName))
   {
-    die(L"redefinition of category " + categoryName);
+    die(L"Redefinition of attribute category '" + categoryName + L"'.");
   }
   eatSpaces();
   if(isNextToken(L'('))
@@ -1347,6 +1348,11 @@ RTXCompiler::compileTag(wstring s)
 wstring
 RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
 {
+  if(c->src != 0 && !(c->part == L"lemcase" ||
+      collections.find(c->part) != collections.end() || PB.isAttrDefined(c->part)))
+  {
+    die(L"Attempt to clip undefined attribute '" + c->part + L"'.");
+  }
   int src = (c->src == -1) ? 0 : c->src;
   bool useReplace = inOutputRule;
   wstring dest;

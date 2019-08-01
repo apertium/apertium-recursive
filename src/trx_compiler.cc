@@ -5,6 +5,7 @@
 #include <trx_compiler.h>
 
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <apertium/string_utils.h>
 
@@ -509,6 +510,9 @@ TRXCompiler::processRules(xmlNode* node)
       warn(rule, L"Ignoring non-<rule> element in <section-rules>.");
       continue;
     }
+    wstring id = toWstring(getAttr(rule, (const xmlChar*) "id"));
+    wstring weight = toWstring(getAttr(rule, (const xmlChar*) "weight"));
+    wstring firstChunk = toWstring(getAttr(rule, (const xmlChar*) "firstChunk"));
     bool pat = false;
     bool act = false;
     for(xmlNode* part = rule->children; part != NULL; part = part->next)
@@ -578,11 +582,19 @@ TRXCompiler::processRules(xmlNode* node)
         if(!inOutput)
         {
           inputRuleSizes.push_back(pls.size());
-          int blocker = PB.addPattern(pls, inputRules.size() + 1);
+          int blocker = PB.addPattern(pls, inputRules.size() + 1, (weight.size() > 0 ? stod(weight) : 0.0));
           if(blocker != -1)
           {
             warn(rule, L"Pattern for rule " + to_wstring(inputRules.size()+1) + L" is blocked by rule " + to_wstring(blocker) + L".");
           }
+          for(auto lex : lexicalizations[id])
+          {
+            if(lex.second.size() == pls.size())
+            {
+              PB.addPattern(lex.second, inputRules.size() + 1, lex.first);
+            }
+          }
+          lookahead.push_back(make_pair(firstChunk, pls));
         }
       }
       else if(!xmlStrcmp(part->name, (const xmlChar*) "action"))
@@ -1653,6 +1665,139 @@ TRXCompiler::processChoose(xmlNode* node)
     ret = test + act + ret;
   }
   return ret;
+}
+
+void
+TRXCompiler::buildLookahead()
+{
+  bool starwas = PB.starCanBeEmpty;
+  PB.starCanBeEmpty = true;
+  vector<pair<vector<wstring>, vector<vector<wstring>>>> rules;
+  map<wstring, set<wstring>> first;
+  for(auto it : lookahead)
+  {
+    vector<vector<wstring>> parts;
+    for(auto part : it.second)
+    {
+      vector<wstring> p;
+      for(auto op : part)
+      {
+        p.push_back(op->tags[0]);
+        if(op->tags[0] == L"*")
+        {
+          p = vector<wstring>(1, L"*");
+          break;
+        }
+      }
+      parts.push_back(p);
+    }
+    vector<wstring> out = StringUtils::split_wstring(it.first, L" ");
+    if(out.size() == 0) out.push_back(L"*");
+    rules.push_back(make_pair(out, parts));
+    for(auto ch : out)
+    {
+      if(ch.size() == 0) continue;
+      for(auto ch2 : parts[0]) first[ch].insert(ch2);
+    }
+  }
+  for(unsigned int i = 0; i < rules.size(); i++)
+  {
+    vector<PatternElement*> check;
+    set<wstring> ops;
+    for(unsigned int j = 0; j < rules.size(); j++)
+    {
+      if(rules[j].second.size() <= rules[i].second.size()) continue;
+      bool match = true;
+      for(unsigned int k = 0; k < rules[i].second.size(); k++)
+      {
+        bool found = false;
+        for(auto iop : rules[i].second[k])
+        {
+          if(iop == L"*") found = true;
+          if(found) break;
+          for(auto jop : rules[j].second[k])
+          {
+            if(iop == jop || jop == L"*")
+            {
+              found = true;
+              break;
+            }
+          }
+        }
+        if(!found)
+        {
+          match = false;
+          break;
+        }
+      }
+      if(!match) continue;
+      vector<wstring> todo = rules[j].second[rules[i].second.size()];
+      while(todo.size() > 0)
+      {
+        wstring cur = todo.back();
+        todo.pop_back();
+        if(ops.count(cur) == 0)
+        {
+          ops.insert(cur);
+          PatternElement* p = new PatternElement;
+          p->tags.push_back(cur);
+          p->tags.push_back(L"*");
+          check.push_back(p);
+          if(first.find(cur) != first.end())
+          {
+            todo.insert(todo.end(), first[cur].begin(), first[cur].end());
+          }
+        }
+      }
+    }
+    PB.addLookahead(i, check);
+  }
+  PB.starCanBeEmpty = starwas;
+}
+
+void
+TRXCompiler::loadLex(const string& fname)
+{
+  wifstream lex;
+  lex.open(fname);
+  if(!lex.is_open())
+  {
+    wcerr << "Unable to open file " << fname.c_str() << " for reading." << endl;
+    exit(EXIT_FAILURE);
+  }
+  while(!lex.eof())
+  {
+    wstring name;
+    while(!lex.eof() && lex.peek() != L'\t') name += lex.get();
+    lex.get();
+    wstring weight;
+    while(!lex.eof() && lex.peek() != L'\t') weight += lex.get();
+    lex.get();
+    if(lex.eof()) break;
+    vector<vector<PatternElement*>> pat;
+    while(!lex.eof() && lex.peek() != L'\n')
+    {
+      PatternElement* p = new PatternElement;
+      while(lex.peek() != L'@') p->lemma += lex.get();
+      lex.get();
+      wstring tag;
+      while(lex.peek() != L' ' && lex.peek() != L'\n')
+      {
+        if(lex.peek() == L'.')
+        {
+          lex.get();
+          p->tags.push_back(tag);
+          tag.clear();
+        }
+        else tag += lex.get();
+      }
+      p->tags.push_back(tag);
+      if(lex.peek() == L' ') lex.get();
+      pat.push_back(vector<PatternElement*>(1, p));
+    }
+    lex.get();
+    lexicalizations[name].push_back(make_pair(stod(weight), pat));
+  }
 }
 
 void

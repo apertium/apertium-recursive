@@ -36,8 +36,31 @@ RTXProcessor::~RTXProcessor()
 }
 
 void
-RTXProcessor::readData(FILE *in)
+RTXProcessor::read(string const &filename)
 {
+  FILE *in = fopen(filename.c_str(), "rb");
+  if(in == NULL)
+  {
+    wcerr << "Unable to open file " << filename.c_str() << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  longestPattern = 2*Compression::multibyte_read(in) - 1;
+  int count = Compression::multibyte_read(in);
+  pat_size.reserve(count);
+  rule_map.reserve(count);
+  for(int i = 0; i < count; i++)
+  {
+    pat_size.push_back(Compression::multibyte_read(in));
+    rule_map.push_back(Compression::wstring_read(in));
+  }
+  count = Compression::multibyte_read(in);
+  output_rules.reserve(count);
+  for(int i = 0; i < count; i++)
+  {
+    output_rules.push_back(Compression::wstring_read(in));
+  }
+
   alphabet.read(in);
 
   Transducer* t = new Transducer();
@@ -55,6 +78,8 @@ RTXProcessor::readData(FILE *in)
   }
 
   mx = new MatchExe2(*t, &alphabet, finals, pat_size);
+
+  delete t;
 
   // attr_items
   bool recompile_attrs = Compression::string_read(in) != string(pcre_version());
@@ -87,37 +112,6 @@ RTXProcessor::readData(FILE *in)
       listslow[cad_k].insert(StringUtils::tolower(cad_v));
     }
   }
-
-  delete t;
-}
-
-void
-RTXProcessor::read(string const &filename)
-{
-  FILE *in = fopen(filename.c_str(), "rb");
-  if(in == NULL)
-  {
-    wcerr << "Unable to open file " << filename.c_str() << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  longestPattern = 2*Compression::multibyte_read(in) - 1;
-  int count = Compression::multibyte_read(in);
-  pat_size.reserve(count);
-  rule_map.reserve(count);
-  for(int i = 0; i < count; i++)
-  {
-    pat_size.push_back(Compression::multibyte_read(in));
-    rule_map.push_back(Compression::wstring_read(in));
-  }
-  count = Compression::multibyte_read(in);
-  output_rules.reserve(count);
-  for(int i = 0; i < count; i++)
-  {
-    output_rules.push_back(Compression::wstring_read(in));
-  }
-
-  readData(in);
 
   int nameCount = Compression::multibyte_read(in);
   for(int i = 0; i < nameCount; i++)
@@ -972,12 +966,6 @@ void
 RTXProcessor::setNullFlush(bool null_flush)
 {
   this->null_flush = null_flush;
-}
-
-void
-RTXProcessor::setTrace(bool trace)
-{
-  this->trace = trace;
 }
 
 bool

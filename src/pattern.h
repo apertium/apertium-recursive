@@ -27,7 +27,7 @@ private:
   set<int> final_symbols;
 
   map<int, int> seen_rules;
-  map<int, int> rules_to_states;
+  map<int, vector<int>> rules_to_states;
 
   Alphabet alphabet;
   Transducer transducer;

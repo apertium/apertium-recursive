@@ -61,7 +61,6 @@ private:
   bool inword;
   bool null_flush;
   bool internal_null_flush;
-  bool trace;
   bool printingSteps;
   bool printingRules;
   bool printingMatch;
@@ -73,10 +72,6 @@ private:
   bool printingText;
   TreeMode treePrintMode;
   int newBranchId;
-
-  void destroy();
-  void readData(FILE *input);
-  void readRTXProcessor(string const &input);
 
   wstring caseOf(wstring const &str);
   wstring copycase(wstring const &source_word, wstring const &target_word);
@@ -128,7 +123,6 @@ public:
   void process(FILE *in, FILE *out);
   bool getNullFlush(void);
   void setNullFlush(bool null_flush);
-  void setTrace(bool trace);
   void printSteps(bool val)
   {
     printingSteps = val;

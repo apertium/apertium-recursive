@@ -213,17 +213,10 @@ PatternBuilder::addPattern(vector<vector<PatternElement*>> pat, int rule, double
     transducer.setFinal(state);
     return -1;
   }
-  else if(rules_to_states.find(rule) != rules_to_states.end())
-  {
-    transducer.linkStates(state, rules_to_states[rule], 0);
-  }
   else if(seen_rules.find(state) == seen_rules.end())
   {
     seen_rules[state] = rule;
-    if(rules_to_states.find(rule) == rules_to_states.end())
-    {
-      rules_to_states[rule] = state;
-    }
+    rules_to_states[rule].push_back(state);
     int symbol = countToFinalSymbol(rule);
     state = transducer.insertSingleTransduction(symbol, state, weight);
     transducer.setFinal(state);
@@ -284,20 +277,23 @@ PatternBuilder::addLookahead(const int rule, const vector<PatternElement*>& opti
 {
   // there's a lot of hardcodishness about this function
   if(options.size() == 0) return;
-  int state = rules_to_states[rule+1];
-  state = transducer.insertSingleTransduction(alphabet(L"<LOOK:AHEAD>"), state);
-  state = transducer.insertSingleTransduction(L'^', state);
-  transducer.linkStates(state, state, alphabet(L"<ANY_CHAR>"));
-  int end = transducer.insertSingleTransduction(alphabet(L"<" + options[0]->tags[0] + L">"), state);
-  transducer.linkStates(end, end, alphabet(L"<ANY_TAG>"));
-  end = transducer.insertSingleTransduction(L'$', end);
-  for(unsigned int i = 1; i < options.size(); i++)
+  for(auto s : rules_to_states[rule+1])
   {
-    int temp = transducer.insertSingleTransduction(alphabet(L"<" + options[i]->tags[0] + L">"), state);
-    transducer.linkStates(temp, temp, alphabet(L"<ANY_TAG>"));
-    transducer.linkStates(temp, end, L'$');
+    int state = s;
+    state = transducer.insertSingleTransduction(alphabet(L"<LOOK:AHEAD>"), state);
+    state = transducer.insertSingleTransduction(L'^', state);
+    transducer.linkStates(state, state, alphabet(L"<ANY_CHAR>"));
+    int end = transducer.insertSingleTransduction(alphabet(L"<" + options[0]->tags[0] + L">"), state);
+    transducer.linkStates(end, end, alphabet(L"<ANY_TAG>"));
+    end = transducer.insertSingleTransduction(L'$', end);
+    for(unsigned int i = 1; i < options.size(); i++)
+    {
+      int temp = transducer.insertSingleTransduction(alphabet(L"<" + options[i]->tags[0] + L">"), state);
+      transducer.linkStates(temp, temp, alphabet(L"<ANY_TAG>"));
+      transducer.linkStates(temp, end, L'$');
+    }
+    transducer.setFinal(end);
   }
-  transducer.setFinal(end);
 }
 
 void

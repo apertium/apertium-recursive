@@ -13,8 +13,8 @@ src/rtx-comp
 src/rtx-proc
 src/trx-comp
 src/rtx-decomp
+src/random-path
 stamp-h1
-*.comp
 *.bin
 *.decomp
 tests/run_tests.py

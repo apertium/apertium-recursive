@@ -280,6 +280,7 @@ RTXCompiler::parseOutputRule(wstring pattern)
   {
     inMacro = true;
     parserIsInChunk = true;
+    // to ensure that range checking on clips works
     currentRule = new Rule;
     currentRule->pattern.push_back(vector<wstring>(2, L"blah"));
     parseOutputCond();
@@ -510,8 +511,6 @@ RTXCompiler::lookupOperator(wstring op)
 RTXCompiler::Cond*
 RTXCompiler::parseCond()
 {
-  // TODO: if anyone wants (1.lem = and) things will go wrong
-  // maybe something with (1.lem = "and") ?
   nextToken(L"(");
   eatSpaces();
   vector<Cond*> parts;

@@ -61,6 +61,7 @@ TRXCompiler::compile(vector<string> files)
       // TODO: <transfer default="chunk"> vs <transfer default="lu">
     }
   }
+  // We compile postchunk first so that non-postchunk knows what rules exist
   inOutput = true;
   for(unsigned int i = 0; i < post.size(); i++)
   {
@@ -408,6 +409,7 @@ TRXCompiler::processVars(xmlNode* node)
     }
     wstring name = toWstring(requireAttr(var, (const xmlChar*) "n"));
     wstring mang = name;
+    // unlike lists and attributes, we don't want to deduplicate variables
     while(vars.find(mang) != vars.end()) mang += L"*";
     varMangle[name] = mang;
     vars[mang] = toWstring(getAttr(var, (const xmlChar*) "v"));
@@ -1687,6 +1689,7 @@ TRXCompiler::buildLookahead()
         p.push_back(op->tags[0]);
         if(op->tags[0] == L"*")
         {
+          // if it can match <ANY_TAG>, anything else is irrelevant
           p = vector<wstring>(1, L"*");
           break;
         }

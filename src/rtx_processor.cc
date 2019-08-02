@@ -17,13 +17,11 @@ RTXProcessor::RTXProcessor()
   inword = false;
   printingSteps = false;
   printingRules = false;
-  printingMatch = false;
   printingBranches = false;
   printingAll = false;
   noCoref = true;
   isLinear = false;
   null_flush = false;
-  internal_null_flush = false;
   printingTrees = false;
   printingText = true;
   treePrintMode = TreeModeNest;
@@ -885,7 +883,7 @@ RTXProcessor::readToken(FILE *in)
   while(true)
   {
     int val = fgetwc_unlocked(in);
-    if(feof(in) || (internal_null_flush && val == 0))
+    if(feof(in) || (null_flush && val == 0))
     {
       furtherInput = false;
       Chunk* ret = chunkPool.next();
@@ -1536,12 +1534,10 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
       i++;
       if((*it)->isBlank)
       {
-        if(printingMatch) { wcerr << "  matching blank" << endl; }
         mx->matchBlank(state, first, last);
       }
       else
       {
-        if(printingMatch) { wcerr << "  matching chunk " << (*it)->matchSurface() << endl; }
         mx->matchChunk(state, first, last, (*it)->matchSurface(), false);
         int r = mx->getRule(state, first, last).first;
         if(r != -1)
@@ -1696,12 +1692,8 @@ RTXProcessor::process(FILE* in, FILE* out)
     wcerr << "\\usepackage[cm]{fullpage}" << endl << endl;
     wcerr << "\\begin{document}" << endl << endl;
   }
-  output = out;
   if(null_flush)
   {
-    null_flush = false;
-    internal_null_flush = true;
-
     while(!feof(in))
     {
       furtherInput = true;
@@ -1722,8 +1714,6 @@ RTXProcessor::process(FILE* in, FILE* out)
       chunkPool.reset();
       parsePool.reset();
     }
-    internal_null_flush = false;
-    null_flush = true;
   }
   else if(isLinear)
   {

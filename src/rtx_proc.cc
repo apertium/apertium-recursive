@@ -58,7 +58,6 @@ int main(int argc, char *argv[])
 
   bool haveB = false;
   bool haveT = false;
-  p.withoutCoref(true);
 
   while(true)
   {

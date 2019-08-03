@@ -1319,7 +1319,7 @@ RTXProcessor::filterParseGraph()
       if(shouldOutput)
       {
         if(cur->length < minNode->length
-            || (cur->length == minNode->length && cur->weight > minNode->weight))
+            || (cur->length == minNode->length && cur->weight >= minNode->weight))
         {
           if(printingBranches) { wcerr << i << L" beats " << min << " in length or weight" << endl; }
           if(printingAll) wcerr << " has fewer partial parses or a higher weight than branch " << minNode->id << "." << endl;

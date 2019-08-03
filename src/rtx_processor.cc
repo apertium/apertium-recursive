@@ -1303,7 +1303,7 @@ RTXProcessor::filterParseGraph()
       if(printingAll) wcerr << " has no possible continuations." << endl;
       continue;
     }
-    else if(noFilter) continue;
+    else if(noFilter && !shouldOutput) continue;
     if(min == -1)
     {
       if(printingAll) wcerr << " has no active branch to compare to." << endl;

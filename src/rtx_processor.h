@@ -256,6 +256,12 @@ private:
    */
   int newBranchId;
 
+  /**
+   * If this is set to true, filterParseGraph() will only discard branches
+   * on parse error
+   */
+  bool noFilter;
+
   //////////
   // VIRTUAL MACHINE
   //////////
@@ -443,6 +449,10 @@ public:
   void completeTrace(bool val)
   {
     printingAll = val;
+  }
+  void noFiltering(bool val)
+  {
+    noFilter = val;
   }
   bool setOutputMode(string mode);
 };

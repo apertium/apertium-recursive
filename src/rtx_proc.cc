@@ -12,6 +12,7 @@ void endProgram(char *name)
   cout << "  -b, --both:       print text (use with -T)" << endl;
   cout << "  -e, --everything: print a complete trace of execution" << endl;
   cout << "  -f, --filter:     trace filterParseGraph()" << endl;
+  cout << "  -F, --no-filter:  only discard branches on parse error" << endl;
   cout << "  -m, --mode:       set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
   cout << "  -r, --rules:      print the rules that are being applied" << endl;
   cout << "  -s, --steps:      print the instructions executed by the stack machine" << endl;
@@ -24,6 +25,7 @@ void endProgram(char *name)
   cout << "  -b:   print text (use with -T)" << endl;
   cout << "  -e:   print a complete trace of execution" << endl;
   cout << "  -f:   trace filterParseGraph()" << endl;
+  cout << "  -F:   only discard branches on parse error" << endl;
   cout << "  -m:   set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
   cout << "  -r:   print the rules that are being applied" << endl;
   cout << "  -s:   print the instructions executed by the stack machine" << endl;
@@ -46,6 +48,7 @@ int main(int argc, char *argv[])
       {"both",              0, 0, 'b'},
       {"everything",        0, 0, 'e'},
       {"filter",            0, 0, 'f'},
+      {"no-filter",         0, 0, 'F'},
       {"mode",              1, 0, 'm'},
       {"rules",             0, 0, 'r'},
       {"steps",             0, 0, 's'},
@@ -63,9 +66,9 @@ int main(int argc, char *argv[])
   {
 #if HAVE_GETOPT_LONG
     int option_index;
-    int c = getopt_long(argc, argv, "abefm:rstTzh", long_options, &option_index);
+    int c = getopt_long(argc, argv, "abefFm:rstTzh", long_options, &option_index);
 #else
-    int c = getopt(argc, argv, "abefm:rstTzh");
+    int c = getopt(argc, argv, "abefFm:rstTzh");
 #endif
 
     if(c == -1)
@@ -89,6 +92,10 @@ int main(int argc, char *argv[])
 
     case 'f':
       p.printFilter(true);
+      break;
+
+    case 'F':
+      p.noFiltering(true);
       break;
 
     case 'm':

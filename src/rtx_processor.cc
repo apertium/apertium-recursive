@@ -26,6 +26,7 @@ RTXProcessor::RTXProcessor()
   printingText = true;
   treePrintMode = TreeModeNest;
   newBranchId = 0;
+  noFilter = false;
 }
 
 RTXProcessor::~RTXProcessor()
@@ -1302,6 +1303,7 @@ RTXProcessor::filterParseGraph()
       if(printingAll) wcerr << " has no possible continuations." << endl;
       continue;
     }
+    else if(noFilter) continue;
     if(min == -1)
     {
       if(printingAll) wcerr << " has no active branch to compare to." << endl;

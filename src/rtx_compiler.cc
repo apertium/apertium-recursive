@@ -985,7 +985,7 @@ RTXCompiler::parseOutputCond()
     temp->mode = L"[]";
     temp->pos = 0;
     ret->chunks.push_back(temp);
-    Clip* blank;
+    Clip* blank = new Clip;
     blank->src = 0;
     blank->part = L"";
     ret->clips.push_back(blank);

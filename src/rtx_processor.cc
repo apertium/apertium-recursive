@@ -1476,7 +1476,20 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       if(printingAll)
       {
         if(treePrintMode == TreeModeLatex) wcerr << "\\subsection{Outputting Branch " << parseGraph[0]->id << "}" << endl << endl;
-        else wcerr << "Outputting Branch " << parseGraph[0]->id << endl << endl;
+        else
+        {
+          wcerr << "Outputting Branch " << parseGraph[0]->id << endl << endl;
+          vector<Chunk*> parts;
+          parts.resize(parseGraph[0]->length);
+          parseGraph[0]->getChunks(parts, parseGraph[0]->length-1);
+          for(auto node : parts)
+          {
+            if(node->isBlank) wcerr << "[Blank]: " << endl;
+            else wcerr << "[Chunk]: " << endl;
+            node->writeTree(treePrintMode, NULL);
+          }
+          wcerr << endl;
+        }
       }
       parseGraph[0]->getChunks(outputQueue, parseGraph[0]->length-1);
       parseGraph.clear();

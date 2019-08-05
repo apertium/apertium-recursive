@@ -46,7 +46,16 @@ class {0}(InterpreterTest, unittest.TestCase):
     output = """{2}"""
 '''
 
+cook = '''
+class Cookbook{0}(InterpreterTest, unittest.TestCase):
+    rules_file = 'cookbook/{0}.rtx'
+    bin_file = 'cookbook/{0}.bin'
+    input = """{1}"""
+    output = """{2}"""
+'''
+
 from os import listdir
+from os.path import basename
 ls = listdir('.')
 for fname in ls:
     if fname.endswith('.rtx'):
@@ -63,6 +72,16 @@ for fname in ls:
                 f.write("    lex_file = '%s.lex'\n" % base)
         else:
             f.write(err.format(base))
+for fname in listdir('./cookbook'):
+    if fname.endswith('.rtx'):
+        base = fname.split('.')[0]
+        rf = open('cookbook/' + fname)
+        i = ''
+        o = ''
+        for l in rf.readlines():
+            if l.startswith('! < '): i += l[4:]
+            elif l.startswith('! > '): o += l[4:]
+        f.write(cook.format(base, i, o))
 f.write('''
 if __name__ == '__main__':
     unittest.main(buffer=True, verbosity=2)

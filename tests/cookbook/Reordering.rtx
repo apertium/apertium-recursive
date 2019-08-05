@@ -1,0 +1,11 @@
+gender = m f;
+number = sg pl;
+
+n: _.gender.number;
+adj: _;
+NP: _;
+
+NP -> adj n { 2 _1 1 } ;
+
+! < ^green<adj>/verde<adj>$ ^dog<n><sg>/perro<n><m><sg>$
+! > ^perro<n><m><sg>$ ^verde<adj>$

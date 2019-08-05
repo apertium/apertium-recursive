@@ -20,12 +20,15 @@ private:
   // TYPES
   //////////
 
+  struct OutputChoice;
+
   struct Clip
   {
     int src;
     wstring part;
     wstring side;
     wstring rewrite;
+    OutputChoice* choice;
   };
 
   struct Cond
@@ -35,8 +38,6 @@ private:
     Cond* left;
     Cond* right;
   };
-
-  struct OutputChoice;
 
   struct OutputChunk
   {
@@ -57,6 +58,7 @@ private:
     vector<Cond*> conds;
     vector<OutputChoice*> nest;
     vector<OutputChunk*> chunks;
+    vector<Clip*> clips;
   };
 
   struct Rule
@@ -199,6 +201,11 @@ private:
   OutputChoice* currentChoice;
 
   /**
+   * The Clip currently being parsed
+   */
+  Clip* currentClip;
+
+  /**
    * All attributes which can be clipped from the chunk whose children
    * are currently being compiled
    */
@@ -213,6 +220,11 @@ private:
    * Whether the current if statement or node is inside a chunk or at surface level
    */
   bool parserIsInChunk;
+
+  /**
+   * Whether the current if statement being parsed is inside a clip
+   */
+  bool parserIsInClip;
 
   /**
    * This is true when parsing a macro

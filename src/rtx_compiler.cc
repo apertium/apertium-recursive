@@ -16,9 +16,11 @@ RTXCompiler::RTXCompiler()
   currentRule = NULL;
   currentChunk = NULL;
   currentChoice = NULL;
+  currentClip = NULL;
   errorsAreSyntax = true;
   inOutputRule = false;
   parserIsInChunk = false;
+  parserIsInClip = false;
   inMacro = false;
   PB.starCanBeEmpty = true;
   fallbackRule = true;
@@ -452,6 +454,23 @@ RTXCompiler::parseClip(int src = -2)
   {
     ret->src = -1;
   }
+  else if(source.peek() == L'(')
+  {
+    OutputChunk* chunkwas = currentChunk;
+    OutputChoice* choicewas = currentChoice;
+    currentClip = ret;
+    currentChunk = NULL;
+    currentChoice = NULL;
+    ret->src = -2;
+    bool boolwas = parserIsInClip;
+    parserIsInClip = true;
+    parseOutputCond();
+    parserIsInClip = boolwas;
+    currentChunk = chunkwas;
+    currentChoice = choicewas;
+    currentClip = NULL;
+    return ret;
+  }
   else
   {
     ret->src = 0;
@@ -857,6 +876,7 @@ RTXCompiler::parseOutputElement()
     OutputChoice* temp = new OutputChoice;
     temp->chunks.push_back(ret);
     temp->nest.push_back(NULL);
+    temp->clips.push_back(NULL);
     if(currentChunk == NULL)
     {
       currentRule->output.push_back(temp);
@@ -875,9 +895,11 @@ RTXCompiler::parseOutputCond()
   nextToken(L"(");
   OutputChoice* choicewas = currentChoice;
   OutputChunk* chunkwas = currentChunk;
+  Clip* clipwas = currentClip;
   OutputChoice* ret = new OutputChoice;
   currentChoice = ret;
   currentChunk = NULL;
+  currentClip = NULL;
   while(true)
   {
     wstring mode = StringUtils::tolower(nextToken());
@@ -908,6 +930,13 @@ RTXCompiler::parseOutputCond()
     {
       parseOutputCond();
       ret->chunks.push_back(NULL);
+      ret->clips.push_back(NULL);
+    }
+    else if(parserIsInClip)
+    {
+      ret->clips.push_back(parseClip());
+      ret->chunks.push_back(NULL);
+      ret->nest.push_back(NULL);
     }
     else if(source.peek() == L'{')
     {
@@ -916,11 +945,13 @@ RTXCompiler::parseOutputCond()
         die(L"Nested chunks are currently not allowed.");
       }
       ret->nest.push_back(NULL);
+      ret->clips.push_back(NULL);
       parseOutputChunk();
     }
     else if(source.peek() == L'[')
     {
       ret->nest.push_back(NULL);
+      ret->clips.push_back(NULL);
       parseOutputChunk();
     }
     else
@@ -931,6 +962,7 @@ RTXCompiler::parseOutputCond()
       }
       parseOutputElement();
       ret->nest.push_back(NULL);
+      ret->clips.push_back(NULL);
     }
     if(mode == L"else" || mode == L"otherwise" || mode == L"always")
     {
@@ -940,6 +972,7 @@ RTXCompiler::parseOutputCond()
   }
   currentChunk = chunkwas;
   currentChoice = choicewas;
+  currentClip = clipwas;
   if(ret->chunks.size() == 0)
   {
     die(L"If statement cannot be empty.");
@@ -952,16 +985,25 @@ RTXCompiler::parseOutputCond()
     temp->mode = L"[]";
     temp->pos = 0;
     ret->chunks.push_back(temp);
+    Clip* blank;
+    blank->src = 0;
+    blank->part = L"";
+    ret->clips.push_back(blank);
   }
   eatSpaces();
   if(currentChoice != NULL)
   {
     currentChoice->nest.push_back(ret);
     currentChoice->chunks.push_back(NULL);
+    currentChoice->clips.push_back(NULL);
   }
   else if(currentChunk != NULL)
   {
     currentChunk->children.push_back(ret);
+  }
+  else if(currentClip != NULL)
+  {
+    currentClip->choice = ret;
   }
   else if(inMacro)
   {
@@ -1018,6 +1060,7 @@ RTXCompiler::parseOutputChunk()
   OutputChoice* ret = new OutputChoice;
   ret->chunks.push_back(ch);
   ret->nest.push_back(NULL);
+  ret->clips.push_back(NULL);
   if(currentChoice != NULL)
   {
     currentChoice->chunks.push_back(ch);
@@ -1347,6 +1390,10 @@ RTXCompiler::compileTag(wstring s)
 wstring
 RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
 {
+  if(c->src == -2)
+  {
+    return processOutputChoice(c->choice);
+  }
   if(c->src != 0 && !(c->part == L"lemcase" ||
       collections.find(c->part) != collections.end() || PB.isAttrDefined(c->part)))
   {
@@ -1510,6 +1557,7 @@ RTXCompiler::compileClip(wstring part, int pos, wstring side = L"")
 RTXCompiler::Clip*
 RTXCompiler::processMacroClip(Clip* mac, OutputChunk* arg)
 {
+  if(mac == NULL) return NULL;
   Clip* ret = new Clip;
   ret->part = mac->part;
   ret->side = mac->side;
@@ -1529,6 +1577,11 @@ RTXCompiler::processMacroClip(Clip* mac, OutputChunk* arg)
       die(L"Macro not given value for attribute '" + mac->part + L"'.");
     }
     else ret->src = arg->pos;
+  }
+  else if(mac->src == -2)
+  {
+    ret->src = mac->src;
+    ret->choice = processMacroChoice(mac->choice, arg);
   }
   else ret->src = mac->src;
   return ret;
@@ -1607,6 +1660,10 @@ RTXCompiler::processMacroChoice(OutputChoice* mac, OutputChunk* arg)
   for(unsigned int i = 0; i < mac->chunks.size(); i++)
   {
     ret->chunks.push_back(processMacroChunk(mac->chunks[i], arg));
+  }
+  for(unsigned int i = 0; i < mac->clips.size(); i++)
+  {
+    ret->clips.push_back(processMacroClip(mac->clips[i], arg));
   }
   return ret;
 }
@@ -1975,13 +2032,17 @@ wstring
 RTXCompiler::processOutputChoice(OutputChoice* choice)
 {
   wstring ret;
-  if(choice->nest.back() == NULL)
+  if(choice->nest.back() != NULL)
   {
-    ret += processOutputChunk(choice->chunks.back());
+    ret += processOutputChoice(choice->nest.back());
+  }
+  else if(choice->clips.back() != NULL)
+  {
+    ret += compileClip(choice->clips.back());
   }
   else
   {
-    ret += processOutputChoice(choice->nest.back());
+    ret += processOutputChunk(choice->chunks.back());
   }
   int n = choice->conds.size();
   for(int i = 1; i <= n; i++)
@@ -1990,6 +2051,10 @@ RTXCompiler::processOutputChoice(OutputChoice* choice)
     if(choice->nest[n-i] != NULL)
     {
       act = processOutputChoice(choice->nest[n-i]);
+    }
+    else if(choice->clips[n-i] != NULL)
+    {
+      act = compileClip(choice->clips[n-i]);
     }
     else
     {

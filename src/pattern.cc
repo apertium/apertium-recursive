@@ -2,7 +2,7 @@
 
 #include <lttoolbox/compression.h>
 #include <apertium/string_utils.h>
-#include <apertium/apertium_re.h>
+#include <apertium_re.h>
 #include <apertium/utf_converter.h>
 
 using namespace std;

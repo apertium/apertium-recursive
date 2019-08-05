@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <string>
-#include <apertium/apertium_re.h>
+#include <apertium_re.h>
 #include <apertium/string_utils.h>
 
 enum ClipType

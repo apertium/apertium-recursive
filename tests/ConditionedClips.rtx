@@ -1,0 +1,10 @@
+negative = neg ;
+
+v: _;
+adv: _;
+n: _;
+VP: _.negative;
+S: _;
+
+VP -> adv v [$negative=(if (1.lem/sl = not) neg else 2.negative)] { 2 } ;
+S -> VP n { (if (1.negative = neg) NOPE@bloop else YEP@bloop) _ 2 _1 1 } ;

@@ -1,0 +1,4 @@
+^quickly<adv>/blah<adv>$ ^want<v>/quiere<v>$ ^ninja<n>/ninjjj<n>$
+^quickly<adv>/blah<adv>$ ^want<v><neg>/quiere<v>$ ^ninja<n>/ninjjj<n>$
+^not<adv>/blah<adv>$ ^want<v>/quiere<v>$ ^ninja<n>/ninjjj<n>$
+^not<adv>/blah<adv>$ ^want<v><neg>/quiere<v>$ ^ninja<n>/ninjjj<n>$

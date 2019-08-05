@@ -1025,7 +1025,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
       {
         wcerr << " (" << inRuleNames[rule-1] << ")";
       }
-      if(printingAll) wcerr << " to branch " << node->id;
+      if(printingAll) wcerr << " to branch " << node->id << " with weight " << rule_and_weight.second;
       if(printingAll && treePrintMode == TreeModeLatex) wcerr << "}" << endl << endl;
       else wcerr << ": ";
       for(unsigned int i = 0; i < currentInput.size(); i++)
@@ -1452,6 +1452,22 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
         checkForReduce(temp, tempNode);
       }
       parseGraph.swap(temp);
+    }
+    if(printingAll && treePrintMode != TreeModeLatex)
+    {
+      for(auto branch : parseGraph)
+      {
+        wcerr << "Branch " << branch->id << ": " << branch->length << " nodes, weight = " << branch->weight << endl;
+        vector<Chunk*> parts;
+        parts.resize(branch->length);
+        branch->getChunks(parts, branch->length-1);
+        for(auto node : parts)
+        {
+          if(node->isBlank) wcerr << "[Blank]: " << endl;
+          else wcerr << "[Chunk]: " << endl;
+          node->writeTree(treePrintMode, NULL);
+        }
+      }
     }
     if(furtherInput) inputBuffer.push_back(readToken(in));
     if(filterParseGraph())

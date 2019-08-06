@@ -5,4 +5,4 @@ NP: _;
 gender = m f mf;
 number = sg pl sp;
 
-NP -> adj n {2 _1 1(number=2.number)};
+NP -> adj n {2 _1 1[number=2.number]};

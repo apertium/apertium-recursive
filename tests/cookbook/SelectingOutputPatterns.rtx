@@ -14,17 +14,17 @@ S: _;
 
 v_inf: _.<inf>;
 v_fin: _.tense.person.number;
-v: (if (1.tense = inf) 1[v_inf]
-    else 1[v_fin]);
+v: (if (1.tense = inf) 1(v_inf)
+    else 1(v_fin));
 
 NP -> n.$gender.$number { 1 } |
-      adj NP.$gender.$number { 2 _1 1(gender=2.gender) } ;
-DP -> det NP.$number [$person=p3] { 1(number=2.number) _1 2 } |
+      adj NP.$gender.$number { 2 _1 1[gender=2.gender] } ;
+DP -> det NP.$number [$person=p3] { 1[number=2.number] _1 2 } |
       prn.$person.$number { 1 } ;
-VP -> v.$person.$number { 1(person=$person, number=$number) } |
+VP -> v.$person.$number { 1[person=$person, number=$number] } |
       v.$person.$number to@pr v.inf
-          { 1(person=$person, number=$number) _1 3 } ;
-S -> DP VP { 1 _1 2(person=1.person, number=1.number) } ;
+          { 1[person=$person, number=$number] _1 3 } ;
+S -> DP VP { 1 _1 2[person=1.person, number=1.number] } ;
 
 ! < ^the<det>/el<det>$ ^big<adj>/grande<adj>$ ^nervous<adj>/nervioso<adj>$ ^green<adj>/verde<adj>$ ^dog<n><sg>/perro<n><m><sg>$ ^want<v><past>/quiere<v><past>$ ^to<pr>/a<pr>$ ^swim<v><inf>/nadar<v><inf>$
 ! > ^el<det><sg>$ ^perro<n><m><sg>$ ^verde<adj><m>$ ^nervioso<adj><m>$ ^grande<adj><m>$ ^quiere<v><past><p3><sg>$ ^nadar<v><inf>$

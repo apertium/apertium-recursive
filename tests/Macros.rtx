@@ -9,12 +9,12 @@ dist = dist prx;
 
 det_dem: _.<dem>.dist;
 det_def: _.definite.number;
-det: (if (1.det_type = dem) 1[det_dem] else 1[det_def]);
+det: (if (1.det_type = dem) 1(det_dem) else 1(det_def));
 no_det: (if (1.number = sg) un@det.ind.sg else un@det.ind.pl);
 
 gender = m f mf;
 number = sg pl sp;
 
-NP -> adj n.$number {2 _1 1(number=2.number)};
-DP -> 1: det NP {1(number=2.number) _1 2} |
-      0: NP {*[no_det](number=1.number) _ 1};
+NP -> adj n.$number {2 _1 1[number=2.number]};
+DP -> 1: det NP {1[number=2.number] _1 2} |
+      0: NP {*(no_det)[number=1.number] _ 1};

@@ -14,7 +14,7 @@ PP: _;
 
 NP -> n [$preps=1.case>preps] { 1 } ;
 DP -> det NP.$preps { 1 _1 2 } ;
-PP -> DP ?(1.preps not = NOpr) { *[pr](lemh=1.preps) _ 1 } ;
+PP -> DP ?(1.preps not = NOpr) { *(pr)[lemh=1.preps] _ 1 } ;
 
 ! < ^el<det><def><sg>/the<det><def><sg>$ ^perro<n><abl><sg>/dog<n><abl><sg>$
 ! > ^from<pr>$ ^the<det><def><sg>$ ^dog<n><sg>$

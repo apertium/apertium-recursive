@@ -4,4 +4,4 @@ adj: _.gender;
 
 gender = m f;
 
-NP -> n adj {1 _1 2(gender=1.gender/ref)};
+NP -> n adj {1 _1 2[gender=1.gender/ref]};

@@ -10,11 +10,11 @@ number = sg pl sp;
 
 NP -> adj %n
       (if (2.number/sl = pl)
-          {2 _1 1(number=2.number)}
+          {2 _1 1[number=2.number]}
        else-if (2.number/ref = sp)
-          {1(number=sg) _1 2}
+          {1[number=sg] _1 2}
        else
           {1 1 1});
 Dbar -> %det {%1 _ (if ($number = sg) singular@whatever
                     else plural@whatever)};
-DP -> Dbar NP {1(number=2.number) _1 2};
+DP -> Dbar NP {1[number=2.number] _1 2};

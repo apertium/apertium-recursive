@@ -5,7 +5,7 @@ n: _.gender.number;
 adj: _.gender;
 NP: _;
 
-NP -> adj n { 1(gender=2.gender) _1 2 } ;
+NP -> adj n { 1[gender=2.gender] _1 2 } ;
 
 ! < ^green<adj>/verde<adj>$ ^dog<n><sg>/perro<n><m><sg>$
 ! > ^verde<adj><m>$ ^perro<n><m><sg>$

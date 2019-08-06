@@ -8,8 +8,8 @@ NP: _.gender.number;
 DP: _;
 
 NP -> n.$gender.$number { 1 } |
-      adj NP.$gender.$number { 2 _1 1(gender=2.gender) } ;
-DP -> det NP { 1(number=2.number) _1 2 } ;
+      adj NP.$gender.$number { 2 _1 1[gender=2.gender] } ;
+DP -> det NP { 1[number=2.number] _1 2 } ;
 
 ! < ^the<det>/el<det>$ ^big<adj>/grande<adj>$ ^nervous<adj>/nervioso<adj>$ ^green<adj>/verde<adj>$ ^dog<n><sg>/perro<n><m><sg>$
 ! > ^el<det><sg>$ ^perro<n><m><sg>$ ^verde<adj><m>$ ^nervioso<adj><m>$ ^grande<adj><m>$

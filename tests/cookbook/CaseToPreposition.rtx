@@ -11,7 +11,7 @@ NP: _;
 NP -> n (if (1.case>preps = NOpr)
             { 1 }
          else
-            { *[pr](lemh=1.case>preps) _ 1 } ) ;
+            { *(pr)[lemh=1.case>preps] _ 1 } ) ;
 
 ! < ^perro<n><abl><sg>/dog<n><abl><sg>$
 ! > ^from<pr>$ ^dog<n><sg>$

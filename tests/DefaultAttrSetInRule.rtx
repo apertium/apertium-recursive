@@ -13,4 +13,4 @@ tense = past pres fut;
 
 NA -> adj %n {%2 _1 %1};
 NP -> det %NA {%1 _1 %2};
-VP -> NP vblex {1 _1 2(person=p3)};
+VP -> NP vblex {1 _1 2[person=p3]};

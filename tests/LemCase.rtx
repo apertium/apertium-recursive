@@ -5,6 +5,6 @@ adj: _;
 det: _;
 v: _;
 
-NP -> n adj.$lemcase/ref {1(lemcase=aa) _1 2(lemcase=1.lemcase)} |
-      det NP.$lemcase {1(lemcase=2.lemcase) _1 2};
-VP -> NP v { 1 _1 2 _ "de# yoop"[n](lemcase=1.lemcase) };
+NP -> n adj.$lemcase/ref {1[lemcase=aa] _1 2[lemcase=1.lemcase]} |
+      det NP.$lemcase {1[lemcase=2.lemcase] _1 2};
+VP -> NP v { 1 _1 2 _ "de# yoop"(n)[lemcase=1.lemcase] };

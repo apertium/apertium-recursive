@@ -758,22 +758,22 @@ RTXCompiler::parseOutputElement()
     {
       die(L"There are only " + to_wstring(currentRule->pattern.size()) + L" elements in the pattern.");
     }
-    if(source.peek() == L'[')
+    if(source.peek() == L'(')
     {
-      nextToken(L"[");
+      nextToken(L"(");
       ret->pattern = parseIdent();
-      nextToken(L"]");
+      nextToken(L")");
     }
   }
   else if(isNextToken(L'*'))
   {
-    if(source.peek() != L'[')
+    if(source.peek() != L'(')
     {
       die(L"No macro name specified.");
     }
-    nextToken(L"[");
+    nextToken(L"(");
     ret->pattern = parseIdent(true);
-    nextToken(L"]");
+    nextToken(L")");
     ret->pos = 0;
     ret->mode = L"#";
   }
@@ -781,7 +781,7 @@ RTXCompiler::parseOutputElement()
   {
     ret->lemma = parseIdent();
     ret->pos = 0;
-    wstring mode = nextToken(L"@", L"[");
+    wstring mode = nextToken(L"@", L"(");
     if(mode == L"@")
     {
       if(ret->getall)
@@ -821,7 +821,7 @@ RTXCompiler::parseOutputElement()
     {
       ret->mode = L"#@";
       ret->pattern = parseIdent(true);
-      nextToken(L"]");
+      nextToken(L")");
       unsigned int i = 0;
       for(; i < ret->lemma.size(); i++)
       {
@@ -847,9 +847,9 @@ RTXCompiler::parseOutputElement()
       ret->vars[L"lem"] = lem;
     }
   }
-  if(isNextToken(L'('))
+  if(isNextToken(L'['))
   {
-    while(!source.eof() && source.peek() != L')')
+    while(!source.eof() && source.peek() != L']')
     {
       eatSpaces();
       wstring var = parseIdent();
@@ -861,7 +861,7 @@ RTXCompiler::parseOutputElement()
         cl->part = L"";
       }
       ret->vars[var] = cl;
-      if(nextToken(L",", L")") == L")")
+      if(nextToken(L",", L"]") == L"]")
       {
         break;
       }

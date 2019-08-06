@@ -143,7 +143,7 @@ RTXCompiler::nextTokenNoSpace()
       c = source.peek();
       if(c == L'\\')
       {
-        ret += source.get();
+        source.get();
         ret += source.get();
       }
       else if(SPECIAL_CHARS.find(c) == string::npos && !isspace(c))

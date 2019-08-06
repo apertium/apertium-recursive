@@ -1,0 +1,23 @@
+number = sg pl;
+case = nom acc dat gen loc abl;
+preps = NOpr to of at from;
+
+case > preps : nom NOpr, acc NOpr, dat to, gen of, loc at, abl from;
+
+n: _.number;
+pr: _;
+NP: _;
+
+NP -> n (if (1.case>preps = NOpr)
+            { 1 }
+         else
+            { *[pr](lemh=1.case>preps) _ 1 } ) ;
+
+! < ^perro<n><abl><sg>/dog<n><abl><sg>$
+! > ^from<pr>$ ^dog<n><sg>$
+
+! < ^pez<n><acc><sg>/fish<n><acc><sg>$
+! > ^fish<n><sg>$
+
+! < ^patata<n><gen><pl>/potato<n><gen><pl>$
+! > ^of<pr>$ ^potato<n><pl>$

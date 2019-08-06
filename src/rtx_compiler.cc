@@ -1402,13 +1402,13 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
   int src = (c->src == -1) ? 0 : c->src;
   bool useReplace = inOutputRule;
   wstring dest;
-  if(inOutputRule && _dest.size() > 0)
-  {
-    dest = _dest;
-  }
-  else if(c->rewrite.size() > 0)
+  if(c->rewrite.size() > 0)
   {
     dest = c->rewrite;
+  }
+  else if(inOutputRule && _dest.size() > 0)
+  {
+    dest = _dest;
   }
   wstring cl = (c->part == L"lemcase") ? compileString(L"lem") : compileString(c->part);
   cl += INT;
@@ -1509,6 +1509,11 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
     }
     if(!found && dest != c->part)
     {
+      if(dest == L"lem" || dest == L"lemh" || dest == L"lemq")
+      {
+        ret += DISTAG;
+        return ret;
+      }
       die(L"There is no tag-rewrite rule from '" + c->part + L"' to '" + dest + L"'.");
     }
     wstring check;
@@ -1540,6 +1545,10 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
       check = cur + check;
     }
     ret += check;
+    if(_dest == L"lemh" || _dest == L"lem" || _dest == L"lemq")
+    {
+      if(_dest != dest) ret += DISTAG;
+    }
   }
   return ret;
 }

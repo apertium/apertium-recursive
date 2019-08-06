@@ -1,0 +1,26 @@
+number = sg pl;
+definite = def ind;
+case = nom acc dat gen loc abl;
+preps = NOpr to of at from;
+
+case > preps : nom NOpr, acc NOpr, dat to, gen of, loc at, abl from;
+
+n: _.number;
+pr: _;
+det: _.definite.number;
+NP: _.preps;
+DP: _.preps;
+PP: _;
+
+NP -> n [$preps=1.case>preps] { 1 } ;
+DP -> det NP.$preps { 1 _1 2 } ;
+PP -> DP ?(1.preps not = NOpr) { *[pr](lemh=1.preps) _ 1 } ;
+
+! < ^el<det><def><sg>/the<det><def><sg>$ ^perro<n><abl><sg>/dog<n><abl><sg>$
+! > ^from<pr>$ ^the<det><def><sg>$ ^dog<n><sg>$
+
+! < ^un<det><ind><sg>/a<det><ind><sg>$ ^pez<n><acc><sg>/fish<n><acc><sg>$
+! > ^a<det><ind><sg>$ ^fish<n><sg>$
+
+! < ^el<det><def><pl>/the<det><def><pl>$ ^patata<n><gen><pl>/potato<n><gen><pl>$
+! > ^of<pr>$ ^the<det><def><pl>$ ^potato<n><pl>$

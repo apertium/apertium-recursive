@@ -1478,6 +1478,10 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
         if(treePrintMode == TreeModeLatex) wcerr << "\\subsection{Outputting Branch " << parseGraph[0]->id << "}" << endl << endl;
         else
         {
+          wcerr << endl;
+          wcerr << "************************************************************" << endl;
+          wcerr << "************************************************************" << endl;
+          wcerr << "************************************************************" << endl;
           wcerr << "Outputting Branch " << parseGraph[0]->id << endl << endl;
           vector<Chunk*> parts;
           parts.resize(parseGraph[0]->length);
@@ -1488,6 +1492,9 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
             else wcerr << "[Chunk]: " << endl;
             node->writeTree(treePrintMode, NULL);
           }
+          wcerr << "************************************************************" << endl;
+          wcerr << "************************************************************" << endl;
+          wcerr << "************************************************************" << endl;
           wcerr << endl;
         }
       }

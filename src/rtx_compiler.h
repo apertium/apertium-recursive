@@ -27,7 +27,7 @@ private:
     int src;
     wstring part;
     wstring side;
-    wstring rewrite;
+    vector<wstring> rewrite;
     OutputChoice* choice;
   };
 

@@ -506,7 +506,7 @@ RTXCompiler::parseClip(int src = -2)
     {
       die(L"variable cannot be rewritten");
     }
-    ret->rewrite = parseIdent();
+    ret->rewrite.push_back(parseIdent());
   }
   return ret;
 }
@@ -830,20 +830,20 @@ RTXCompiler::parseOutputElement()
       Clip* lemh = new Clip;
       lemh->part = ret->lemma.substr(0, i);
       lemh->src = 0;
-      lemh->rewrite = L"lemh";
+      lemh->rewrite.push_back(L"lemh");
       ret->vars[L"lemh"] = lemh;
       if(i < ret->lemma.size())
       {
         Clip* lemq = new Clip;
         lemq->part = ret->lemma.substr(i+2);
         lemq->src = 0;
-        lemq->rewrite = L"lemq";
+        lemq->rewrite.push_back(L"lemq");
         ret->vars[L"lemq"] = lemq;
       }
       Clip* lem = new Clip;
       lem->part = ret->lemma;
       lem->src = 0;
-      lem->rewrite = L"lem";
+      lem->rewrite.push_back(L"lem");
       ret->vars[L"lem"] = lem;
     }
   }
@@ -1401,15 +1401,8 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
   }
   int src = (c->src == -1) ? 0 : c->src;
   bool useReplace = inOutputRule;
-  wstring dest;
-  if(c->rewrite.size() > 0)
-  {
-    dest = c->rewrite;
-  }
-  else if(inOutputRule && _dest.size() > 0)
-  {
-    dest = _dest;
-  }
+  vector<wstring> rewrite = c->rewrite;
+  if(_dest.size() > 0) rewrite.push_back(_dest);
   wstring cl = (c->part == L"lemcase") ? compileString(L"lem") : compileString(c->part);
   cl += INT;
   cl += src;
@@ -1445,7 +1438,8 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
   blank += JUMPONFALSE;
   if(c->src == 0)
   {
-    if(c->rewrite == L"lem" || c->rewrite == L"lemh" || c->rewrite == L"lemq")
+    if(c->rewrite.size() == 1 &&
+       (c->rewrite.back() == L"lem" || c->rewrite.back() == L"lemh" || c->rewrite.back() == L"lemq"))
     {
       return compileString(c->part);
     }
@@ -1494,27 +1488,28 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
   {
     ret += GETCASE;
   }
-  if(dest.size() > 0)
+  wstring src_cat = c->part;
+  for(auto dest : rewrite)
   {
     bool found = false;
     vector<pair<wstring, wstring>> rule;
     for(unsigned int i = 0; i < retagRules.size(); i++)
     {
-      if(retagRules[i][0].first == c->part && retagRules[i][0].second == dest)
+      if(retagRules[i][0].first == src_cat && retagRules[i][0].second == dest)
       {
         found = true;
         rule = retagRules[i];
         break;
       }
     }
-    if(!found && dest != c->part)
+    if(!found && dest != src_cat)
     {
       if(dest == L"lem" || dest == L"lemh" || dest == L"lemq")
       {
         ret += DISTAG;
         return ret;
       }
-      die(L"There is no tag-rewrite rule from '" + c->part + L"' to '" + dest + L"'.");
+      die(L"There is no tag-rewrite rule from '" + src_cat + L"' to '" + dest + L"'.");
     }
     wstring check;
     for(unsigned int i = 1; i < rule.size(); i++)
@@ -1545,10 +1540,8 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
       check = cur + check;
     }
     ret += check;
-    if(_dest == L"lemh" || _dest == L"lem" || _dest == L"lemq")
-    {
-      if(_dest != dest) ret += DISTAG;
-    }
+    if(dest == L"lemh" || dest == L"lem" || dest == L"lemq") ret += DISTAG;
+    src_cat = dest;
   }
   return ret;
 }
@@ -1578,8 +1571,7 @@ RTXCompiler::processMacroClip(Clip* mac, OutputChunk* arg)
       Clip* other = arg->vars[mac->part];
       ret->part = other->part;
       ret->side = other->side;
-      if(ret->rewrite.size() == 0) ret->rewrite = other->rewrite;
-      //ret->rewrite = other->rewrite; // TODO: what if they both have rewrite?
+      ret->rewrite.insert(ret->rewrite.begin(), other->rewrite.begin(), other->rewrite.end());
       ret->src = other->src;
     }
     else if(arg->pos == 0)
@@ -1766,7 +1758,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
         Clip* c = new Clip;
         c->part = r->lemma.substr(j);
         c->src = 0;
-        c->rewrite = L"lemq";
+        c->rewrite.push_back(L"lemq");
         r->vars[L"lemq"] = c;
       }
       else ret += compileString(r->lemma);
@@ -1796,7 +1788,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       c->part = L"lemh";
       c->src = r->pos;
       c->side = L"tl";
-      c->rewrite = L"lemh";
+      c->rewrite.push_back(L"lemh");
       ret += compileClip(c);
     }
     if(r->vars.find(L"lemcase") != r->vars.end())
@@ -1986,7 +1978,7 @@ RTXCompiler::processCond(Cond* cond)
   {
     wstring lit;
     wstring attr;
-    wstring rew;
+    vector<wstring> rew;
     Clip* l = cond->left->val;
     if(l->src == 0) lit = l->part;
     else

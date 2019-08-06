@@ -22,9 +22,9 @@ adv: _;
  
  PP -> pr DP { 1 _1 2 } ;
  
- DP -> det %NP { 1(gender=2.gender, number=2.number) _1 2 } ;
+ DP -> det %NP { 1[gender=2.gender, number=2.number] _1 2 } ;
  
- VP -> %vblex DP { 1(tense=$tense, person=$person, number=$number) _1 2 } |
+ VP -> %vblex DP { 1[tense=$tense, person=$person, number=$number] _1 2 } |
        adv %VP (if (1.lem/sl = there) 
                    { %2 }
                 else

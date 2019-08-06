@@ -1578,7 +1578,8 @@ RTXCompiler::processMacroClip(Clip* mac, OutputChunk* arg)
       Clip* other = arg->vars[mac->part];
       ret->part = other->part;
       ret->side = other->side;
-      ret->rewrite = other->rewrite; // TODO: what if they both have rewrite?
+      if(ret->rewrite.size() == 0) ret->rewrite = other->rewrite;
+      //ret->rewrite = other->rewrite; // TODO: what if they both have rewrite?
       ret->src = other->src;
     }
     else if(arg->pos == 0)
@@ -1780,7 +1781,14 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     }
     else if(r->pos == 0)
     {
-      ret += compileString(L"unknown");
+      if(currentRule->grab_all != -1)
+      {
+        ret += compileClip(L"lem", currentRule->grab_all, L"tl");
+      }
+      else
+      {
+        ret += compileString(L"unknown");
+      }
     }
     else
     {

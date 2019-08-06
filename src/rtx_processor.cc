@@ -369,10 +369,12 @@ RTXProcessor::applyRule(const wstring& rule)
         if(!popBool())
         {
           i++;
+          if(printingSteps) { wcerr << " -> false" << endl; }
         }
         else
         {
           i += rule_data[++i];
+          if(printingSteps) { wcerr << " -> true, jumping" << endl; }
         }
         break;
       case JUMPONFALSE:
@@ -380,10 +382,12 @@ RTXProcessor::applyRule(const wstring& rule)
         if(popBool())
         {
           i++;
+          if(printingSteps) { wcerr << " -> true" << endl; }
         }
         else
         {
           i += rule_data[++i];
+          if(printingSteps) { wcerr << " -> false, jumping" << endl; }
         }
         break;
       case AND:
@@ -420,6 +424,7 @@ RTXProcessor::applyRule(const wstring& rule)
           b = StringUtils::tolower(b);
         }
         pushStack(a == b);
+        if(printingSteps) { wcerr << " -> " << (a == b ? "true" : "false") << endl; }
       }
         break;
       case ISPREFIX:

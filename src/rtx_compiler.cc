@@ -1404,7 +1404,12 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
 {
   if(c->src == -2)
   {
-    return processOutputChoice(c->choice);
+    wstring ret = processOutputChoice(c->choice);
+    if(_dest == L"lem" || _dest == L"lemh" || _dest == L"lemq" || _dest == L"lemcase")
+    {
+      ret += DISTAG;
+    }
+    return ret;
   }
   if(c->src != 0 && !(c->part == L"lemcase" ||
       collections.find(c->part) != collections.end() || PB.isAttrDefined(c->part)))

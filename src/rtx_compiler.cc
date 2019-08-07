@@ -985,14 +985,22 @@ RTXCompiler::parseOutputCond()
   {
     //die(L"If statement has no else clause and thus could produce no output.");
     ret->nest.push_back(NULL);
-    OutputChunk* temp = new OutputChunk;
-    temp->mode = L"[]";
-    temp->pos = 0;
-    ret->chunks.push_back(temp);
-    Clip* blank = new Clip;
-    blank->src = 0;
-    blank->part = L"";
-    ret->clips.push_back(blank);
+    if(parserIsInClip)
+    {
+      Clip* blank = new Clip;
+      blank->src = 0;
+      blank->part = L"";
+      ret->clips.push_back(blank);
+      ret->chunks.push_back(NULL);
+    }
+    else
+    {
+      OutputChunk* temp = new OutputChunk;
+      temp->mode = L"[]";
+      temp->pos = 0;
+      ret->chunks.push_back(temp);
+      ret->clips.push_back(NULL);
+    }
   }
   eatSpaces();
   if(currentChoice != NULL)
@@ -1575,9 +1583,11 @@ RTXCompiler::processMacroClip(Clip* mac, OutputChunk* arg)
       Clip* other = arg->vars[mac->part];
       ret->part = other->part;
       ret->side = other->side;
-      if(ret->rewrite.size() == 0) ret->rewrite = other->rewrite;
+      ret->rewrite.insert(ret->rewrite.begin(), other->rewrite.begin(), other->rewrite.end());
+      //if(ret->rewrite.size() == 0) ret->rewrite = other->rewrite;
       //ret->rewrite = other->rewrite; // TODO: what if they both have rewrite?
       ret->src = other->src;
+      if(other->src == -2) ret->choice = other->choice;
     }
     else if(arg->pos == 0)
     {
@@ -1806,7 +1816,11 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     {
       if(pattern[i] == L"_")
       {
-        if(r->pos != 0)
+        if(r->vars.find(L"pos_tag") != r->vars.end())
+        {
+          ret += compileClip(r->vars[L"pos_tag"]);
+        }
+        else if(r->pos != 0)
         {
           //ret += compileTag(currentRule->pattern[r->pos-1][1]);
           ret += compileClip(L"pos_tag", r->pos, L"tl");

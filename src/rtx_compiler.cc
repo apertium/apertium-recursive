@@ -1537,16 +1537,16 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
     {
       wstring cur;
       cur += DUP;
+      cur += DISTAG;
       if(rule[i].first.size() > 2 &&
          rule[i].first[0] == L'[' && rule[i].first[1] == L']')
       {
-        cur += DISTAG;
         cur += compileString(rule[i].first.substr(2));
         cur += IN;
       }
       else
       {
-        cur += compileTag(rule[i].first);
+        cur += compileString(rule[i].first);
         cur += EQUAL;
       }
       cur += JUMPONFALSE;
@@ -1565,6 +1565,10 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
     {
       if(dest != dest) ret += DISTAG;
     }
+  }
+  if(_dest == L"lem" || _dest == L"lemh" || _dest == L"lemq" || _dest == L"lemcase")
+  {
+    ret += DISTAG;
   }
   return ret;
 }

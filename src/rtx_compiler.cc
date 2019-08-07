@@ -39,7 +39,13 @@ RTXCompiler::die(wstring message)
   }
   else
   {
-    wcerr << L"Error in rule beginning on line " << currentRule->line << L" of ";
+    wcerr << L"Error in ";
+    while(macroNameStack.size() > 0)
+    {
+      wcerr << "macro '" << macroNameStack.back() << "', invoked by ";
+      macroNameStack.pop_back();
+    }
+    wcerr << L"rule beginning on line " << currentRule->line << L" of ";
   }
   wcerr << UtfConverter::fromUtf8(sourceFile) << L": " << message << endl;
   if(errorsAreSyntax && !source.eof())
@@ -1754,7 +1760,10 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       {
         die(L"Cannot currently conjoin a macro.");
       }
-      return processOutputChoice(processMacroChoice(macros[patname], r));
+      macroNameStack.push_back(patname);
+      ret = processOutputChoice(processMacroChoice(macros[patname], r));
+      macroNameStack.pop_back();
+      return ret;
     }
     else if(r->conjoined)
     {

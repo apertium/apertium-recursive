@@ -250,6 +250,7 @@ private:
   wstring recentlyRead;
   bool errorsAreSyntax;
   string sourceFile;
+  vector<wstring> macroNameStack;
 
   /**
    * Report an error in the input file and exit

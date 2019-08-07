@@ -1402,7 +1402,7 @@ RTXCompiler::compileTag(wstring s)
   tag += L'<';
   tag += s;
   tag += L'>';
-  return compileString(tag);
+  return compileString(StringUtils::substitute(tag, L".", L"><"));
 }
 
 wstring
@@ -1459,8 +1459,8 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
   blank += JUMPONFALSE;
   if(c->src == 0)
   {
-    if(c->rewrite.size() > 0 &&
-       (c->rewrite.back() == L"lem" || c->rewrite.back() == L"lemh" || c->rewrite.back() == L"lemq"))
+    if(_dest == L"lem" || _dest == L"lemh" || _dest == L"lemq" || (c->rewrite.size() > 0 &&
+       (c->rewrite.back() == L"lem" || c->rewrite.back() == L"lemh" || c->rewrite.back() == L"lemq")))
     {
       return compileString(c->part);
     }
@@ -1822,7 +1822,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       c->src = r->pos;
       c->side = L"tl";
       c->rewrite.push_back(L"lemh");
-      ret += compileClip(c);
+      ret += compileClip(c, L"lemh");
     }
     if(r->vars.find(L"lemcase") != r->vars.end())
     {
@@ -1931,7 +1931,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     }
     if(r->vars.find(L"lemq") != r->vars.end())
     {
-      ret += compileClip(r->vars[L"lemq"]);
+      ret += compileClip(r->vars[L"lemq"], L"lemq");
       ret += APPENDSURFACE;
     }
     else if(r->pos != 0)

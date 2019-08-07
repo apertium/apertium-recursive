@@ -838,7 +838,7 @@ RTXProcessor::applyRule(const wstring& rule)
         wstring& s = theStack[stackIdx].s;
         if(s.size() > 0 && s[0] == L'<' && s[s.size()-1] == L'>')
         {
-          s = s.substr(1, s.size()-2);
+          s = StringUtils::substitute(s.substr(1, s.size()-2), L"><", L".");
         }
       }
         break;

@@ -199,6 +199,9 @@ TRXCompiler::requireAttr(xmlNode* node, const xmlChar* attr)
     }
   }
   die(node, L"Expected attribute '" + UtfConverter::fromUtf8((const char*) attr) + L"'");
+  return NULL;
+  // since die() ends the process, NULL will never be returned,
+  // but this keeps the compiler from complaining about the lack of a return statement
 }
 
 xmlChar*

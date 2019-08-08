@@ -22,8 +22,8 @@ bool load(FILE* input)
   fpos_t pos;
   if (fgetpos(input, &pos) == 0) {
       char header[4]{};
-      fread(header, 1, 4, input);
-      if (strncmp(header, HEADER_LTTOOLBOX, 4) == 0) {
+      size_t count = fread(header, 1, 4, input);
+      if (count == 4 && strncmp(header, HEADER_LTTOOLBOX, 4) == 0) {
           auto features = read_le<uint64_t>(input);
           if (features >= LTF_UNKNOWN) {
               throw std::runtime_error("FST has features that are unknown to this version of lttoolbox - upgrade!");

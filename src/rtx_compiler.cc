@@ -169,7 +169,7 @@ RTXCompiler::nextTokenNoSpace()
 bool
 RTXCompiler::isNextToken(wchar_t c)
 {
-  if(source.peek() == c)
+  if((wchar_t)source.peek() == c)
   {
     recentlyRead += source.get();
     return true;
@@ -1057,7 +1057,7 @@ RTXCompiler::parseOutputChunk()
   currentChunk = ch;
   currentChoice = NULL;
   ch->pos = 0;
-  while(source.peek() != end)
+  while((wchar_t)source.peek() != end)
   {
     if(source.peek() == L'(')
     {

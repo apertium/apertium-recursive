@@ -1564,7 +1564,7 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
   if(!furtherInput || t1x.size() >= longestPattern)
   {
     mx->resetRejected();
-    int len = 0;
+    unsigned int len = 0;
     int rule = -1;
     unsigned int i = 0;
   try_again_for_reject_rule:
@@ -1635,7 +1635,7 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
         {
           t2x.push_back(currentOutput[n]);
         }
-        for(int n = 0; n < len; n++)
+        for(unsigned int n = 0; n < len; n++)
         {
           t1x.pop_front();
         }

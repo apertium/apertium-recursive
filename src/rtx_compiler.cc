@@ -2224,34 +2224,36 @@ RTXCompiler::buildLookahead()
     set<wstring> ops;
     for(unsigned int j = 0; j < rules.size(); j++)
     {
-      if(rules[j].second.size() <= rules[i].second.size()) continue;
-      bool match = true;
-      for(unsigned int k = 0; k < rules[i].second.size(); k++)
+      for(unsigned int offset = 0; rules[j].second.size() > rules[i].second.size() + offset; offset++)
       {
-        if(rules[i].second[k] != rules[j].second[k])
+        bool match = true;
+        for(unsigned int k = 0; k < rules[i].second.size(); k++)
         {
-          match = false;
-          break;
-        }
-      }
-      if(!match) continue;
-      wstring next = rules[j].second[rules[i].second.size()];
-      vector<wstring> todo;
-      todo.push_back(next);
-      while(todo.size() > 0)
-      {
-        wstring cur = todo.back();
-        todo.pop_back();
-        if(ops.count(cur) == 0)
-        {
-          ops.insert(cur);
-          PatternElement* p = new PatternElement;
-          p->tags.push_back(cur);
-          p->tags.push_back(L"*");
-          check.push_back(p);
-          if(first.find(cur) != first.end())
+          if(rules[i].second[k] != rules[j].second[k+offset])
           {
-            todo.insert(todo.end(), first[cur].begin(), first[cur].end());
+            match = false;
+            break;
+          }
+        }
+        if(!match) continue;
+        wstring next = rules[j].second[rules[i].second.size()+offset];
+        vector<wstring> todo;
+        todo.push_back(next);
+        while(todo.size() > 0)
+        {
+          wstring cur = todo.back();
+          todo.pop_back();
+          if(ops.count(cur) == 0)
+          {
+            ops.insert(cur);
+            PatternElement* p = new PatternElement;
+            p->tags.push_back(cur);
+            p->tags.push_back(L"*");
+            check.push_back(p);
+            if(first.find(cur) != first.end())
+            {
+              todo.insert(todo.end(), first[cur].begin(), first[cur].end());
+            }
           }
         }
       }

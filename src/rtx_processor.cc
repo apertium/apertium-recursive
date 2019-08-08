@@ -573,7 +573,7 @@ RTXProcessor::applyRule(const wstring& rule)
         {
           bool word = true;
           unsigned int last = 0;
-          wchar_t* targ = ch->target.data();
+          const wchar_t* targ = ch->target.data();
           bool chunk = false;
           for(unsigned int c = 0, limit = ch->target.size(); c < limit; c++)
           {

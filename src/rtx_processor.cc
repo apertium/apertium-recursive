@@ -711,6 +711,7 @@ RTXProcessor::applyRule(const wstring& rule)
       case GETCASE:
         if(printingSteps) { wcerr << "getcase" << endl; }
         pushStack(caseOf(popString()));
+        if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
         break;
       case SETCASE:
         if(printingSteps) { wcerr << "setcase" << endl; }
@@ -719,6 +720,7 @@ RTXProcessor::applyRule(const wstring& rule)
         wstring dest = popString();
         pushStack(copycase(src, dest));
       }
+        if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
         break;
       case CONCAT:
         if(printingSteps) { wcerr << "concat" << endl; }

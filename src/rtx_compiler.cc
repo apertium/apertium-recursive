@@ -2213,7 +2213,7 @@ RTXCompiler::processRules()
           Clip* lemcase = new Clip;
           lemcase->src = 1;
           lemcase->part = L"lemcase";
-          lemcase->side = L"sl";
+          lemcase->side = L"tl";
           ch->vars[L"lemcase"] = lemcase;
         }
         ch->conjoined = false;

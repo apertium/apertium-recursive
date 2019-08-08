@@ -1510,7 +1510,9 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
     ret += GETCASE;
   }
   wstring src_cat = c->part;
-  for(auto dest : c->rewrite)
+  vector<wstring> rewrite = c->rewrite;
+  if(_dest.size() > 0 && rewrite.size() == 0 && inOutputRule) rewrite.push_back(_dest);
+  for(auto dest : rewrite)
   {
     bool found = false;
     vector<pair<wstring, wstring>> rule;

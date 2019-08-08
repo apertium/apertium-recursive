@@ -1,0 +1,5 @@
+^the<det><def><sp>/el<det><def><m><sg>$ ^green<adj><sint>/verde<adj><mf>$ ^dragon<n><pl>/dragón<n><m><sg>$^.<sent>/.<sent>$
+^green<adj><sint>/verde<adj><mf>$ ^dragon<n><pl>/dragón<n><m><sg>/draig<n><sp>$
+^green<adj><sint>/verde<adj><mf>$ ^dragon<n><sg>/dragón<n><m><sg>$
+^the<det>/el<det>$ ^green<adj><sint>/verde<adj><mf>$ ^dragon<n><pl>/dragón<n><m><sg>/draig<n><sp>$
+^the<det>/el<det>$ ^green<adj><sint>/verde<adj><mf>$ ^dragon<n><sg>/dragón<n><m><pl>$

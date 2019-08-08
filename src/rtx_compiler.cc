@@ -443,11 +443,18 @@ RTXCompiler::parseAttrRule(wstring categoryName)
 RTXCompiler::Clip*
 RTXCompiler::parseClip(int src = -2)
 {
+  bool bounds = true;
   Clip* ret = new Clip;
   eatSpaces();
   if(src != -2 && src != -3)
   {
     ret->src = src;
+  }
+  else if(isNextToken(L'>'))
+  {
+    ret->src = parseInt();
+    nextToken(L".");
+    bounds = false;
   }
   else if(isdigit(source.peek()))
   {
@@ -483,7 +490,7 @@ RTXCompiler::parseClip(int src = -2)
   {
     die(L"Macros can only access their single argument.");
   }
-  else if(src == -2 && ret->src > (int)currentRule->pattern.size())
+  else if(bounds && src == -2 && ret->src > (int)currentRule->pattern.size())
   {
     die(L"Clip source is out of bounds (position " + to_wstring(ret->src) + L" requested, but rule has only " + to_wstring(currentRule->pattern.size()) + L" elements in its pattern).");
   }
@@ -698,32 +705,37 @@ RTXCompiler::parseOutputElement()
 {
   OutputChunk* ret = new OutputChunk;
   ret->conjoined = isNextToken(L'+');
+  ret->interpolated = false;
+  if(!ret->conjoined) ret->interpolated = isNextToken(L'<');
   ret->nextConjoined = false;
-  if(ret->conjoined)
+  if(ret->conjoined || ret->interpolated)
   {
+    wstring verb = (ret->conjoined ? L"conjoin" : L"interpolate");
     if(currentChunk == NULL)
     {
-      die(L"Cannot conjoin from within if statement.");
+      die(L"Cannot " + verb + L" from within if statement.");
     }
     if(currentChunk->children.size() == 0)
     {
-      die(L"Cannot conjoin first element.");
+      die(L"Cannot " + verb + L" first element.");
     }
     if(currentChunk->children.back()->conds.size() > 0)
     {
-      die(L"Cannot conjoin to something in an if statement.");
+      die(L"Cannot " + verb + L" to something in an if statement.");
     }
     if(currentChunk->children.back()->chunks.size() == 0)
     {
-      die(L"Cannot conjoin inside and outside of if statement and cannot conjoin first element.");
+      die(L"Cannot " + verb + L" inside and outside of if statement and cannot " + verb + L" first element.");
     }
     if(currentChunk->children.back()->chunks[0]->mode == L"_")
     {
-      die(L"Cannot conjoin to a blank.");
+      die(L"Cannot " + verb + L" to a blank.");
     }
     eatSpaces();
     currentChunk->children.back()->chunks[0]->nextConjoined = true;
   }
+  bool isInterp = isNextToken(L'>');
+  eatSpaces();
   ret->getall = isNextToken(L'%');
   if(source.peek() == L'_')
   {
@@ -758,7 +770,7 @@ RTXCompiler::parseOutputElement()
     {
       die(L"There is no position 0.");
     }
-    else if(ret->pos > currentRule->pattern.size())
+    else if(!isInterp && ret->pos > currentRule->pattern.size())
     {
       die(L"There are only " + to_wstring(currentRule->pattern.size()) + L" elements in the pattern.");
     }
@@ -1406,6 +1418,10 @@ RTXCompiler::compileTag(wstring s)
 wstring
 RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
 {
+  if(c->src == -1 && c->part == L"lu-count")
+  {
+    return wstring(1, LUCOUNT);
+  }
   if(c->src == -2)
   {
     wstring ret = processOutputChoice(c->choice);
@@ -1723,8 +1739,9 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
   }
   else if(r->mode == L"#" || r->mode == L"#@")
   {
+    bool interp = r->pos > currentRule->pattern.size();
     wstring pos;
-    if(r->pos != 0)
+    if(!interp && r->pos != 0)
     {
       if(currentRule->pattern[r->pos-1].size() < 2)
       {
@@ -1736,6 +1753,14 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     pos = (pos != L"") ? pos : patname;
     if(outputRules.find(patname) == outputRules.end())
     {
+      if(interp)
+      {
+        ret += compileClip(L"whole", r->pos, L"tl");
+        if(r->conjoined) ret += APPENDSURFACE;
+        else if(r->interpolated) ret += APPENDCHILD;
+        if(!r->nextConjoined) ret += OUTPUT;
+        return ret;
+      }
       die(L"Could not find output pattern '" + patname + L"'.");
     }
     vector<wstring> pattern = outputRules[patname];
@@ -1754,6 +1779,13 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       }
     }
 
+    if(r->interpolated)
+    {
+      ret += INT;
+      ret += (wchar_t)0;
+      ret += BLANK;
+      ret += APPENDCHILD;
+    }
     if(pattern.size() == 1 && pattern[0] == L"macro")
     {
       if(r->nextConjoined)
@@ -1950,6 +1982,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       ret += (wchar_t)0;
       ret += SETRULE;
     }
+    if(r->interpolated) ret += APPENDCHILD;
     if(inOutputRule && !r->nextConjoined)
     {
       ret += OUTPUT;
@@ -1957,6 +1990,13 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
   }
   else
   {
+    if(r->interpolated)
+    {
+      ret += INT;
+      ret += (wchar_t)0;
+      ret += BLANK;
+      ret += APPENDCHILD;
+    }
     if(r->conjoined)
     {
       ret += compileString(L"+");
@@ -1969,6 +2009,10 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     {
       ret += compileClip(r->vars[r->tags[i]]);
       ret += APPENDSURFACE;
+    }
+    if(r->interpolated)
+    {
+      ret += APPENDCHILD;
     }
     if(inOutputRule && !r->nextConjoined)
     {

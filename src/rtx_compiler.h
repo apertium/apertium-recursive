@@ -50,6 +50,7 @@ private:
     wstring pattern;
     vector<OutputChoice*> children;
     bool conjoined;
+    bool interpolated;
     bool nextConjoined;
   };
 

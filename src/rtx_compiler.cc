@@ -236,15 +236,12 @@ RTXCompiler::parseWeight()
     ret += source.get();
   }
   recentlyRead += ret;
+  float r;
   try
   {
     wstring::size_type loc;
-    float r = stof(ret, &loc);
-    if(loc == ret.size())
-    {
-      return r;
-    }
-    else
+    r = stof(ret, &loc);
+    if(loc != ret.size())
     {
       die(L"unable to parse weight: " + ret);
     }
@@ -253,6 +250,7 @@ RTXCompiler::parseWeight()
   {
     die(L"unable to parse weight: " + ret);
   }
+  return r;
 }
 
 void
@@ -1036,7 +1034,7 @@ RTXCompiler::parseOutputCond()
 void
 RTXCompiler::parseOutputChunk()
 {
-  wchar_t end;
+  int end;
   OutputChunk* ch = new OutputChunk;
   if(nextToken(L"{", L"[") == L"{")
   {
@@ -1172,7 +1170,7 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     {
       nextToken(L"{");
     }
-    int chunk_count = 0;
+    unsigned int chunk_count = 0;
     while(chunk_count < rule->result.size())
     {
       eatSpaces();

@@ -647,7 +647,7 @@ RTXProcessor::applyRule(const wstring& rule)
         popString(part);
         Chunk* ch = NULL;
         if(pos == -2) ch = parentChunk;
-        else if(0 <= pos && pos < currentInput.size()) ch = currentInput[pos];
+        else if(0 <= pos && pos < (int)currentInput.size()) ch = currentInput[pos];
         else
         {
           int n = 0;
@@ -1026,7 +1026,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
       if(printingAll && treePrintMode == TreeModeLatex) wcerr << "\\subsection{";
       else wcerr << endl;
       wcerr << "Applying rule " << rule;
-      if(rule <= inRuleNames.size())
+      if(rule <= (int)inRuleNames.size())
       {
         wcerr << " (" << inRuleNames[rule-1] << ")";
       }
@@ -1155,7 +1155,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
 void
 RTXProcessor::outputAll(FILE* out)
 {
-  int queueSize = outputQueue.size() - 1;
+  unsigned int queueSize = outputQueue.size() - 1;
   while(outputQueue.size() > 0)
   {
     Chunk* ch = outputQueue.front();
@@ -1199,7 +1199,7 @@ RTXProcessor::outputAll(FILE* out)
       if(printingRules) {
         fflush(out);
         wcerr << endl << "Applying output rule " << ch->rule;
-        if(ch->rule < outRuleNames.size())
+        if(ch->rule < (int)outRuleNames.size())
         {
           wcerr << " (" << outRuleNames[ch->rule] << ")";
         }
@@ -1215,7 +1215,7 @@ RTXProcessor::outputAll(FILE* out)
         if(treePrintMode == TreeModeLatex)
         {
           wcerr << "\\subsubsection{Applying Output Rule " << ch->rule;
-          if(ch->rule < outRuleNames.size())
+          if(ch->rule < (int)outRuleNames.size())
           {
             wcerr << ": " << outRuleNames[ch->rule] << "}" << endl << endl;
           }
@@ -1223,7 +1223,7 @@ RTXProcessor::outputAll(FILE* out)
         else
         {
           wcerr << "Applying Output Rule " << ch->rule;
-          if(ch->rule < outRuleNames.size())
+          if(ch->rule < (int)outRuleNames.size())
           {
             wcerr << ": " << outRuleNames[ch->rule] << endl << endl;
           }
@@ -1566,7 +1566,7 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
     mx->resetRejected();
     int len = 0;
     int rule = -1;
-    int i = 0;
+    unsigned int i = 0;
   try_again_for_reject_rule:
     first = 0;
     last = 1;
@@ -1618,7 +1618,7 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
       currentOutput.clear();
       if(printingRules) {
         wcerr << endl << "Applying rule " << rule;
-        if(rule <= inRuleNames.size())
+        if(rule <= (int)inRuleNames.size())
         {
           wcerr << " (" << inRuleNames[rule-1] << ")";
         }
@@ -1698,7 +1698,7 @@ RTXProcessor::processTRX(FILE *in, FILE *out)
       {
         if(printingRules) {
           wcerr << endl << L"Applying output rule " << cur->rule;
-          if(cur->rule < outRuleNames.size())
+          if(cur->rule < (int)outRuleNames.size())
           {
             wcerr << " (" << outRuleNames[cur->rule] << ")";
           }

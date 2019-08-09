@@ -1663,6 +1663,7 @@ RTXCompiler::processMacroChunk(OutputChunk* mac, OutputChunk* arg)
   ret->getall = mac->getall;
   ret->pattern = mac->pattern;
   ret->conjoined = mac->conjoined;
+  ret->interpolated = mac->interpolated;
   ret->nextConjoined = mac->nextConjoined;
   for(unsigned int i = 0; i < mac->children.size(); i++)
   {
@@ -2217,6 +2218,7 @@ RTXCompiler::processRules()
           ch->vars[L"lemcase"] = lemcase;
         }
         ch->conjoined = false;
+        ch->interpolated = false;
         ch->nextConjoined = false;
         ch->pattern = rule->result[patidx];
         comp += processOutputChunk(ch);

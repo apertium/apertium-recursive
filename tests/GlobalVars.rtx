@@ -1,0 +1,11 @@
+gender = m f;
+number = sg pl;
+
+n: _.gender.number;
+det: _.gender.number;
+adj: _.gender.number;
+NP: _.gender.number;
+DP: _.gender.number;
+
+NP -> %n adj [$$the_adj=2[gender=1.gender, number=1.number]] { 1 } ;
+DP -> det %NP { $$the_adj _ %1 _1 2 } ;

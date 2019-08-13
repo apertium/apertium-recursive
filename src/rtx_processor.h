@@ -100,6 +100,11 @@ private:
   unsigned int longestPattern;
 
   /**
+   * Number of Chunk* global variables
+   */
+  unsigned int varCount;
+
+  /**
    * false if EOF or \0 has been reached in the input stream, true otherwise
    */
   bool furtherInput;
@@ -173,6 +178,12 @@ private:
    * processed being currentContinuation.back()->back()
    */
   vector<vector<Chunk*>*> currentContinuation;
+
+  /**
+   * Branch of parseGraph currently being operated on
+   * Needed by applyRule() for FETCHCHUNK and SETCHUNK
+   */
+  ParseNode* currentBranch;
 
   //////////
   // SETTINGS

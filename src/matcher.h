@@ -337,6 +337,7 @@ public:
   int firstWord;
   int lastWord;
   int id;
+  vector<Chunk*> variables;
   ParseNode()
   : first(0), last(0), firstWord(0), lastWord(0), id(-1)
   {}
@@ -370,6 +371,7 @@ public:
     }
     mx = prevNode->mx;
     length = prev->length+1;
+    variables = prev->variables;
     weight = (w == 0) ? prev->weight : w;
     if(next->isBlank)
     {
@@ -393,6 +395,7 @@ public:
     weight = prev->weight;
     firstWord = prev->lastWord+1;
     lastWord = firstWord;
+    variables = prev->variables;
     if(next->isBlank)
     {
       mx->matchBlank(state, first, last);
@@ -419,6 +422,7 @@ public:
     mx = other->mx;
     firstWord = other->firstWord;
     lastWord = other->lastWord;
+    variables = other->variables;
   }
   void getChunks(list<Chunk*>& chls, int count)
   {

@@ -133,6 +133,11 @@ public:
   bool starCanBeEmpty;
 
   /**
+   * Number of global Chunk* variables to allocate space for
+   */
+  unsigned int chunkVarCount;
+
+  /**
    * Debug names for input-time rules
    */
   vector<wstring> inRuleNames;

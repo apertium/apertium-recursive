@@ -458,6 +458,10 @@ RTXCompiler::parseClip(int src = -2)
   else if(isNextToken(L'$'))
   {
     ret->src = -1;
+    if(currentLocType != LocTypeOutput)
+    {
+      die(L"Chunk tags can only be accessed from output sections of reduction rules.");
+    }
   }
   else if(source.peek() == L'(')
   {
@@ -800,6 +804,14 @@ RTXCompiler::parseOutputElement()
     ret->pos = 0;
     ret->mode = L"#";
   }
+  else if(isNextToken(L'$'))
+  {
+    if(isInterp) die(L"Interpolating a global variable does not make sense.");
+    if(ret->getall) die(L"Using % with a global variable does not make sense.");
+    nextToken(L"$");
+    ret->mode = L"$$";
+    ret->pattern = parseIdent(true);
+  }
   else
   {
     ret->lemma = parseIdent();
@@ -953,19 +965,31 @@ RTXCompiler::parseOutputCond()
       {
         die(L"Nested chunks are currently not allowed.");
       }
+      else if(currentLocType == LocTypeMacro)
+      {
+        die(L"Macros cannot generate entire chunks.");
+      }
+      else if(currentLoc == LocVarSet)
+      {
+        die(L"Global variables cannot be set to chunks.");
+      }
       ret->nest.push_back(NULL);
       ret->clips.push_back(NULL);
       ret->chunks.push_back(parseOutputChunk());
     }
     else if(source.peek() == L'[')
     {
+      if(currentLoc == LocVarSet)
+      {
+        die(L"Global variables must be set to single nodes.");
+      }
       ret->nest.push_back(NULL);
       ret->clips.push_back(NULL);
       ret->chunks.push_back(parseOutputChunk());
     }
     else
     {
-      if(currentLoc != LocChunk)
+      if(currentLoc != LocChunk && currentLoc != LocVarSet)
       {
         die(L"Conditional non-chunk output current not possible.");
       }
@@ -1084,6 +1108,7 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     eatSpaces();
     rule->line = currentLine;
     currentLocType = LocTypeInput;
+    currentLoc = LocTopLevel;
     if(!source.eof() && source.peek() == L'"')
     {
       rule->name = parseIdent();
@@ -1126,8 +1151,14 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
             die(L"Rule sets global variable $$" + var + L" multiple times.");
           }
           nextToken(L"=");
+          currentLoc = LocVarSet;
           if(source.peek() == L'(') rule->globals[var] = parseOutputCond();
           else rule->globals[var] = chunkToCond(parseOutputElement());
+          currentLoc = LocTopLevel;
+          if(globalVarNames.find(var) == globalVarNames.end())
+          {
+            globalVarNames[var] = globalVarNames.size();
+          }
         }
         else
         {
@@ -1146,6 +1177,7 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
       }
       eatSpaces();
     }
+    currentLocType = LocTypeOutput;
     if(rule->result.size() > 1)
     {
       nextToken(L"{");
@@ -1194,6 +1226,7 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
       break;
     }
   }
+  currentLocType = LocTypeNone;
 }
 
 void
@@ -1586,8 +1619,6 @@ RTXCompiler::processMacroClip(Clip* mac, OutputChunk* arg)
       ret->part = other->part;
       ret->side = other->side;
       ret->rewrite.insert(ret->rewrite.begin(), other->rewrite.begin(), other->rewrite.end());
-      //if(ret->rewrite.size() == 0) ret->rewrite = other->rewrite;
-      //ret->rewrite = other->rewrite; // TODO: what if they both have rewrite?
       ret->src = other->src;
       if(other->src == -2) ret->choice = other->choice;
     }
@@ -1698,6 +1729,23 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     ret += (wchar_t)r->pos;
     ret += BLANK;
     if(currentLocType == LocTypeOutput)
+    {
+      ret += OUTPUT;
+    }
+  }
+  else if(r->mode == L"$$")
+  {
+    if(r->conjoined)
+    {
+      ret += compileString(L"+");
+      ret += APPENDSURFACE;
+    }
+    ret += INT;
+    ret += (wchar_t)globalVarNames[r->pattern];
+    ret += FETCHCHUNK;
+    if(r->conjoined) ret += APPENDSURFACE;
+    else if(r->interpolated) ret += APPENDCHILD;
+    if(currentLocType == LocTypeOutput && !r->nextConjoined)
     {
       ret += OUTPUT;
     }
@@ -1959,6 +2007,12 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     {
       ret += OUTPUT;
     }
+    else if(currentLoc == LocVarSet)
+    {
+      ret += INT;
+      ret += (wchar_t)currentVar;
+      ret += SETCHUNK;
+    }
   }
   else
   {
@@ -1989,6 +2043,12 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     if(currentLocType == LocTypeOutput && !r->nextConjoined)
     {
       ret += OUTPUT;
+    }
+    else if(currentLoc == LocVarSet)
+    {
+      ret += INT;
+      ret += (wchar_t)currentVar;
+      ret += SETCHUNK;
     }
   }
   return ret;
@@ -2158,6 +2218,13 @@ RTXCompiler::processRules()
       currentLocType = LocTypeInput;
       comp = processCond(rule->cond) + JUMPONTRUE + (wchar_t)1 + REJECTRULE;
     }
+    for(auto it : rule->globals)
+    {
+      currentLoc = LocVarSet;
+      currentVar = globalVarNames[it.first];
+      comp += processOutputChoice(it.second);
+    }
+    currentLoc = LocTopLevel;
     vector<wstring> outcomp;
     outcomp.resize(rule->pattern.size());
     parentTags.clear();
@@ -2406,6 +2473,8 @@ RTXCompiler::write(const string &fname)
   {
     PB.addPattern(fb, -1);
   }
+
+  PB.chunkVarCount = globalVarNames.size();
 
   PB.write(out, longestPattern, inRules, outputBytecode);
 

@@ -60,8 +60,10 @@ static const wchar_t SETCASE = L'A';
 
 // Variables
 
-static const wchar_t FETCHVAR = L'v';
-static const wchar_t SETVAR   = L'$';
+static const wchar_t FETCHVAR   = L'v';
+static const wchar_t SETVAR     = L'$';
+static const wchar_t FETCHCHUNK = L'5';
+static const wchar_t SETCHUNK   = L'6';
 
 // Clips
 

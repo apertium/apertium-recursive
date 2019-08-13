@@ -185,6 +185,11 @@ private:
   map<wstring, OutputChoice*> macros;
 
   /**
+   * Names of global chunk-type variables and corresponding indecies
+   */
+  map<wstring, unsigned int> globalVarNames;
+
+  /**
    * Map of pattern names to booleans
    * false indicates that the node on the left side of rules
    * and thus all clips should be target clips
@@ -222,6 +227,11 @@ private:
    * The Clip currently being parsed
    */
   Clip* currentClip;
+
+  /**
+   * Global variable currently being assigned to
+   */
+  unsigned int currentVar;
 
   /**
    * All attributes which can be clipped from the chunk whose children

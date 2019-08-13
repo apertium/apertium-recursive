@@ -27,6 +27,7 @@ RTXProcessor::RTXProcessor()
   treePrintMode = TreeModeNest;
   newBranchId = 0;
   noFilter = false;
+  currentBranch = NULL;
 }
 
 RTXProcessor::~RTXProcessor()
@@ -59,6 +60,8 @@ RTXProcessor::read(string const &filename)
   {
     output_rules.push_back(Compression::wstring_read(in));
   }
+
+  varCount = Compression::multibyte_read(in);
 
   alphabet.read(in);
 
@@ -568,6 +571,7 @@ RTXProcessor::applyRule(const wstring& rule)
         if(printingSteps) { wcerr << "output" << endl; }
       {
         Chunk* ch = popChunk();
+        if(ch == NULL) break; // FETCHCHUNK
         ch->source.clear();
         if(isLinear && ch->contents.size() == 0)
         {
@@ -707,6 +711,17 @@ RTXProcessor::applyRule(const wstring& rule)
       case FETCHVAR:
         if(printingSteps) { wcerr << "fetchvar" << endl; }
         pushStack(variables[popString()]);
+        break;
+      case FETCHCHUNK:
+        if(printingSteps) { wcerr << "fetchchunk" << endl; }
+        pushStack(currentBranch->variables[popInt()]);
+        break;
+      case SETCHUNK:
+        if(printingSteps) { wcerr << "setchunk" << endl; }
+        {
+          int pos = popInt();
+          currentBranch->variables[pos] = popChunk();
+        }
         break;
       case GETCASE:
         if(printingSteps) { wcerr << "getcase" << endl; }
@@ -1016,6 +1031,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
   pair<int, double> rule_and_weight = node->getRule();
   int rule = rule_and_weight.first;
   double weight = node->weight + rule_and_weight.second;
+  currentBranch = node;
   while(rule != -1)
   {
     int len = pat_size[rule-1];
@@ -1067,6 +1083,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
         first = back->lastWord+1;
         cur->init(back, currentOutput[0], weight);
       }
+      cur->variables = node->variables;
       cur->id = node->id;
       if(temp.size() == 0)
       {
@@ -1084,6 +1101,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
         {
           cur = parsePool.next();
           cur->init(*it, temp.back());
+          cur->variables = (*it)->variables;
           cur->firstWord = first;
           cur->lastWord = last;
           checkForReduce(res2, cur);
@@ -1445,6 +1463,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       ParseNode* temp = parsePool.next();
       temp->init(mx, next);
       temp->id = ++newBranchId;
+      temp->variables = vector<Chunk*>(varCount, NULL);
       checkForReduce(parseGraph, temp);
     }
     else
@@ -1456,6 +1475,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
         ParseNode* tempNode = parsePool.next();
         tempNode->init(parseGraph[i], next, true);
         tempNode->id = parseGraph[i]->id;
+        tempNode->variables = parseGraph[i]->variables;
         checkForReduce(temp, tempNode);
       }
       parseGraph.swap(temp);
@@ -1505,6 +1525,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
           wcerr << endl;
         }
       }
+      currentBranch = parseGraph[0];
       parseGraph[0]->getChunks(outputQueue, parseGraph[0]->length-1);
       parseGraph.clear();
       outputAll(out);

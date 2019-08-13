@@ -22,6 +22,7 @@ PatternBuilder::PatternBuilder()
   attr_items[L"content"] = L"(\\{.+)";
   attr_items[L"pos_tag"] = L"(<[^>]+>)";
   starCanBeEmpty = false;
+  chunkVarCount = 0;
 }
 
 int
@@ -312,6 +313,8 @@ PatternBuilder::write(FILE* output, int longest, vector<pair<int, wstring>> inpu
   {
     Compression::wstring_write(outputBytecode[i], output);
   }
+
+  Compression::multibyte_write(chunkVarCount, output);
 
   alphabet.write(output);
 

@@ -134,6 +134,12 @@ void writeRule(wstring rule, FILE* out)
       case SETVAR:
         fwprintf(out, L"SETVAR\n");
         break;
+      case FETCHCHUNK:
+        fwprintf(out, L"FETCHCHUNK\n");
+        break;
+      case SETCHUNK:
+        fwprintf(out, L"SETCHUNK\n");
+        break;
       case SOURCECLIP:
         fwprintf(out, L"SOURCECLIP\n");
         break;

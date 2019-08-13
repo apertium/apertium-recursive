@@ -18,10 +18,8 @@ RTXCompiler::RTXCompiler()
   currentChoice = NULL;
   currentClip = NULL;
   errorsAreSyntax = true;
-  inOutputRule = false;
-  parserIsInChunk = false;
-  parserIsInClip = false;
-  inMacro = false;
+  currentLoc = LocTopLevel;
+  currentLocType = LocTypeNone;
   PB.starCanBeEmpty = true;
   fallbackRule = true;
   summarizing = false;
@@ -284,18 +282,14 @@ RTXCompiler::parseOutputRule(wstring pattern)
   vector<wstring> output;
   if(source.peek() == L'(')
   {
-    inMacro = true;
-    parserIsInChunk = true;
-    // to ensure that range checking on clips works
-    currentRule = new Rule;
-    currentRule->pattern.push_back(vector<wstring>(2, L"blah"));
-    parseOutputCond();
-    macros[pattern] = currentChoice;
-    currentChoice = NULL;
+    LocationType typewas = currentLocType;
+    Location locwas = currentLoc;
+    currentLoc = LocChunk;
+    currentLocType = LocTypeMacro;
+    macros[pattern] = parseOutputCond();
     output.push_back(L"macro");
-    currentRule = NULL;
-    parserIsInChunk = false;
-    inMacro = false;
+    currentLocType = typewas;
+    currentLoc = locwas;
     nextToken(L";");
   }
   else
@@ -473,10 +467,10 @@ RTXCompiler::parseClip(int src = -2)
     currentChunk = NULL;
     currentChoice = NULL;
     ret->src = -2;
-    bool boolwas = parserIsInClip;
-    parserIsInClip = true;
-    parseOutputCond();
-    parserIsInClip = boolwas;
+    Location locwas = currentLoc;
+    currentLoc = LocClip;
+    ret->choice = parseOutputCond();
+    currentLoc = locwas;
     currentChunk = chunkwas;
     currentChoice = choicewas;
     currentClip = NULL;
@@ -486,9 +480,12 @@ RTXCompiler::parseClip(int src = -2)
   {
     ret->src = 0;
   }
-  if(inMacro && !(ret->src == 0 || ret->src == 1))
+  if(currentLocType == LocTypeMacro)
   {
-    die(L"Macros can only access their single argument.");
+    if(ret->src != 0 && ret->src != 1)
+    {
+      die(L"Macros can only access their single argument.");
+    }
   }
   else if(bounds && src == -2 && ret->src > (int)currentRule->pattern.size())
   {
@@ -700,7 +697,17 @@ RTXCompiler::parsePatternElement(Rule* rule)
   eatSpaces();
 }
 
-void
+RTXCompiler::OutputChoice*
+RTXCompiler::chunkToCond(RTXCompiler::OutputChunk* ch)
+{
+  OutputChoice* ret = new OutputChoice;
+  ret->nest.push_back(NULL);
+  ret->clips.push_back(NULL);
+  ret->chunks.push_back(ch);
+  return ret;
+}
+
+RTXCompiler::OutputChunk*
 RTXCompiler::parseOutputElement()
 {
   OutputChunk* ret = new OutputChunk;
@@ -770,7 +777,7 @@ RTXCompiler::parseOutputElement()
     {
       die(L"There is no position 0.");
     }
-    else if(!isInterp && ret->pos > currentRule->pattern.size())
+    else if(currentLocType != LocTypeMacro && !isInterp && ret->pos > currentRule->pattern.size())
     {
       die(L"There are only " + to_wstring(currentRule->pattern.size()) + L" elements in the pattern.");
     }
@@ -887,29 +894,11 @@ RTXCompiler::parseOutputElement()
       }
     }
   }
-  if(currentChoice != NULL)
-  {
-    currentChoice->chunks.push_back(ret);
-  }
-  else
-  {
-    OutputChoice* temp = new OutputChoice;
-    temp->chunks.push_back(ret);
-    temp->nest.push_back(NULL);
-    temp->clips.push_back(NULL);
-    if(currentChunk == NULL)
-    {
-      currentRule->output.push_back(temp);
-    }
-    else
-    {
-      currentChunk->children.push_back(temp);
-    }
-  }
   eatSpaces();
+  return ret;
 }
 
-void
+RTXCompiler::OutputChoice*
 RTXCompiler::parseOutputCond()
 {
   nextToken(L"(");
@@ -948,11 +937,11 @@ RTXCompiler::parseOutputCond()
     eatSpaces();
     if(source.peek() == L'(')
     {
-      parseOutputCond();
+      ret->nest.push_back(parseOutputCond());
       ret->chunks.push_back(NULL);
       ret->clips.push_back(NULL);
     }
-    else if(parserIsInClip)
+    else if(currentLoc == LocClip)
     {
       ret->clips.push_back(parseClip());
       ret->chunks.push_back(NULL);
@@ -960,27 +949,27 @@ RTXCompiler::parseOutputCond()
     }
     else if(source.peek() == L'{')
     {
-      if(parserIsInChunk)
+      if(currentLoc == LocChunk)
       {
         die(L"Nested chunks are currently not allowed.");
       }
       ret->nest.push_back(NULL);
       ret->clips.push_back(NULL);
-      parseOutputChunk();
+      ret->chunks.push_back(parseOutputChunk());
     }
     else if(source.peek() == L'[')
     {
       ret->nest.push_back(NULL);
       ret->clips.push_back(NULL);
-      parseOutputChunk();
+      ret->chunks.push_back(parseOutputChunk());
     }
     else
     {
-      if(!parserIsInChunk)
+      if(currentLoc != LocChunk)
       {
         die(L"Conditional non-chunk output current not possible.");
       }
-      parseOutputElement();
+      ret->chunks.push_back(parseOutputElement());
       ret->nest.push_back(NULL);
       ret->clips.push_back(NULL);
     }
@@ -1001,7 +990,7 @@ RTXCompiler::parseOutputCond()
   {
     //die(L"If statement has no else clause and thus could produce no output.");
     ret->nest.push_back(NULL);
-    if(parserIsInClip)
+    if(currentLoc == LocClip)
     {
       Clip* blank = new Clip;
       blank->src = 0;
@@ -1019,44 +1008,23 @@ RTXCompiler::parseOutputCond()
     }
   }
   eatSpaces();
-  if(currentChoice != NULL)
-  {
-    currentChoice->nest.push_back(ret);
-    currentChoice->chunks.push_back(NULL);
-    currentChoice->clips.push_back(NULL);
-  }
-  else if(currentChunk != NULL)
-  {
-    currentChunk->children.push_back(ret);
-  }
-  else if(currentClip != NULL)
-  {
-    currentClip->choice = ret;
-  }
-  else if(inMacro)
-  {
-    currentChoice = ret;
-  }
-  else
-  {
-    currentRule->output.push_back(ret);
-  }
+  return ret;
 }
 
-void
+RTXCompiler::OutputChunk*
 RTXCompiler::parseOutputChunk()
 {
   int end;
   OutputChunk* ch = new OutputChunk;
   if(nextToken(L"{", L"[") == L"{")
   {
-    parserIsInChunk = true;
+    currentLoc = LocChunk;
     ch->mode = L"{}";
     end = L'}';
   }
   else
   {
-    if(!parserIsInChunk)
+    if(currentLoc != LocChunk)
     {
       die(L"Output grouping with [] only valid inside chunks.");
     }
@@ -1073,34 +1041,19 @@ RTXCompiler::parseOutputChunk()
   {
     if(source.peek() == L'(')
     {
-      parseOutputCond();
+      ch->children.push_back(parseOutputCond());
     }
     else
     {
-      parseOutputElement();
+      ch->children.push_back(chunkToCond(parseOutputElement()));
     }
   }
   nextToken(wstring(1, end));
-  if(end == L'}') parserIsInChunk = false;
+  if(end == L'}') currentLoc = LocTopLevel;
   eatSpaces();
   currentChunk = chunkwas;
   currentChoice = choicewas;
-  OutputChoice* ret = new OutputChoice;
-  ret->chunks.push_back(ch);
-  ret->nest.push_back(NULL);
-  ret->clips.push_back(NULL);
-  if(currentChoice != NULL)
-  {
-    currentChoice->chunks.push_back(ch);
-  }
-  else if(currentChunk != NULL)
-  {
-    currentChunk->children.push_back(ret);
-  }
-  else
-  {
-    currentRule->output.push_back(ret);
-  }
+  return ch;
 }
 
 void
@@ -1130,6 +1083,7 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     rule->result = outNodes;
     eatSpaces();
     rule->line = currentLine;
+    currentLocType = LocTypeInput;
     if(!source.eof() && source.peek() == L'"')
     {
       rule->name = parseIdent();
@@ -1164,13 +1118,27 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
       while(!source.eof())
       {
         nextToken(L"$");
-        wstring var = parseIdent();
-        if(rule->vars.find(var) != rule->vars.end())
+        if(isNextToken(L'$'))
         {
-          die(L"rule has multiple sources for attribute " + var);
+          wstring var = parseIdent();
+          if(rule->globals.find(var) != rule->globals.end())
+          {
+            die(L"Rule sets global variable $$" + var + L" multiple times.");
+          }
+          nextToken(L"=");
+          if(source.peek() == L'(') rule->globals[var] = parseOutputCond();
+          else rule->globals[var] = chunkToCond(parseOutputElement());
         }
-        nextToken(L"=");
-        rule->vars[var] = parseClip();
+        else
+        {
+          wstring var = parseIdent();
+          if(rule->vars.find(var) != rule->vars.end())
+          {
+            die(L"rule has multiple sources for attribute " + var);
+          }
+          nextToken(L"=");
+          rule->vars[var] = parseClip();
+        }
         if(nextToken(L",", L"]") == L"]")
         {
           break;
@@ -1190,15 +1158,15 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
       switch(source.peek())
       {
         case L'(':
-          parseOutputCond();
+          rule->output.push_back(parseOutputCond());
           chunk_count++;
           break;
         case L'{':
-          parseOutputChunk();
+          rule->output.push_back(chunkToCond(parseOutputChunk()));
           chunk_count++;
           break;
         case L'_':
-          parseOutputElement();
+          rule->output.push_back(chunkToCond(parseOutputElement()));
           break;
         case L'}':
           if(rule->result.size() == 1)
@@ -1211,7 +1179,7 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
           }
           break;
         default:
-          parseOutputElement();
+          rule->output.push_back(chunkToCond(parseOutputElement()));
           chunk_count++;
           break;
       }
@@ -1437,7 +1405,7 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
     die(L"Attempt to clip undefined attribute '" + c->part + L"'.");
   }
   int src = (c->src == -1) ? 0 : c->src;
-  bool useReplace = inOutputRule;
+  bool useReplace = (currentLocType == LocTypeOutput);
   wstring cl = (c->part == L"lemcase") ? compileString(L"lem") : compileString(c->part);
   cl += INT;
   cl += src;
@@ -1525,7 +1493,10 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
   }
   wstring src_cat = c->part;
   vector<wstring> rewrite = c->rewrite;
-  if(_dest.size() > 0 && rewrite.size() == 0 && inOutputRule) rewrite.push_back(_dest);
+  if(_dest.size() > 0 && rewrite.size() == 0 && currentLocType == LocTypeOutput)
+  {
+    rewrite.push_back(_dest);
+  }
   for(auto dest : rewrite)
   {
     bool found = false;
@@ -1726,7 +1697,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     ret += INT;
     ret += (wchar_t)r->pos;
     ret += BLANK;
-    if(inOutputRule)
+    if(currentLocType == LocTypeOutput)
     {
       ret += OUTPUT;
     }
@@ -1909,7 +1880,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
           Clip* cl = new Clip;
           cl->src = r->pos;
           cl->part = pattern[i];
-          if(inOutputRule) cl->rewrite.push_back(pattern[i]);
+          if(currentLocType == LocTypeOutput) cl->rewrite.push_back(pattern[i]);
           ret_temp += compileClip(cl, pattern[i]);
         }
         else if(var == L"")
@@ -1948,7 +1919,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
         {
           ret_temp += compileClip(r->vars[var], pattern[i]);
         }
-        if(inOutputRule && noOverwrite[pattern[i]].size() > 0)
+        if(currentLocType == LocTypeOutput && noOverwrite[pattern[i]].size() > 0)
         {
           ret += compileClip(pattern[i], r->pos, L"tl");
           ret += DUP;
@@ -1972,7 +1943,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       ret += compileClip(L"lemq", r->pos, L"tl");
       ret += APPENDSURFACE;
     }
-    if(r->pos != 0 && inOutputRule)
+    if(r->pos != 0 && currentLocType == LocTypeOutput)
     {
       ret += compileClip(L"whole", r->pos, L"tl");
       ret += APPENDALLCHILDREN;
@@ -1984,7 +1955,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       ret += SETRULE;
     }
     if(r->interpolated) ret += APPENDCHILD;
-    if(inOutputRule && !r->nextConjoined)
+    if(currentLocType == LocTypeOutput && !r->nextConjoined)
     {
       ret += OUTPUT;
     }
@@ -2015,7 +1986,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     {
       ret += APPENDCHILD;
     }
-    if(inOutputRule && !r->nextConjoined)
+    if(currentLocType == LocTypeOutput && !r->nextConjoined)
     {
       ret += OUTPUT;
     }
@@ -2184,6 +2155,7 @@ RTXCompiler::processRules()
     wstring comp;
     if(rule->cond != NULL)
     {
+      currentLocType = LocTypeInput;
       comp = processCond(rule->cond) + JUMPONTRUE + (wchar_t)1 + REJECTRULE;
     }
     vector<wstring> outcomp;
@@ -2192,6 +2164,7 @@ RTXCompiler::processRules()
     int patidx = 0;
     for(unsigned int i = 0; i < rule->output.size(); i++)
     {
+      currentLocType = LocTypeInput;
       OutputChoice* cur = rule->output[i];
       if(cur->chunks.size() == 1 && cur->chunks[0]->mode == L"_")
       {
@@ -2229,7 +2202,7 @@ RTXCompiler::processRules()
         comp += SETRULE;
         comp += APPENDALLINPUT;
         parentTags = outputRules[ch->pattern];
-        inOutputRule = true;
+        currentLocType = LocTypeOutput;
         outputBytecode.push_back(processOutputChoice(cur));
         if(rule->name.size() > 0)
         {
@@ -2239,7 +2212,6 @@ RTXCompiler::processRules()
         {
           PB.outRuleNames.push_back(L"line " + to_wstring(rule->line));
         }
-        inOutputRule = false;
         parentTags.clear();
         patidx++;
       }

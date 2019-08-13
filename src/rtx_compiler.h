@@ -71,9 +71,26 @@ private:
     vector<vector<wstring>> pattern;
     vector<OutputChoice*> output;
     map<wstring, Clip*> vars;
+    map<wstring, OutputChoice*> globals;
     vector<wstring> result;
     wstring compiled;
     Cond* cond;
+  };
+
+  enum Location
+  {
+    LocTopLevel,
+    LocClip,
+    LocChunk,
+    LocVarSet
+  };
+
+  enum LocationType
+  {
+    LocTypeNone,
+    LocTypeInput,
+    LocTypeOutput,
+    LocTypeMacro
   };
 
   //////////
@@ -213,24 +230,14 @@ private:
   vector<wstring> parentTags;
 
   /**
-   * If true, then the current compilation is for an output-time rule
+   * Current construct being parsed or compiled
    */
-  bool inOutputRule;
+  Location currentLoc;
 
   /**
-   * Whether the current if statement or node is inside a chunk or at surface level
+   * Current top-level construct
    */
-  bool parserIsInChunk;
-
-  /**
-   * Whether the current if statement being parsed is inside a clip
-   */
-  bool parserIsInClip;
-
-  /**
-   * This is true when parsing a macro
-   */
-  bool inMacro;
+  LocationType currentLocType;
 
   /**
    * The length of the longest left side of a rule
@@ -449,20 +456,24 @@ private:
   void parsePatternElement(Rule* rule);
 
   /**
-   * Parse a non-chunk element of the right side of a rule
-   * The result is appended to currentChunk
+   * Wrap an OutputChunk in an OutputChoice with an empty condition
    */
-  void parseOutputElement();
+  OutputChoice* chunkToCond(OutputChunk* ch);
+
+  /**
+   * Parse a non-chunk element of the right side of a rule
+   */
+  OutputChunk* parseOutputElement();
 
   /**
    * Parse the right side of a rule
    */
-  void parseOutputChunk();
+  OutputChunk* parseOutputChunk();
 
   /**
    * Parse an if statement on the right side of a rule
    */
-  void parseOutputCond();
+  OutputChoice* parseOutputCond();
 
   //////////
   // RULE PARSING

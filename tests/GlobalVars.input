@@ -1,1 +1,2 @@
-^the<det>/el<det>$ ^potato<n><m><sg>/patata<n><m><sg>$ ^green<adj>/verde<adj>$
+^the<det>/el<det>$ ^potato<n><m><sg>/patata<n><m><sg>$ ^green<adj>/verde<adj>$^.<sent>/.<sent>$
+^the<det>/el<det>$ ^potato<n><f><sg>/patata<n><f><sg>$ ^green<adj>/verde<adj>$^.<sent>/.<sent>$

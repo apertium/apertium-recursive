@@ -1,1 +1,2 @@
-^verde<adj><m><sg>$ ^el<det><m><sg>$ ^patata<n><m><sg>$
+^verde<adj><m><sg>$ ^el<det><m><sg>$ ^patata<n><m><sg>$^.<sent>$
+ ^el<det><f><sg>$ ^patata<n><f><sg>$^.<sent>$

@@ -82,11 +82,12 @@ void
 TRXCompiler::makeDefaultOutputRule()
 {
   wstring cl;
+  cl += INT;
+  cl += (wchar_t)0;
+  cl += PUSHINPUT;
   cl += STRING;
   cl += (wchar_t)3;
   cl += L"lem";
-  cl += INT;
-  cl += (wchar_t)0;
   cl += TARGETCLIP;
   vector<wstring> cond;
   cond.resize(outputRules.size());
@@ -113,11 +114,12 @@ TRXCompiler::makeDefaultOutputRule()
     cond[it->second] += eq;
   }
   wstring ret;
+  ret += INT;
+  ret += (wchar_t)0;
+  ret += PUSHINPUT;
   ret += STRING;
   ret += (wchar_t)3;
   ret += L"lem";
-  ret += INT;
-  ret += (wchar_t)0;
   ret += TARGETCLIP;
   ret += GETCASE;
   ret += STRING;
@@ -126,11 +128,12 @@ TRXCompiler::makeDefaultOutputRule()
   ret += EQUAL;
   ret += JUMPONFALSE;
   ret += (wchar_t)21;
+  ret += INT;
+  ret += (wchar_t)1;
+  ret += PUSHINPUT;
   ret += STRING;
   ret += (wchar_t)3;
   ret += L"lem";
-  ret += INT;
-  ret += (wchar_t)1;
   ret += TARGETCLIP;
   ret += STRING;
   ret += (wchar_t)2;
@@ -614,11 +617,12 @@ TRXCompiler::processRules(xmlNode* node)
         wstring action;
         if(inOutput)
         {
+          action += INT;
+          action += (wchar_t)0;
+          action += PUSHINPUT;
           action += STRING;
           action += (wchar_t)3;
           action += L"lem";
-          action += INT;
-          action += (wchar_t)0;
           action += TARGETCLIP;
           action += GETCASE;
           action += STRING;
@@ -627,11 +631,12 @@ TRXCompiler::processRules(xmlNode* node)
           action += EQUAL;
           action += JUMPONFALSE;
           action += (wchar_t)21;
+          action += INT;
+          action += (wchar_t)1;
+          action += PUSHINPUT;
           action += STRING;
           action += (wchar_t)3;
           action += L"lem";
-          action += INT;
-          action += (wchar_t)1;
           action += TARGETCLIP;
           action += STRING;
           action += (wchar_t)2;
@@ -748,11 +753,12 @@ TRXCompiler::processStatement(xmlNode* node)
       }
       if(name == L"modify-case")
       {
+        ret += INT;
+        ret += (wchar_t)getPos(var);
+        ret += PUSHINPUT;
         ret += STRING;
         ret += (wchar_t)part.size();
         ret += part;
-        ret += INT;
-        ret += (wchar_t)getPos(var);
         ret += TARGETCLIP;
         ret += val;
         ret += SETCASE;
@@ -887,6 +893,9 @@ TRXCompiler::processValue(xmlNode* node)
   }
   else if(!xmlStrcmp(node->name, (const xmlChar*) "clip"))
   {
+    ret += INT;
+    ret += (wchar_t)getPos(node);
+    ret += PUSHINPUT;
     ret += STRING;
     wstring part = toWstring(requireAttr(node, (const xmlChar*) "part"));
     if(attrMangle.find(part) != attrMangle.end())
@@ -895,8 +904,6 @@ TRXCompiler::processValue(xmlNode* node)
     }
     ret += (wchar_t)part.size();
     ret += part;
-    ret += INT;
-    ret += (wchar_t)getPos(node);
     wstring side = toWstring(getAttr(node, (const xmlChar*) "side"));
     if(side == L"sl")
     {
@@ -977,22 +984,24 @@ TRXCompiler::processValue(xmlNode* node)
     {
       die(node, L"<get-case-from> cannot be empty.");
     }
+    ret += INT;
+    ret += (wchar_t)getPos(node);
+    ret += PUSHINPUT;
     ret += STRING;
     ret += (wchar_t)3;
     ret += L"lem";
-    ret += INT;
-    ret += (wchar_t)getPos(node);
     ret += (inOutput ? TARGETCLIP : SOURCECLIP);
     ret += SETCASE;
   }
   else if(!xmlStrcmp(node->name, (const xmlChar*) "case-of"))
   {
+    ret += INT;
+    ret += getPos(node);
+    ret += PUSHINPUT;
     ret += STRING;
     wstring part = toWstring(requireAttr(node, (const xmlChar*) "part"));
     ret += (wchar_t)part.size();
     ret += part;
-    ret += INT;
-    ret += getPos(node);
     wstring side = toWstring(getAttr(node, (const xmlChar*) "side"));
     if(side == L"sl")
     {

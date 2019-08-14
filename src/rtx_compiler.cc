@@ -1495,8 +1495,10 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
   blank += JUMPONFALSE;
   if(c->src == 0)
   {
-    if(_dest == L"lem" || _dest == L"lemh" || _dest == L"lemq" || (c->rewrite.size() > 0 &&
-       (c->rewrite.back() == L"lem" || c->rewrite.back() == L"lemh" || c->rewrite.back() == L"lemq")))
+    if(_dest == L"lem" || _dest == L"lemh" || _dest == L"lemq" || _dest == L"lemcase" ||
+       (c->rewrite.size() > 0 &&
+        (c->rewrite.back() == L"lem" || c->rewrite.back() == L"lemh" ||
+         c->rewrite.back() == L"lemq" || c->rewrite.back() == L"lemcase")))
     {
       return compileString(c->part);
     }

@@ -12,7 +12,7 @@ void endProgram(char *name)
   cout << "  -b, --both:       print text (use with -T)" << endl;
   cout << "  -e, --everything: print a complete trace of execution" << endl;
   cout << "  -f, --filter:     trace filterParseGraph()" << endl;
-  cout << "  -F, --no-filter:  only discard branches on parse error" << endl;
+  cout << "  -F, --filter:     filter branches more often" << endl;
   cout << "  -m, --mode:       set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
   cout << "  -r, --rules:      print the rules that are being applied" << endl;
   cout << "  -s, --steps:      print the instructions executed by the stack machine" << endl;
@@ -25,7 +25,7 @@ void endProgram(char *name)
   cout << "  -b:   print text (use with -T)" << endl;
   cout << "  -e:   print a complete trace of execution" << endl;
   cout << "  -f:   trace filterParseGraph()" << endl;
-  cout << "  -F:   only discard branches on parse error" << endl;
+  cout << "  -F:   filter branches more often" << endl;
   cout << "  -m:   set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
   cout << "  -r:   print the rules that are being applied" << endl;
   cout << "  -s:   print the instructions executed by the stack machine" << endl;
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
       {"both",              0, 0, 'b'},
       {"everything",        0, 0, 'e'},
       {"filter",            0, 0, 'f'},
-      {"no-filter",         0, 0, 'F'},
+      {"filter",            0, 0, 'F'},
       {"mode",              1, 0, 'm'},
       {"rules",             0, 0, 'r'},
       {"steps",             0, 0, 's'},
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
       break;
 
     case 'F':
-      p.noFiltering(true);
+      p.noFiltering(false);
       break;
 
     case 'm':

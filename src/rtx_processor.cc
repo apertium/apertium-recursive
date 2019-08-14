@@ -26,7 +26,7 @@ RTXProcessor::RTXProcessor()
   printingText = true;
   treePrintMode = TreeModeNest;
   newBranchId = 0;
-  noFilter = false;
+  noFilter = true;
   currentBranch = NULL;
 }
 
@@ -363,6 +363,10 @@ RTXProcessor::applyRule(const wstring& rule)
         if(printingSteps) { wcerr << "pushtrue" << endl; }
         pushStack(true);
         break;
+      case PUSHNULL:
+        if(printingSteps) { wcerr << "pushnull" << endl; }
+        pushStack((Chunk*)NULL);
+        break;
       case JUMP:
         if(printingSteps) { wcerr << "jump" << endl; }
         i += rule_data[++i];
@@ -631,24 +635,11 @@ RTXProcessor::applyRule(const wstring& rule)
         currentOutput = currentInput;
         return true;
         break;
-      case SOURCECLIP:
-        if(printingSteps) { wcerr << "sourceclip" << endl; }
-      {
-        int pos = 2*(popInt()-1);
-        wstring part;
-        popString(part);
-        Chunk* ch = (pos == -2) ? parentChunk : currentInput[pos];
-        pushStack(ch->chunkPart(attr_items[part], SourceClip));
-        if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
-      }
-        break;
-      case TARGETCLIP:
-        if(printingSteps) { wcerr << "targetclip" << endl; }
+      case PUSHINPUT:
+        if(printingSteps) { wcerr << "pushinput" << endl; }
       {
         int loc = popInt();
         int pos = 2*(loc-1);
-        wstring part;
-        popString(part);
         Chunk* ch = NULL;
         if(pos == -2) ch = parentChunk;
         else if(0 <= pos && pos < (int)currentInput.size()) ch = currentInput[pos];
@@ -671,25 +662,40 @@ RTXProcessor::applyRule(const wstring& rule)
             ch = currentInput.back();
           }
         }
-        if(part == L"whole" || part == L"chcontent")
-        {
-          pushStack(ch);
-        }
-        else
-        {
-          pushStack(ch->chunkPart(attr_items[part], TargetClip));
-          if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
-        }
+        pushStack(ch);
+      }
+        break;
+      case SOURCECLIP:
+        if(printingSteps) { wcerr << "sourceclip" << endl; }
+      {
+        wstring part;
+        popString(part);
+        Chunk* ch = popChunk();
+        if(ch == NULL) pushStack(L"");
+        else pushStack(ch->chunkPart(attr_items[part], SourceClip));
+        if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
+      }
+        break;
+      case TARGETCLIP:
+        if(printingSteps) { wcerr << "targetclip" << endl; }
+      {
+        wstring part;
+        popString(part);
+        Chunk* ch = popChunk();
+        if(ch == NULL) pushStack(L"");
+        else pushStack(ch->chunkPart(attr_items[part], TargetClip));
+        if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
       }
         break;
       case REFERENCECLIP:
         if(printingSteps) { wcerr << "referenceclip" << endl; }
       {
-        int pos = 2*(popInt()-1);
         wstring part;
         popString(part);
-        Chunk* ch = (pos == -2) ? parentChunk : currentInput[pos];
-        pushStack(ch->chunkPart(attr_items[part], ReferenceClip));
+        Chunk* ch = popChunk();
+        if(ch == NULL) pushStack(L"");
+        else pushStack(ch->chunkPart(attr_items[part], ReferenceClip));
+        if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
       }
         break;
       case SETCLIP:

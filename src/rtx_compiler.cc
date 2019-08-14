@@ -457,10 +457,19 @@ RTXCompiler::parseClip(int src = -2)
   }
   else if(isNextToken(L'$'))
   {
-    ret->src = -1;
-    if(currentLocType != LocTypeOutput)
+    if(isNextToken(L'$'))
     {
-      die(L"Chunk tags can only be accessed from output sections of reduction rules.");
+      ret->src = -4;
+      ret->varName = parseIdent();
+      nextToken(L".");
+    }
+    else
+    {
+      ret->src = -1;
+      if(currentLocType != LocTypeOutput)
+      {
+        die(L"Chunk tags can only be accessed from output sections of reduction rules.");
+      }
     }
   }
   else if(source.peek() == L'(')
@@ -486,7 +495,7 @@ RTXCompiler::parseClip(int src = -2)
   }
   if(currentLocType == LocTypeMacro)
   {
-    if(ret->src != 0 && ret->src != 1)
+    if(ret->src != 0 && ret->src != 1 && ret->src != -2 && ret->src != -4)
     {
       die(L"Macros can only access their single argument.");
     }
@@ -1439,9 +1448,21 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
   }
   int src = (c->src == -1) ? 0 : c->src;
   bool useReplace = (currentLocType == LocTypeOutput);
-  wstring cl = (c->part == L"lemcase") ? compileString(L"lem") : compileString(c->part);
-  cl += INT;
-  cl += src;
+  wstring cl;
+  if(src == -4)
+  {
+    cl += INT;
+    cl += globalVarNames[c->varName];
+    cl += FETCHCHUNK;
+  }
+  else
+  {
+    cl += INT;
+    cl += src;
+    cl += PUSHINPUT;
+  }
+  if(c->part == L"whole" || c->part == L"chcontent") return cl;
+  cl += (c->part == L"lemcase") ? compileString(L"lem") : compileString(c->part);
   wstring ret = cl;
   wstring undeftag;
   wstring deftag;
@@ -1496,7 +1517,7 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
     ret += thedefault;
   }
   else if(c->side == L"tl" || c->part == L"lemcase" ||
-          (c->src != -1 && !nodeIsSurface[currentRule->pattern[c->src-1][1]]))
+          (c->src > 0 && !nodeIsSurface[currentRule->pattern[c->src-1][1]]))
   {
     ret += TARGETCLIP;
     ret += blank;

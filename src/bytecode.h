@@ -14,6 +14,7 @@ static const wchar_t STRING    = L's';
 static const wchar_t INT       = L'i';
 static const wchar_t PUSHFALSE = L'f';
 static const wchar_t PUSHTRUE  = L't';
+static const wchar_t PUSHNULL  = L'0';
 
 // Jumps
 
@@ -79,6 +80,7 @@ static const wchar_t APPENDCHILD       = L'1';
 static const wchar_t APPENDSURFACE     = L'2';
 static const wchar_t APPENDALLCHILDREN = L'3';
 static const wchar_t APPENDALLINPUT    = L'4';
+static const wchar_t PUSHINPUT         = L'7';
 
 // Output
 

@@ -24,11 +24,17 @@ private:
 
   struct Clip
   {
+    // > 0 = input
+    // 0 = constant
+    // -1 = parent node
+    // -2 = if statement
+    // -4 = global var
     int src;
     wstring part;
     wstring side;
     vector<wstring> rewrite;
     OutputChoice* choice;
+    wstring varName;
   };
 
   struct Cond

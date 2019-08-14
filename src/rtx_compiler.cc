@@ -2012,7 +2012,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       ret += compileClip(L"lemq", r->pos, L"tl");
       ret += APPENDSURFACE;
     }
-    if(r->pos != 0 && currentLocType == LocTypeOutput)
+    if(r->pos != 0 && (currentLocType == LocTypeOutput || currentLoc == LocVarSet))
     {
       ret += compileClip(L"whole", r->pos, L"tl");
       ret += APPENDALLCHILDREN;

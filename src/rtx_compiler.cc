@@ -2243,6 +2243,7 @@ RTXCompiler::processRules()
     }
     for(auto it : rule->globals)
     {
+      currentLocType = LocTypeInput;
       currentLoc = LocVarSet;
       currentVar = globalVarNames[it.first];
       comp += processOutputChoice(it.second);

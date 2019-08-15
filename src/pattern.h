@@ -39,7 +39,7 @@ private:
   map<wstring, set<wstring, Ltstr>, Ltstr> lists;
 
   /**
-   * Global variables
+   * Global string variables
    * name => initial value
    */
   map<wstring, wstring, Ltstr> variables;
@@ -49,19 +49,8 @@ private:
    */
   set<int> final_symbols;
 
-  /**
-   * Locations of ends of rules, to check for conflicts
-   * Note: addPattern() currently forces distinct paths,
-   * so this isn't very useful
-   * state => rule number
-   */
-  map<int, int> seen_rules;
-
-  /**
-   * Inverse of seen_rules, used by addLookahead()
-   * rule number => state
-   */
-  map<int, vector<int>> rules_to_states;
+  map<int, vector<wstring>> lookahead;
+  map<wstring, set<wstring>> firstSet;
 
   /**
    * Alphabet of pattern transducer
@@ -72,6 +61,12 @@ private:
    * Pattern transducer
    */
   Transducer transducer;
+
+  /**
+   * Lexicalized weights for rules
+   * rule id => [ ( weight, processed pattern ) ... ]
+   */
+  map<wstring, vector<pair<double, vector<vector<PatternElement*>>>>> lexicalizations;
 
   //////////
   // TRANSDUCER PATH BUILDING
@@ -93,6 +88,13 @@ private:
    * Generate symbol of the form L"<RULE_NUMBER:count>" to mark rule end
    */
   int countToFinalSymbol(const int count);
+
+  /**
+   * Build complete path
+   */
+  void addPattern(vector<vector<PatternElement*>> pat, int rule, double weight, bool isLex);
+
+  void buildLookahead();
 
   //////////
   // ATTRIBUTE COMPRESSION
@@ -149,12 +151,12 @@ public:
 
   PatternBuilder();
 
-  int addPattern(vector<vector<PatternElement*>> pat, int rule, double weight = 0.0);
+  void addRule(int rule, double weight, vector<vector<PatternElement*>> pattern, vector<wstring> firstChunk, wstring name);
   void addList(wstring name, set<wstring, Ltstr> vals);
   void addAttr(wstring name, set<wstring, Ltstr> vals);
   bool isAttrDefined(wstring name);
   void addVar(wstring name, wstring val);
-  void addLookahead(const int rule, const vector<PatternElement*>& options);
+  void loadLexFile(const string& fname);
   void write(FILE* output, int longest, vector<pair<int, wstring>> inputBytecode, vector<wstring> outputBytecode);
 };
 

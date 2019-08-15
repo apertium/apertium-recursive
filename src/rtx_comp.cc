@@ -17,13 +17,11 @@ void endProgram(char *name)
   cout << "Options:" << endl;
 #if HAVE_GETOPT_LONG
   cout << "  -e, --exclude:      exclude a rule by name" << endl;
-  cout << "  -f, --no-fallback:  don't generate a default fallback rule" << endl;
   cout << "  -l, --lexical:      load a file of lexicalized weights" << endl;
   cout << "  -s, --summarize:    print rules to stderr as 'output -> pattern'" << endl;
   cout << "  -h, --help:         show this help" << endl;
 #else
   cout << "  -e:   exclude a rule by name" << endl;
-  cout << "  -f:   don't generate a default fallback rule" << endl;
   cout << "  -l:   load a file of lexicalized weights" << endl;
   cout << "  -s:   print rules to stderr as 'output -> pattern'" << endl;
   cout << "  -h:   show this help" << endl;
@@ -41,7 +39,6 @@ int main(int argc, char *argv[])
   static struct option long_options[]=
     {
       {"exclude",           1, 0, 'e'},
-      {"no-fallback",       0, 0, 'f'},
       {"lexical",           1, 0, 'l'},
       {"summarize",         0, 0, 's'},
       {"help",              0, 0, 'h'}
@@ -66,10 +63,6 @@ int main(int argc, char *argv[])
     {
     case 'e':
       myCompiler.excludeRule(UtfConverter::fromUtf8(optarg));
-      break;
-
-    case 'f':
-      myCompiler.setFallback(false);
       break;
 
     case 'l':

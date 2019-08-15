@@ -21,7 +21,6 @@ RTXCompiler::RTXCompiler()
   currentLoc = LocTopLevel;
   currentLocType = LocTypeNone;
   PB.starCanBeEmpty = true;
-  fallbackRule = true;
   summarizing = false;
 }
 
@@ -1378,26 +1377,7 @@ RTXCompiler::makePattern(int ruleid)
   }
   if(excluded.find(rule->name) == excluded.end())
   {
-    PB.addPattern(pat, ruleid+1, rule->weight);
-    if(lexicalizations.find(rule->name) != lexicalizations.end())
-    {
-      for(auto pr : lexicalizations[rule->name])
-      {
-        if(pr.second.size() == pat.size())
-        {
-          vector<vector<PatternElement*>> p2;
-          for(auto el : pr.second)
-          {
-            p2.push_back(vector<PatternElement*>(1, el));
-          }
-          PB.addPattern(p2, ruleid+1, pr.first);
-        }
-        else
-        {
-          wcerr << L"Lexicalization for rule '" << rule->name << "' with weight " << pr.first << " has " << pr.second.size() << " elements in its pattern where the base rule has " << pat.size() << ". It will be ignored." << endl;
-        }
-      }
-    }
+    PB.addRule(ruleid+1, rule->weight, pat, vector<wstring>(1, rule->result[0]), rule->name);
   }
 }
 
@@ -2313,107 +2293,9 @@ RTXCompiler::processRules()
 }
 
 void
-RTXCompiler::buildLookahead()
-{
-  vector<pair<wstring, vector<wstring>>> rules;
-  map<wstring, set<wstring>> first;
-  for(unsigned int i = 0; i < reductionRules.size(); i++)
-  {
-    vector<wstring> parts;
-    for(unsigned int j = 0; j < reductionRules[i]->pattern.size(); j++)
-    {
-      parts.push_back(reductionRules[i]->pattern[j][1]);
-    }
-    rules.push_back(make_pair(reductionRules[i]->result[0], parts));
-    first[reductionRules[i]->result[0]].insert(parts[0]);
-  }
-  for(unsigned int i = 0; i < rules.size(); i++)
-  {
-    vector<PatternElement*> check;
-    set<wstring> ops;
-    for(unsigned int j = 0; j < rules.size(); j++)
-    {
-      for(unsigned int offset = 0; rules[j].second.size() > rules[i].second.size() + offset; offset++)
-      {
-        bool match = true;
-        for(unsigned int k = 0; k < rules[i].second.size(); k++)
-        {
-          if(rules[i].second[k] != rules[j].second[k+offset])
-          {
-            match = false;
-            break;
-          }
-        }
-        if(!match) continue;
-        wstring next = rules[j].second[rules[i].second.size()+offset];
-        vector<wstring> todo;
-        todo.push_back(next);
-        while(todo.size() > 0)
-        {
-          wstring cur = todo.back();
-          todo.pop_back();
-          if(ops.count(cur) == 0)
-          {
-            ops.insert(cur);
-            PatternElement* p = new PatternElement;
-            p->tags.push_back(cur);
-            p->tags.push_back(L"*");
-            check.push_back(p);
-            if(first.find(cur) != first.end())
-            {
-              todo.insert(todo.end(), first[cur].begin(), first[cur].end());
-            }
-          }
-        }
-      }
-    }
-    PB.addLookahead(i, check);
-  }
-}
-
-void
 RTXCompiler::loadLex(const string& fname)
 {
-  wifstream lex;
-  lex.open(fname);
-  if(!lex.is_open())
-  {
-    wcerr << "Unable to open file " << fname.c_str() << " for reading." << endl;
-    exit(EXIT_FAILURE);
-  }
-  while(!lex.eof())
-  {
-    wstring name;
-    while(!lex.eof() && lex.peek() != L'\t') name += lex.get();
-    lex.get();
-    wstring weight;
-    while(!lex.eof() && lex.peek() != L'\t') weight += lex.get();
-    lex.get();
-    if(lex.eof()) break;
-    vector<PatternElement*> pat;
-    while(!lex.eof() && lex.peek() != L'\n')
-    {
-      PatternElement* p = new PatternElement;
-      while(lex.peek() != L'@') p->lemma += lex.get();
-      lex.get();
-      wstring tag;
-      while(lex.peek() != L' ' && lex.peek() != L'\n')
-      {
-        if(lex.peek() == L'.')
-        {
-          lex.get();
-          p->tags.push_back(tag);
-          tag.clear();
-        }
-        else tag += lex.get();
-      }
-      p->tags.push_back(tag);
-      if(lex.peek() == L' ') lex.get();
-      pat.push_back(p);
-    }
-    lex.get();
-    lexicalizations[name].push_back(make_pair(stod(weight), pat));
-  }
+  PB.loadLexFile(fname);
 }
 
 void
@@ -2450,7 +2332,6 @@ RTXCompiler::read(const string &fname)
     PB.addList(it->first, vals);
     PB.addAttr(it->first, vals);
   }
-  buildLookahead();
 }
 
 void
@@ -2463,8 +2344,6 @@ RTXCompiler::write(const string &fname)
     exit(EXIT_FAILURE);
   }
 
-  vector<PatternElement*> glue;
-  set<wstring, Ltstr> seen;
   vector<pair<int, wstring>> inRules;
   for(unsigned int i = 0; i < reductionRules.size(); i++)
   {
@@ -2478,24 +2357,6 @@ RTXCompiler::write(const string &fname)
     {
       PB.inRuleNames.push_back(L"line " + to_wstring(reductionRules[i]->line));
     }
-    wstring tg = reductionRules[i]->result.back();
-    if(seen.find(tg) == seen.end())
-    {
-      PatternElement* p = new PatternElement;
-      p->tags.push_back(tg);
-      p->tags.push_back(L"*");
-      glue.push_back(p);
-      seen.insert(tg);
-    }
-  }
-  PatternElement* p = new PatternElement;
-  p->tags.push_back(L"FALL:BACK");
-  vector<vector<PatternElement*>> fb;
-  fb.push_back(glue);
-  fb.push_back(vector<PatternElement*>(1, p));
-  if(fallbackRule)
-  {
-    PB.addPattern(fb, -1);
   }
 
   PB.chunkVarCount = globalVarNames.size();

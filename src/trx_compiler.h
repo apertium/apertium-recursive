@@ -118,18 +118,6 @@ private:
    */
   int longestPattern;
 
-  /**
-   * Data gathered by processRules() for use in buildLookahead()
-   * [ ( rule.firstChunk, processed pattern ) for rule in inputRules ]
-   */
-  vector<pair<wstring, vector<vector<PatternElement*>>>> lookahead;
-
-  /**
-   * Lexicalized weights for rules
-   * rule id => [ ( weight, processed pattern ) ... ]
-   */
-  map<wstring, vector<pair<double, vector<vector<PatternElement*>>>>> lexicalizations;
-
   //////////
   // ERRORS
   //////////
@@ -207,11 +195,6 @@ private:
    * @return inserted name, may or may not be equal to name
    */
   wstring insertList(wstring name, set<wstring, Ltstr> ats);
-
-  /**
-   * Construct lookahead paths
-   */
-  void buildLookahead();
 
   //////////
   // XML PARSING

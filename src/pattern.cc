@@ -5,6 +5,9 @@
 #include <apertium_re.h>
 #include <apertium/utf_converter.h>
 
+#include <iostream>
+#include <fstream>
+
 using namespace std;
 
 PatternBuilder::PatternBuilder()
@@ -187,14 +190,23 @@ PatternBuilder::trie(vector<wstring> parts)
   return L"(" + unbuildTrie(l[0]) + L">)";
 }
 
-int
-PatternBuilder::addPattern(vector<vector<PatternElement*>> pat, int rule, double weight)
+void
+PatternBuilder::addPattern(vector<vector<PatternElement*>> pat, int rule, double weight, bool isLex)
 {
   int state = transducer.getInitial();
   for(unsigned int p = 0; p < pat.size(); p++)
   {
     if(p != 0)
     {
+      if(!isLex)
+      {
+        // lookahead on lexicalization paths ought to be redundant
+        // since anything matching a lex path should also match the general path
+        for(auto pe : pat[p])
+        {
+          if(pe->tags.size() > 0) lookahead[state].push_back(pe->tags[0]);
+        }
+      }
       state = transducer.insertSingleTransduction(L' ', state);
     }
     state = transducer.insertNewSingleTransduction(L'^', state);
@@ -209,23 +221,28 @@ PatternBuilder::addPattern(vector<vector<PatternElement*>> pat, int rule, double
     }
     state = end;
   }
-  if(rule == -1)
+  int symbol = countToFinalSymbol(rule);
+  state = transducer.insertSingleTransduction(symbol, state, weight);
+  transducer.setFinal(state);
+}
+
+void
+PatternBuilder::addRule(int rule, double weight, vector<vector<PatternElement*>> pattern, vector<wstring> firstChunk, wstring name)
+{
+  addPattern(pattern, rule, weight, false);
+  for(auto it : lexicalizations[name])
   {
-    transducer.setFinal(state);
-    return -1;
+    if(it.second.size() == pattern.size())
+    {
+      addPattern(it.second, rule, it.first, true);
+    }
   }
-  else if(seen_rules.find(state) == seen_rules.end())
+  for(auto left : firstChunk)
   {
-    seen_rules[state] = rule;
-    rules_to_states[rule].push_back(state);
-    int symbol = countToFinalSymbol(rule);
-    state = transducer.insertSingleTransduction(symbol, state, weight);
-    transducer.setFinal(state);
-    return -1;
-  }
-  else
-  {
-    return seen_rules[state];
+    for(auto right : pattern[0])
+    {
+      firstSet[left].insert(right->tags[0]);
+    }
   }
 }
 
@@ -274,26 +291,103 @@ PatternBuilder::addVar(wstring name, wstring val)
 }
 
 void
-PatternBuilder::addLookahead(const int rule, const vector<PatternElement*>& options)
+PatternBuilder::buildLookahead()
 {
-  // there's a lot of hardcodishness about this function
-  if(options.size() == 0) return;
-  for(auto s : rules_to_states[rule+1])
+  for(auto it : firstSet)
   {
-    int state = s;
-    state = transducer.insertSingleTransduction(alphabet(L"<LOOK:AHEAD>"), state);
+    firstSet[it.first].insert(it.first);
+    vector<wstring> todo;
+    for(auto op : it.second) todo.push_back(op);
+    while(todo.size() > 0)
+    {
+      wstring cur = todo.back();
+      todo.pop_back();
+      if(cur != it.first && firstSet.find(cur) != firstSet.end())
+      {
+        for(auto other : firstSet[cur])
+        {
+          if(firstSet[it.first].find(other) == firstSet[it.first].end())
+          {
+            firstSet[it.first].insert(other);
+            todo.push_back(other);
+          }
+        }
+      }
+    }
+  }
+  for(auto it : lookahead)
+  {
+    int state = transducer.insertSingleTransduction(alphabet(L"<LOOK:AHEAD>"), it.first);
     state = transducer.insertSingleTransduction(L'^', state);
     transducer.linkStates(state, state, alphabet(L"<ANY_CHAR>"));
-    int end = transducer.insertSingleTransduction(alphabet(L"<" + options[0]->tags[0] + L">"), state);
-    transducer.linkStates(end, end, alphabet(L"<ANY_TAG>"));
-    end = transducer.insertSingleTransduction(L'$', end);
-    for(unsigned int i = 1; i < options.size(); i++)
+    int end = -1;
+    for(auto next : it.second)
     {
-      int temp = transducer.insertSingleTransduction(alphabet(L"<" + options[i]->tags[0] + L">"), state);
-      transducer.linkStates(temp, temp, alphabet(L"<ANY_TAG>"));
-      transducer.linkStates(temp, end, L'$');
+      if(firstSet.find(next) == firstSet.end()) firstSet[next].insert(next);
+      for(auto tag : firstSet[next])
+      {
+        int temp = state;
+        if(tag != L"*")
+        {
+          temp = transducer.insertSingleTransduction(alphabet(L"<" + tag + L">"), temp);
+        }
+        transducer.linkStates(temp, temp, alphabet(L"<ANY_TAG>"));
+        if(end == -1)
+        {
+          end = transducer.insertSingleTransduction(L'$', temp);
+          transducer.setFinal(end);
+        }
+        else
+        {
+          transducer.linkStates(temp, end, L'$');
+        }
+      }
     }
-    transducer.setFinal(end);
+  }
+}
+
+void
+PatternBuilder::loadLexFile(const string& fname)
+{
+  wifstream lex;
+  lex.open(fname);
+  if(!lex.is_open())
+  {
+    wcerr << "Unable to open file " << fname.c_str() << " for reading." << endl;
+    exit(EXIT_FAILURE);
+  }
+  while(!lex.eof())
+  {
+    wstring name;
+    while(!lex.eof() && lex.peek() != L'\t') name += lex.get();
+    lex.get();
+    wstring weight;
+    while(!lex.eof() && lex.peek() != L'\t') weight += lex.get();
+    lex.get();
+    if(lex.eof()) break;
+    vector<vector<PatternElement*>> pat;
+    while(!lex.eof() && lex.peek() != L'\n')
+    {
+      PatternElement* p = new PatternElement;
+      while(lex.peek() != L'@') p->lemma += lex.get();
+      lex.get();
+      wstring tag;
+      while(lex.peek() != L' ' && lex.peek() != L'\n')
+      {
+        if(lex.peek() == L'.')
+        {
+          lex.get();
+          p->tags.push_back(tag);
+          tag.clear();
+        }
+        else tag += lex.get();
+      }
+      p->tags.push_back(tag);
+      if(lex.peek() == L' ') lex.get();
+      pat.push_back(vector<PatternElement*>(1, p));
+    }
+    lex.get();
+    lexicalizations[name].push_back(make_pair(stod(weight), pat));
   }
 }
 
@@ -317,6 +411,8 @@ PatternBuilder::write(FILE* output, int longest, vector<pair<int, wstring>> inpu
   Compression::multibyte_write(chunkVarCount, output);
 
   alphabet.write(output);
+
+  buildLookahead();
 
   transducer.minimize();
   map<int, double> old_finals = transducer.getFinals(); // copy for later removal

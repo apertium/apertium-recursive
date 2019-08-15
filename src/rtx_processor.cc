@@ -1029,6 +1029,39 @@ RTXProcessor::setOutputMode(string mode)
   }
 }
 
+bool
+RTXProcessor::lookahead(ParseNode* node)
+{
+  Chunk* next = NULL;
+  for(vector<vector<Chunk*>*>::reverse_iterator it = currentContinuation.rbegin(),
+        limit = currentContinuation.rend(); it != limit; it++)
+  {
+    for(vector<Chunk*>::reverse_iterator it2 = (*it)->rbegin(), limit2 = (*it)->rend();
+        it2 != limit2; it++)
+    {
+      if(!(*it2)->isBlank)
+      {
+        next = *it2;
+        break;
+      }
+    }
+    if(next != NULL) break;
+  }
+  if(next == NULL)
+  {
+    for(list<Chunk*>::iterator it = inputBuffer.begin(), limit = inputBuffer.end();
+        it != limit; it++)
+    {
+      if(!(*it)->isBlank)
+      {
+        next = *it;
+        break;
+      }
+    }
+  }
+  return (next != NULL && node->shouldShift(next));
+}
+
 void
 RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
 {
@@ -1140,41 +1173,11 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
     if(printingAll) wcerr << "No further reductions possible for branch " << node->id << "." << endl;
     result.push_back(node);
   }
-  else
+  else if(lookahead(node))
   {
-    Chunk* next = NULL;
-    for(vector<vector<Chunk*>*>::reverse_iterator it = currentContinuation.rbegin(),
-          limit = currentContinuation.rend(); it != limit; it++)
-    {
-      for(vector<Chunk*>::reverse_iterator it2 = (*it)->rbegin(), limit2 = (*it)->rend();
-          it2 != limit2; it++)
-      {
-        if(!(*it2)->isBlank)
-        {
-          next = *it2;
-          break;
-        }
-      }
-      if(next != NULL) break;
-    }
-    if(next == NULL)
-    {
-      for(list<Chunk*>::iterator it = inputBuffer.begin(), limit = inputBuffer.end();
-          it != limit; it++)
-      {
-        if(!(*it)->isBlank)
-        {
-          next = *it;
-          break;
-        }
-      }
-    }
-    if(next != NULL && node->shouldShift(next))
-    {
-      node->id = ++newBranchId;
-      if(printingAll) wcerr << endl << "Splitting stack and creating branch " << node->id << endl;
-      result.push_back(node);
-    }
+    node->id = ++newBranchId;
+    if(printingAll) wcerr << endl << "Splitting stack and creating branch " << node->id << endl;
+    result.push_back(node);
   }
 }
 
@@ -1287,7 +1290,8 @@ RTXProcessor::filterParseGraph()
   {
     for(int i = 0; i < N; i++)
     {
-      if(parseGraph[i]->isDone())
+      if(parseGraph[i]->isDone() ||
+         (!parseGraph[i]->chunk->isBlank && !lookahead(parseGraph[i])))
       {
         state[i] = 0;
         count--;

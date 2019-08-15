@@ -383,6 +383,8 @@ private:
    */
   Chunk* readToken(FILE *in);
 
+  bool lookahead(ParseNode* node);
+
   /**
    * Check whether any rules can apply to node
    * if there are any, select one and apply it

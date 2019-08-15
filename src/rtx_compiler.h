@@ -104,13 +104,6 @@ private:
   //////////
 
   /**
-   * Whether a default fallback rule should be generated to prevent finished
-   * branches from being discarded
-   * Default: true
-   */
-  bool fallbackRule;
-
-  /**
    * If true, write the output and pattern of each rule to stderr
    * Default: false
    */
@@ -120,11 +113,6 @@ private:
    * Names of rules that should be excluded from the pattern transducer
    */
   set<wstring> excluded;
-
-  /**
-   * Lexically specified alternate weights for rules
-   */
-  map<wstring, vector<pair<double, vector<PatternElement*>>>> lexicalizations;
 
   //////////
   // COLLECTIONS AND DATA STRUCTURES
@@ -609,19 +597,10 @@ private:
    */
   void processRules();
 
-  /**
-   * Construct lookahead paths for the transducer
-   */
-  void buildLookahead();
-
 public:
   RTXCompiler();
   ~RTXCompiler() {}
 
-  void setFallback(bool value)
-  {
-    fallbackRule = value;
-  }
   void setSummarizing(bool value)
   {
     summarizing = value;

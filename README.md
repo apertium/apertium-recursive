@@ -30,7 +30,6 @@ apertium-recursive/src/randsen.py start_node pair_directory source_language_dire
 
 Options for ```rtx-comp```:
  - ```-e``` don't compile a rule with a particular name
- - ```-f``` don't compile a fallback rule
    - This can make `rtx-proc` run somewhat faster, but often results in the desired parse being discarded
  - ```-l``` load lexicalized weights from a file
  - ```-s``` output summaries of the rules to stderr

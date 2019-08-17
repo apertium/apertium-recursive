@@ -1,4 +1,6 @@
-This is the repository for the Google Summer of Code project described here: http://wiki.apertium.org/wiki/User:Popcorndude/Recursive_Transfer
+# Apertium-recursive
+
+A recursive structural transfer module for Apertium
 
 Compiling
 ---------
@@ -30,9 +32,11 @@ apertium-recursive/src/randsen.py start_node pair_directory source_language_dire
 
 Options for ```rtx-comp```:
  - ```-e``` don't compile a rule with a particular name
-   - This can make `rtx-proc` run somewhat faster, but often results in the desired parse being discarded
  - ```-l``` load lexicalized weights from a file
  - ```-s``` output summaries of the rules to stderr
+
+Options for ```trx-comp```:
+ - ```-l``` load lexicalized weights from a file
 
 Options for ```rtx-proc```:
  - ```-a``` indicates that the input comes from apertium-anaphora
@@ -50,6 +54,7 @@ Options for ```rtx-proc```:
    - ```box``` print the tree using [box-drawing characters](https://en.wikipedia.org/wiki/Box-drawing_character)
  - ```-e``` a combination of ```-f``` and ```-r```
    - Intended use: ```rtx-proc -e -m latex rules.bin < input.txt 2> trace.tex```
+ - ```-F``` filter branches for things besides parse errors (experimental)
 
 Testing
 -------
@@ -89,8 +94,8 @@ In ```modes.xml```, replace ```apertium-transfer```, ```apertium-interchunk```, 
 Documentation
 -------------
 
- - Project proposal: http://wiki.apertium.org/wiki/User:Popcorndude/Recursive_Transfer
- - File format documentation: http://wiki.apertium.org/wiki/User:Popcorndude/Recursive_Transfer/Formalism
- - Bytecode documentation: http://wiki.apertium.org/wiki/User:Popcorndude/Recursive_Transfer/Bytecode
+ - GSoC project proposal: http://wiki.apertium.org/wiki/User:Popcorndude/Recursive_Transfer
+ - File format documentation: http://wiki.apertium.org/wiki/Apertium-recursive/Formalism
+ - Bytecode documentation: http://wiki.apertium.org/wiki/Apertium-recursive/Bytecode
  - Progress reports: http://wiki.apertium.org/wiki/User:Popcorndude/Recursive_Transfer/Progress and https://github.com/apertium/apertium-recursive/issues/1
  - Examples of functioning rule sets can be found in [apertium-eng-kir](https://github.com/apertium/apertium-eng-kir/blob/rtx/apertium-eng-kir.kir-eng.rtx), [`eng-spa.rtx`](eng-spa.rtx), and [`tests/`](tests/)

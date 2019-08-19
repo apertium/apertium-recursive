@@ -829,7 +829,7 @@ RTXCompiler::parseOutputElement()
     {
       if(ret->getall)
       {
-        die(L"% not supported on output literals with @. Use %lemma[pos].");
+        die(L"% not supported on output literals with @. Use %lemma(pos).");
       }
       ret->mode = L"@";
       while(true)
@@ -865,6 +865,11 @@ RTXCompiler::parseOutputElement()
       ret->mode = L"#@";
       ret->pattern = parseIdent(true);
       nextToken(L")");
+      Clip* pos = new Clip;
+      pos->src = 0;
+      pos->part = ret->pattern;
+      pos->rewrite.push_back(L"pos_tag");
+      ret->vars[L"pos_tag"] = pos;
       unsigned int i = 0;
       for(; i < ret->lemma.size(); i++)
       {

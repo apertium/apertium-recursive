@@ -1581,6 +1581,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       fflush(out);
       break;
     }
+    else if(!furtherInput && inputBuffer.size() == 0) break;
   }
 }
 

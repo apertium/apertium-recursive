@@ -1,5 +1,5 @@
 AM_LDFLAGS=$(LIBS)
-AM_CXXFLAGS=-Wall -g -ggdb -DDEBUG
+#AM_CXXFLAGS=-Wall -g -ggdb -DDEBUG
 
 bin_PROGRAMS = rtx-comp rtx-proc rtx-decomp trx-comp random-path
 

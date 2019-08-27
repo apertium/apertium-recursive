@@ -25,7 +25,7 @@ class InterpreterTest:
         subprocess.check_output(args, stderr=subprocess.STDOUT, universal_newlines=True)
     def test_output(self):
         args = ['../src/rtx-proc', '-a', self.bin_file]
-        actual = subprocess.check_output(args, input=self.input, encoding='utf-8', universal_newlines=True)
+        actual = subprocess.check_output(args, input=self.input, universal_newlines=True)
         self.maxDiff = None
         self.assertEqual(self.output, actual)
 

@@ -195,7 +195,8 @@ void writeRule(wstring rule, FILE* out)
         fwprintf(out, L"SETRULE\n");
         break;
       default:
-        fwprintf(out, L"Unknown instruction: %s", rule.substr(i, 1));
+        auto tmp = rule.substr(i, 1);
+        fwprintf(out, L"Unknown instruction: %s", tmp.c_str());
     }
   }
   fwprintf(out, L"\n");

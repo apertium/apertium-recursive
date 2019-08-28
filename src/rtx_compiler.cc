@@ -1171,7 +1171,8 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
           currentLoc = LocTopLevel;
           if(globalVarNames.find(var) == globalVarNames.end())
           {
-            globalVarNames[var] = globalVarNames.size();
+            int temp = globalVarNames.size();
+            globalVarNames[var] = temp;
           }
         }
         else

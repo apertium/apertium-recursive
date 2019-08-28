@@ -1,3 +1,4 @@
+#include <rtx_config.h>
 #include <rtx_compiler.h>
 #include <apertium/string_utils.h>
 #include <apertium/utf_converter.h>
@@ -1065,7 +1066,7 @@ RTXCompiler::parseOutputChunk()
     {
       die(L"Output grouping with [] only valid inside chunks.");
     }
-    ch->mode == L"[]";
+    ch->mode = L"[]";
     end = L']';
   }
   eatSpaces();

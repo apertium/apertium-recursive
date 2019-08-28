@@ -1,7 +1,9 @@
+#include <rtx_config.h>
 #include <bytecode.h>
 #include <lttoolbox/lt_locale.h>
 #include <lttoolbox/compression.h>
 #include <getopt.h>
+#include <libgen.h>
 #include <iostream>
 #include <fstream>
 #include <cstring>

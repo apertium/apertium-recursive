@@ -1,6 +1,8 @@
 #ifndef __RTXBYTECODE__
 #define __RTXBYTECODE__
 
+#include <rtx_config.h>
+
 // Stack Operations
 
 static const wchar_t DROP = L'd';

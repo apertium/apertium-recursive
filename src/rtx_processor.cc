@@ -1,3 +1,4 @@
+#include <rtx_config.h>
 #include <rtx_processor.h>
 #include <bytecode.h>
 #include <apertium/trx_reader.h>
@@ -369,7 +370,8 @@ RTXProcessor::applyRule(const wstring& rule)
         break;
       case JUMP:
         if(printingSteps) { wcerr << "jump" << endl; }
-        i += rule_data[++i];
+        ++i;
+        i += rule_data[i];
         break;
       case JUMPONTRUE:
         if(printingSteps) { wcerr << "jumpontrue" << endl; }
@@ -380,7 +382,8 @@ RTXProcessor::applyRule(const wstring& rule)
         }
         else
         {
-          i += rule_data[++i];
+          ++i;
+          i += rule_data[i];
           if(printingSteps) { wcerr << " -> true, jumping" << endl; }
         }
         break;
@@ -393,7 +396,8 @@ RTXProcessor::applyRule(const wstring& rule)
         }
         else
         {
-          i += rule_data[++i];
+          ++i;
+          i += rule_data[i];
           if(printingSteps) { wcerr << " -> false, jumping" << endl; }
         }
         break;

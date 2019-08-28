@@ -1,6 +1,7 @@
 #ifndef __RTXCHUNK__
 #define __RTXCHUNK__
 
+#include <rtx_config.h>
 #include <vector>
 #include <string>
 #include <apertium_re.h>

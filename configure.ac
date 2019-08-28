@@ -6,7 +6,7 @@ m4_define([required_lttoolbox_version], [3.5.0])
 
 AC_INIT([apertium-recursive], [0.0.1], [awesomeevildudes@gmail.com])
 AM_INIT_AUTOMAKE([apertium-recursive], [0.0.1], no-define)
-AC_CONFIG_HEADER([rtx_config.h])
+AC_CONFIG_HEADER([src/auto_config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_PROG_CXX

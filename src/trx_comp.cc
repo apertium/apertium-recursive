@@ -1,6 +1,8 @@
+#include <rtx_config.h>
 #include <trx_compiler.h>
 #include <lttoolbox/lt_locale.h>
 #include <getopt.h>
+#include <libgen.h>
 #include <vector>
 
 void endProgram(char *name)

@@ -1,6 +1,7 @@
 #ifndef __RTXPROCESSOR__
 #define __RTXPROCESSOR__
 
+#include <rtx_config.h>
 #include <apertium_re.h>
 #include <apertium/utf_converter.h>
 #include <lttoolbox/alphabet.h>

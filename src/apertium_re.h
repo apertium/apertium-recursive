@@ -18,6 +18,7 @@
 #ifndef _APERTIUM_RE_
 #define _APERTIUM_RE_
 
+#include <rtx_config.h>
 #include <pcre.h>
 #include <cstdio>
 #include <string>

@@ -1,6 +1,7 @@
 #ifndef __RTXMATCHER__
 #define __RTXMATCHER__
 
+#include <rtx_config.h>
 #include <lttoolbox/transducer.h>
 #include <lttoolbox/alphabet.h>
 #include <chunk.h>

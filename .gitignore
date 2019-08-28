@@ -2,7 +2,9 @@
 *.in
 *Makefile
 src/.deps/*
-*config*
+configure
+config.*
+src/auto_config.h*
 INSTALL
 aclocal.m4
 autom4te.cache/

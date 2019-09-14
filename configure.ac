@@ -5,7 +5,7 @@ m4_define([required_apertium_version], [3.5.2])
 m4_define([required_lttoolbox_version], [3.5.0])
 
 AC_INIT([apertium-recursive], [0.0.1], [awesomeevildudes@gmail.com])
-AM_INIT_AUTOMAKE([apertium-recursive], [0.0.1], no-define)
+AM_INIT_AUTOMAKE
 AC_CONFIG_HEADER([src/auto_config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -64,5 +64,6 @@ AX_CHECK_COMPILE_FLAG([-std=c++20], [CXXFLAGS="$CXXFLAGS -std=c++20"], [
 AC_CONFIG_FILES([
                  Makefile
                  src/Makefile
+                 apertium-recursive.pc
                  ])
 AC_OUTPUT

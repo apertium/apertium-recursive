@@ -1,3 +1,5 @@
+pkgconfigdir = $(libdir)/pkgconfig
+dist_pkgconfig_DATA = apertium-recursive.pc
 
 SUBDIRS = src
 

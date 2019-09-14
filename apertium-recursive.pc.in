@@ -1,0 +1,5 @@
+prefix=@prefix@
+
+Name: apertium-recursive
+Description: Recursive structural transfer module for Apertium
+Version: @VERSION@

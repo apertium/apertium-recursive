@@ -2372,3 +2372,11 @@ RTXCompiler::write(const string &fname)
 
   fclose(out);
 }
+
+void
+RTXCompiler::printStats()
+{
+  wcout << "Rules: " << reductionRules.size() << endl;
+  wcout << "Macros: " << macros.size() << endl;
+  wcout << "Global variables: " << globalVarNames.size() << endl;
+}

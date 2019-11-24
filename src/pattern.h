@@ -69,6 +69,8 @@ private:
    */
   map<wstring, vector<pair<double, vector<vector<PatternElement*>>>>> lexicalizations;
 
+  map<int, pair<vector<wstring>, vector<vector<PatternElement*>>>> rules;
+
   //////////
   // TRANSDUCER PATH BUILDING
   //////////
@@ -96,6 +98,10 @@ private:
   void addPattern(vector<vector<PatternElement*>> pat, int rule, double weight, bool isLex);
 
   void buildLookahead();
+
+  bool isPrefix(const vector<vector<PatternElement*>>& rule, const vector<vector<PatternElement*>>& prefix);
+
+  void buildFallback();
 
   //////////
   // ATTRIBUTE COMPRESSION

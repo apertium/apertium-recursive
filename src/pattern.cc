@@ -97,7 +97,7 @@ PatternBuilder::countToFinalSymbol(const int count)
   const wstring count_sym = L"<RULE_NUMBER:" + to_wstring(count) + L">";
   alphabet.includeSymbol(count_sym);
   const int symbol = alphabet(count_sym);
-  final_symbols.insert(symbol);
+  if(count != -1) final_symbols.insert(symbol);
   return symbol;
 }
 
@@ -230,6 +230,7 @@ PatternBuilder::addPattern(vector<vector<PatternElement*>> pat, int rule, double
 void
 PatternBuilder::addRule(int rule, double weight, vector<vector<PatternElement*>> pattern, vector<wstring> firstChunk, wstring name)
 {
+  rules[rule] = make_pair(firstChunk, pattern);
   addPattern(pattern, rule, weight, false);
   for(auto it : lexicalizations[name])
   {
@@ -347,6 +348,103 @@ PatternBuilder::buildLookahead()
   }
 }
 
+bool
+PatternBuilder::isPrefix(const vector<vector<PatternElement*>>& rule, const vector<vector<PatternElement*>>& prefix)
+{
+  if(prefix.size() >= rule.size()) return false;
+  for(unsigned int i = 0; i < prefix.size(); i++)
+  {
+    bool found = false;
+    for(auto r : rule[i])
+    {
+      if(r->tags.size() == 0) continue;
+      else if(r->tags[0] == L"*")
+      {
+        found = true;
+        break;
+      }
+      for(auto p : prefix[i])
+      {
+        if(p->tags.size() == 0) continue;
+        else if(p->tags[0] == L"*" || p->tags[0] == r->tags[0])
+        {
+          found = true;
+          break;
+        }
+      }
+      if(found) break;
+    }
+    if(!found) return false;
+  }
+  return true;
+}
+
+void
+PatternBuilder::buildFallback()
+{
+  bool starWas = starCanBeEmpty;
+  starCanBeEmpty = true;
+  vector<PatternElement*> fallback;
+  PatternElement* fall = new PatternElement;
+  fall->tags.push_back(L"FALL:BACK");
+  fallback.push_back(fall);
+  for(auto rule : rules)
+  {
+    vector<PatternElement*> result;
+    for(auto tg : rule.second.first)
+    {
+      PatternElement* pe = new PatternElement;
+      pe->tags.push_back(tg);
+      pe->tags.push_back(L"*");
+      result.push_back(pe);
+    }
+    vector<vector<PatternElement*>> resultPat;
+    resultPat.push_back(result);
+    set<wstring> patPrefix;
+    set<wstring> resultPrefix;
+    for(auto rule2 : rules)
+    {
+      if(isPrefix(rule2.second.second, resultPat))
+      {
+        for(auto it : rule2.second.second[1])
+        {
+          if(it->tags.size() > 0) resultPrefix.insert(it->tags[0]);
+        }
+      }
+      if(rule2.second.second.size() > rule.second.second.size() + 1 &&
+         isPrefix(rule2.second.second, rule.second.second))
+      {
+        for(auto it : rule2.second.second[rule.second.second.size()])
+        {
+          if(it->tags.size() > 0) patPrefix.insert(it->tags[0]);
+        }
+      }
+    }
+    for(auto it : resultPrefix)
+    {
+      patPrefix.erase(it);
+    }
+    if(patPrefix.size() > 0)
+    {
+      vector<PatternElement*> add;
+      for(auto it : patPrefix)
+      {
+        PatternElement* pe = new PatternElement;
+        pe->tags.push_back(it);
+        pe->tags.push_back(L"*");
+        add.push_back(pe);
+      }
+      resultPat.push_back(add);
+      resultPat.push_back(fallback);
+      addPattern(resultPat, -1, 0, false);
+      for(auto pe : add) delete pe;
+    }
+    for(auto pe : result) delete pe;
+  }
+  delete fall;
+  starCanBeEmpty = starWas;
+}
+
 void
 PatternBuilder::loadLexFile(const string& fname)
 {
@@ -411,9 +509,10 @@ PatternBuilder::write(FILE* output, int longest, vector<pair<int, wstring>> inpu
 
   Compression::multibyte_write(chunkVarCount, output);
 
-  alphabet.write(output);
-
+  buildFallback();
   buildLookahead();
+
+  alphabet.write(output);
 
   transducer.minimize();
   map<int, double> old_finals = transducer.getFinals(); // copy for later removal

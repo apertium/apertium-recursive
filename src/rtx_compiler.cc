@@ -800,6 +800,10 @@ RTXCompiler::parseOutputElement()
       ret->pattern = parseIdent();
       nextToken(L")");
     }
+    else if(currentLocType == LocTypeMacro)
+    {
+      die(L"Outputs in a macro must specify a pattern.");
+    }
   }
   else if(isNextToken(L'*'))
   {

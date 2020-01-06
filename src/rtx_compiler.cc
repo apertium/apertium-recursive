@@ -23,6 +23,7 @@ RTXCompiler::RTXCompiler()
   currentLocType = LocTypeNone;
   PB.starCanBeEmpty = true;
   summarizing = false;
+  outputRules[L"UNKNOWN:INTERNAL"] = vector<wstring>(1, L"_");
 }
 
 wstring const
@@ -705,6 +706,10 @@ RTXCompiler::parsePatternElement(Rule* rule)
     {
       pat.push_back(cur);
     }
+  }
+  if(pat.size() == 2 && pat[1] == L"*")
+  {
+    pat[1] = L"UNKNOWN:INTERNAL";
   }
   rule->pattern.push_back(pat);
   eatSpaces();

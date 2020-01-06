@@ -969,6 +969,15 @@ RTXProcessor::readToken(FILE *in)
         ret->target = dest;
         ret->coref = coref;
         ret->isBlank = false;
+        if(src.size() > 0 && src[0] == L'*' && dest.size() > 0 && dest[0] == L'*')
+        {
+          Chunk* ret2 = chunkPool.next();
+          ret2->target = ret->target.substr(1) + L"<UNKNOWN:INTERNAL>";
+          ret2->contents.push_back(ret);
+          ret2->rule = -1;
+          ret2->isBlank = false;
+          return ret2;
+        }
         return ret;
       }
     }
@@ -1482,7 +1491,8 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
     }
     else
     {
-      mx->prepareChunk(next->source);
+      mx->prepareChunk(next->source.size() > 0 ? next->source : next->target);
+      // conditional deals with unknowns
       vector<ParseNode*> temp;
       for(unsigned int i = 0, limit = parseGraph.size(); i < limit; i++)
       {
@@ -1548,10 +1558,20 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       vector<wstring> targets;
       vector<wstring> corefs;
       vector<bool> blanks;
+      vector<bool> unknowns;
       int N = inputBuffer.size();
       for(int i = 0; i < N; i++)
       {
         Chunk* temp = inputBuffer.front();
+        if(temp->contents.size() > 0)
+        {
+          unknowns.push_back(true);
+          temp = temp->contents[0];
+        }
+        else
+        {
+          unknowns.push_back(false);
+        }
         sources.push_back(temp->source);
         targets.push_back(temp->target);
         corefs.push_back(temp->coref);
@@ -1573,6 +1593,13 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
         c->target = targets[i];
         c->coref = corefs[i];
         c->isBlank = blanks[i];
+        if(unknowns[i])
+        {
+          Chunk* c2 = chunkPool.next();
+          c2->target = targets[i].substr(1) + L"<UNKNOWN:INTERNAL>";
+          c2->contents.push_back(c);
+          c = c2;
+        }
         inputBuffer.push_back(c);
       }
     }

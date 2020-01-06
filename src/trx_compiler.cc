@@ -323,6 +323,7 @@ TRXCompiler::processCats(xmlNode* node)
           PatternElement* cur = new PatternElement;
           cur->lemma = toWstring(getAttr(item, (const xmlChar*) "lemma"));
           wstring tags = toWstring(requireAttr(item, (const xmlChar*) "tags"));
+          if(tags == L"") tags = L"UNKNOWN:INTERNAL";
           cur->tags = StringUtils::split_wstring(tags, L".");
           pat.push_back(cur);
         }

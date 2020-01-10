@@ -276,7 +276,13 @@ private:
   // TOKENIZATION
   //////////
 
-  // All functions in this section must update currentLine and recentlyRead
+  /**
+   * Read and return one character from the input stream
+   * Other functions should call this rather than source.get()
+   * to ensure that recentlyRead gets updated properly
+   * @return character
+   */
+  wchar_t getchar();
 
   /**
    * Consume all space characters and comments at front of source

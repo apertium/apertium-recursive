@@ -60,6 +60,14 @@ RTXCompiler::die(wstring message)
   exit(EXIT_FAILURE);
 }
 
+wchar_t
+RTXCompiler::getchar()
+{
+  wchar_t c = source.get();
+  recentlyRead += c;
+  return c;
+}
+
 void
 RTXCompiler::eatSpaces()
 {
@@ -75,17 +83,13 @@ RTXCompiler::eatSpaces()
       currentLine++;
       recentlyRead.clear();
     }
-    else if(inComment)
+    else if(inComment || isspace(c))
     {
-      recentlyRead += source.get();
-    }
-    else if(isspace(c))
-    {
-      recentlyRead += source.get();
+      getchar();
     }
     else if(c == L'!')
     {
-      recentlyRead += source.get();
+      getchar();
       inComment = true;
     }
     else
@@ -102,24 +106,21 @@ RTXCompiler::nextTokenNoSpace()
   {
     die(L"Unexpected end of file");
   }
-  wchar_t c = source.get();
+  wchar_t c = getchar();
   wchar_t next = source.peek();
   wstring ret;
   if(c == L'→')
   {
-    recentlyRead += c;
     ret = L"->";
   }
   else if(SPECIAL_CHARS.find(c) != string::npos)
   {
     ret = wstring(1, c);
-    recentlyRead += c;
   }
   else if(c == L'-' && next == L'>')
   {
-    next = source.get();
+    getchar();
     ret = wstring(1, c) + wstring(1, next);
-    recentlyRead += ret;
   }
   else if(isspace(c))
   {
@@ -131,13 +132,13 @@ RTXCompiler::nextTokenNoSpace()
   }
   else if(c == L'"')
   {
-    next = source.get();
+    next = getchar();
     while(!source.eof() && next != L'"')
     {
-      if(next == L'\\') next = source.get();
+      if(next == L'\\') next = getchar();
       ret += next;
       if(source.eof()) die(L"Unexpected end of file.");
-      next = source.get();
+      next = getchar();
     }
   }
   else
@@ -148,19 +149,18 @@ RTXCompiler::nextTokenNoSpace()
       c = source.peek();
       if(c == L'\\')
       {
-        source.get();
-        ret += source.get();
+        getchar();
+        ret += getchar();
       }
       else if(SPECIAL_CHARS.find(c) == string::npos && !isspace(c))
       {
-        ret += wstring(1, source.get());
+        ret += wstring(1, getchar());
       }
       else
       {
         break;
       }
     }
-    recentlyRead += ret;
   }
   return ret;
 }
@@ -170,7 +170,7 @@ RTXCompiler::isNextToken(wchar_t c)
 {
   if((wchar_t)source.peek() == c)
   {
-    recentlyRead += source.get();
+    getchar();
     return true;
   }
   return false;
@@ -220,9 +220,8 @@ RTXCompiler::parseInt()
   wstring ret;
   while(isdigit(source.peek()))
   {
-    ret += source.get();
+    ret += getchar();
   }
-  recentlyRead += ret;
   return stoul(ret);
 }
 
@@ -232,9 +231,8 @@ RTXCompiler::parseWeight()
   wstring ret;
   while(isdigit(source.peek()) || source.peek() == L'.')
   {
-    ret += source.get();
+    ret += getchar();
   }
-  recentlyRead += ret;
   float r;
   try
   {
@@ -769,7 +767,7 @@ RTXCompiler::parseOutputElement()
       die(L"% cannot be used on blanks");
     }
     ret->mode = L"_";
-    recentlyRead += source.get();
+    getchar();
     if(isdigit(source.peek()))
     {
       ret->pos = parseInt();

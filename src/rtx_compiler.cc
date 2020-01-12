@@ -655,6 +655,7 @@ RTXCompiler::parseCond()
 void
 RTXCompiler::parsePatternElement(Rule* rule)
 {
+  if(source.peek() == L'#') getchar();
   vector<wstring> pat;
   if(isNextToken(L'%'))
   {
@@ -664,6 +665,11 @@ RTXCompiler::parsePatternElement(Rule* rule)
   if(t1 == L"$")
   {
     t1 += parseIdent();
+  }
+  else if(t1 == L"[")
+  {
+    t1 = L"$" + parseIdent();
+    if(!isNextToken(L']')) die(L"expected closing bracket after lemma category");
   }
   if(isNextToken(L'@'))
   {
@@ -1881,7 +1887,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       }
       else
       {
-        ret += compileString(L"unknown");
+        ret += compileString(L"default");
       }
     }
     else

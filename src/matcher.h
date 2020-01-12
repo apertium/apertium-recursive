@@ -23,11 +23,10 @@ private:
   Transition* trans;
   int size;
 public:
-  int rule;
-  double weight;
-  int length;
+  int rule_begin; // region of array in MatchExe2 which
+  int rule_end;   // corresponds to this node
   MatchNode2()
-  : size(0), rule(-1)
+  : size(0), rule_begin(-1), rule_end(-1)
   {}
   void setSize(int const sz)
   {
@@ -82,6 +81,12 @@ private:
   int prematchAlt[RTXStackSize];
   int prematchIdx;
 
+  int rule_count;
+  int* rule_states;
+  int* rule_numbers;
+  double* rule_weights;
+  int* rule_lengths;
+
   void applySymbol(int const srcNode, int const symbol, int* state, int& last)
   {
     int res = nodes[srcNode].search(symbol);
@@ -93,7 +98,7 @@ private:
   }
 
 public:
-  MatchExe2(Transducer& t, Alphabet* a, map<int, int> const& rules, vector<int> pattern_size)
+  MatchExe2(Transducer& t, Alphabet* a, multimap<int, pair<int, double>> const& rules, vector<int> pattern_size)
   : alpha(a)
   {
     map<int, multimap<int, pair<int, double> > >& trns = t.getTransitions();
@@ -110,12 +115,21 @@ public:
       }
     }
 
-    for(map<int, int>::const_iterator it = rules.begin(), limit = rules.end();
-          it != limit; it++)
+    rule_count = rules.size();
+    rule_states = new int[rule_count];
+    rule_numbers = new int[rule_count];
+    rule_weights = new double[rule_count];
+    rule_lengths = new int[rule_count];
+    int i = 0;
+    for(auto it : rules)
     {
-      nodes[it->first].rule = it->second;
-      nodes[it->first].weight = t.getFinals().at(it->first);
-      nodes[it->first].length = pattern_size[it->second-1];
+      if(nodes[it.first].rule_begin == -1) nodes[it.first].rule_begin = i;
+      nodes[it.first].rule_end = i;
+      rule_states[i] = it.first;
+      rule_numbers[i] = it.second.first;
+      rule_weights[i] = it.second.second;
+      rule_lengths[i] = pattern_size[it.second.first-1];
+      i++;
     }
 
     initial = t.getInitial();
@@ -129,6 +143,10 @@ public:
   ~MatchExe2()
   {
     delete[] nodes;
+    delete[] rule_states;
+    delete[] rule_numbers;
+    delete[] rule_weights;
+    delete[] rule_lengths;
   }
   int getInitial()
   {
@@ -274,31 +292,32 @@ public:
     for(int i = first; i != last; i = (i+1)%RTXStateSize)
     {
       MatchNode2& node = nodes[state[i]];
-      if(node.rule != -1)
+      if(node.rule_begin == -1) continue;
+      for(int rl = node.rule_begin; rl <= node.rule_end; rl++)
       {
         bool rej = false;
         for(int rj = 0; rj < rejectedCount; rj++)
         {
-          if(rejected[rj] == node.rule)
+          if(rejected[rj] == rule_numbers[rl])
           {
             rej = true;
             break;
           }
         }
         if(rej) continue;
-        if(node.length > len)
+        if(rule_lengths[rl] > len)
         {
-          rule = node.rule;
-          weight = node.weight;
-          len = node.length;
+          rule = rule_numbers[rl];
+          weight = rule_weights[rl];
+          len = rule_lengths[rl];
           continue;
         }
-        if(rule != -1 && node.length < len) continue;
-        if(rule != -1 && node.weight < weight) continue;
-        if(rule != -1 && node.rule > rule) continue;
+        if(rule != -1 && rule_lengths[rl] < len) continue;
+        if(rule != -1 && rule_weights[rl] < weight) continue;
+        if(rule != -1 && rule_numbers[rl] > rule) continue;
 
-        rule = node.rule;
-        weight = node.weight;
+        rule = rule_numbers[rl];
+        weight = rule_weights[rl];
       }
     }
     return make_pair(rule, weight);
@@ -307,9 +326,9 @@ public:
   {
     for(int i = first; i != last; i = (i+1)%RTXStateSize)
     {
-      if(nodes[state[i]].rule != -1)
+      if(nodes[state[i]].rule_begin != -1)
       {
-        return nodes[state[i]].rule;
+        return rule_numbers[nodes[state[i]].rule_begin];
       }
     }
     return -1;

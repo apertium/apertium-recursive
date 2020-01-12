@@ -516,7 +516,7 @@ PatternBuilder::write(FILE* output, int longest, vector<pair<int, wstring>> inpu
 
   transducer.minimize();
   map<int, double> old_finals = transducer.getFinals(); // copy for later removal
-  map<int, int> finals_rules;                   // node id -> rule number
+  multimap<int, pair<int, double>> finals_rules; // node id -> rule number
   map<int, multimap<int, pair<int, double> > >& transitions = transducer.getTransitions();
   // Find all arcs with "final_symbols" in the transitions, let their source node instead be final,
   // and extract the rule number from the arc. Record relation between source node and rule number
@@ -530,12 +530,8 @@ PatternBuilder::write(FILE* output, int longest, vector<pair<int, wstring>> inpu
           arclimit = it->second.end(); arc != arclimit; ++arc)
     {
       const int symbol = arc->first;
-      const int trg = arc->second.first;
       const double wgt = arc->second.second;
       if(final_symbols.count(symbol) == 0) {
-        continue;
-      }
-      if(!transducer.isFinal(trg)) {
         continue;
       }
       // Extract the rule number encoded by countToFinalSymbol():
@@ -545,8 +541,8 @@ PatternBuilder::write(FILE* output, int longest, vector<pair<int, wstring>> inpu
         continue;
       }
       const int rule_num = stoi(s.substr(rule_sym_pre.size()));
-      transducer.setFinal(src, wgt);
-      finals_rules[src] = rule_num;
+      transducer.setFinal(src);
+      finals_rules.insert(make_pair(src, make_pair(rule_num, wgt)));
     }
   }
   // Remove the old finals:
@@ -561,11 +557,11 @@ PatternBuilder::write(FILE* output, int longest, vector<pair<int, wstring>> inpu
   // finals_rules
 
   Compression::multibyte_write(finals_rules.size(), output);
-  for(map<int, int>::const_iterator it = finals_rules.begin(), limit = finals_rules.end();
-      it != limit; it++)
+  for(auto it : finals_rules)
   {
-    Compression::multibyte_write(it->first, output);
-    Compression::multibyte_write(it->second, output);
+    Compression::multibyte_write(it.first, output);
+    Compression::multibyte_write(it.second.first, output);
+    Compression::long_multibyte_write(it.second.second, output);
   }
 
   // attr_items

@@ -69,7 +69,7 @@ RTXProcessor::read(string const &filename)
   Transducer* t = new Transducer();
   t->read(in, alphabet.size()); 
 
-  map<int, int> finals;
+  multimap<int, pair<int, double>> finals;
 
   map<int, double> finalWeights = t->getFinals();
 
@@ -77,7 +77,9 @@ RTXProcessor::read(string const &filename)
   for(int i = 0, limit = Compression::multibyte_read(in); i != limit; i++)
   {
     int key = Compression::multibyte_read(in);
-    finals[key] = Compression::multibyte_read(in);
+    int rl = Compression::multibyte_read(in);
+    double wgt = Compression::long_multibyte_read(in);
+    finals.insert(make_pair(key, make_pair(rl, wgt)));
   }
 
   mx = new MatchExe2(*t, &alphabet, finals, pat_size);

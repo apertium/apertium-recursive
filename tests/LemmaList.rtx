@@ -3,4 +3,4 @@ NP: _;
 
 nlem = a b c ;
 
-NP -> #[nlem]@n { nlemmer@ij _ 1 };
+NP -> [nlem]@n { nlemmer@ij _ 1 };

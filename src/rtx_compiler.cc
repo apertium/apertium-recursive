@@ -50,7 +50,8 @@ RTXCompiler::die(wstring message)
   if(errorsAreSyntax && !source.eof())
   {
     wstring arr = wstring(recentlyRead.size()-2, L' ');
-    while(!source.eof() && source.peek() != L'\n')
+    recentlyRead += unreadbuf;
+    while(!source.eof() && peekchar() != L'\n')
     {
       recentlyRead += source.get();
     }
@@ -63,9 +64,35 @@ RTXCompiler::die(wstring message)
 wchar_t
 RTXCompiler::getchar()
 {
-  wchar_t c = source.get();
+  wchar_t c;
+  if(unreadbuf.size() > 0)
+  {
+    c = unreadbuf[0];
+    unreadbuf = unreadbuf.substr(1);
+  }
+  else c = source.get();
   recentlyRead += c;
   return c;
+}
+
+wchar_t
+RTXCompiler::peekchar()
+{
+  if(unreadbuf.size() > 0) return unreadbuf[0];
+  else return source.peek();
+}
+
+void
+RTXCompiler::setUnreadMark()
+{
+  unreadmark = recentlyRead.size();
+}
+
+void
+RTXCompiler::unread()
+{
+  unreadbuf = recentlyRead.substr(unreadmark) + unreadbuf;
+  recentlyRead = recentlyRead.substr(0, unreadmark);
 }
 
 void
@@ -75,13 +102,14 @@ RTXCompiler::eatSpaces()
   bool inComment = false;
   while(!source.eof())
   {
-    c = source.peek();
+    c = peekchar();
     if(c == L'\n')
     {
-      source.get();
+      getchar();
       inComment = false;
       currentLine++;
       recentlyRead.clear();
+      unreadmark = 0;
     }
     else if(inComment || isspace(c))
     {
@@ -107,7 +135,7 @@ RTXCompiler::nextTokenNoSpace()
     die(L"Unexpected end of file");
   }
   wchar_t c = getchar();
-  wchar_t next = source.peek();
+  wchar_t next = peekchar();
   wstring ret;
   if(c == L'→')
   {
@@ -146,7 +174,7 @@ RTXCompiler::nextTokenNoSpace()
     ret = wstring(1, c);
     while(!source.eof())
     {
-      c = source.peek();
+      c = peekchar();
       if(c == L'\\')
       {
         getchar();
@@ -168,7 +196,7 @@ RTXCompiler::nextTokenNoSpace()
 bool
 RTXCompiler::isNextToken(wchar_t c)
 {
-  if((wchar_t)source.peek() == c)
+  if(peekchar() == c)
   {
     getchar();
     return true;
@@ -218,7 +246,7 @@ unsigned int
 RTXCompiler::parseInt()
 {
   wstring ret;
-  while(isdigit(source.peek()))
+  while(isdigit(peekchar()))
   {
     ret += getchar();
   }
@@ -229,7 +257,7 @@ float
 RTXCompiler::parseWeight()
 {
   wstring ret;
-  while(isdigit(source.peek()) || source.peek() == L'.')
+  while(isdigit(peekchar()) || peekchar() == L'.')
   {
     ret += getchar();
   }
@@ -279,7 +307,7 @@ RTXCompiler::parseOutputRule(wstring pattern)
   nodeIsSurface[pattern] = !isNextToken(L':');
   eatSpaces();
   vector<wstring> output;
-  if(source.peek() == L'(')
+  if(peekchar() == L'(')
   {
     LocationType typewas = currentLocType;
     Location locwas = currentLoc;
@@ -449,7 +477,7 @@ RTXCompiler::parseClip(int src = -2)
     nextToken(L".");
     bounds = false;
   }
-  else if(isdigit(source.peek()))
+  else if(isdigit(peekchar()))
   {
     ret->src = parseInt();
     nextToken(L".");
@@ -471,7 +499,7 @@ RTXCompiler::parseClip(int src = -2)
       }
     }
   }
-  else if(source.peek() == L'(')
+  else if(peekchar() == L'(')
   {
     OutputChunk* chunkwas = currentChunk;
     OutputChoice* choicewas = currentChoice;
@@ -553,9 +581,9 @@ RTXCompiler::parseCond()
   nextToken(L"(");
   eatSpaces();
   vector<Cond*> parts;
-  while(!source.eof() && source.peek() != L')')
+  while(!source.eof() && peekchar() != L')')
   {
-    if(source.peek() == L'(')
+    if(peekchar() == L'(')
     {
       parts.push_back(parseCond());
     }
@@ -655,7 +683,6 @@ RTXCompiler::parseCond()
 void
 RTXCompiler::parsePatternElement(Rule* rule)
 {
-  if(source.peek() == L'#') getchar();
   vector<wstring> pat;
   if(isNextToken(L'%'))
   {
@@ -766,7 +793,7 @@ RTXCompiler::parseOutputElement()
   bool isInterp = isNextToken(L'>');
   eatSpaces();
   ret->getall = isNextToken(L'%');
-  if(source.peek() == L'_')
+  if(peekchar() == L'_')
   {
     if(ret->getall)
     {
@@ -774,7 +801,7 @@ RTXCompiler::parseOutputElement()
     }
     ret->mode = L"_";
     getchar();
-    if(isdigit(source.peek()))
+    if(isdigit(peekchar()))
     {
       ret->pos = parseInt();
       if(currentRule->pattern.size() == 1)
@@ -791,7 +818,7 @@ RTXCompiler::parseOutputElement()
       ret->pos = 0;
     }
   }
-  else if(isdigit(source.peek()))
+  else if(isdigit(peekchar()))
   {
     ret->mode = L"#";
     ret->pos = parseInt();
@@ -803,7 +830,7 @@ RTXCompiler::parseOutputElement()
     {
       die(L"There are only " + to_wstring(currentRule->pattern.size()) + L" elements in the pattern.");
     }
-    if(source.peek() == L'(')
+    if(peekchar() == L'(')
     {
       nextToken(L"(");
       ret->pattern = parseIdent();
@@ -816,7 +843,7 @@ RTXCompiler::parseOutputElement()
   }
   else if(isNextToken(L'*'))
   {
-    if(source.peek() != L'(')
+    if(peekchar() != L'(')
     {
       die(L"No macro name specified.");
     }
@@ -911,7 +938,7 @@ RTXCompiler::parseOutputElement()
   }
   if(isNextToken(L'['))
   {
-    while(!source.eof() && source.peek() != L']')
+    while(!source.eof() && peekchar() != L']')
     {
       eatSpaces();
       wstring var = parseIdent();
@@ -974,7 +1001,7 @@ RTXCompiler::parseOutputCond()
       die(L"Unknown statement: '" + mode + L"'.");
     }
     eatSpaces();
-    if(source.peek() == L'(')
+    if(peekchar() == L'(')
     {
       ret->nest.push_back(parseOutputCond());
       ret->chunks.push_back(NULL);
@@ -986,7 +1013,7 @@ RTXCompiler::parseOutputCond()
       ret->chunks.push_back(NULL);
       ret->nest.push_back(NULL);
     }
-    else if(source.peek() == L'{')
+    else if(peekchar() == L'{')
     {
       if(currentLoc == LocChunk)
       {
@@ -1004,7 +1031,7 @@ RTXCompiler::parseOutputCond()
       ret->clips.push_back(NULL);
       ret->chunks.push_back(parseOutputChunk());
     }
-    else if(source.peek() == L'[')
+    else if(peekchar() == L'[')
     {
       if(currentLoc == LocVarSet)
       {
@@ -1088,9 +1115,9 @@ RTXCompiler::parseOutputChunk()
   currentChunk = ch;
   currentChoice = NULL;
   ch->pos = 0;
-  while((wchar_t)source.peek() != end)
+  while(peekchar() != end)
   {
-    if(source.peek() == L'(')
+    if(peekchar() == L'(')
     {
       ch->children.push_back(parseOutputCond());
     }
@@ -1136,12 +1163,21 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     rule->line = currentLine;
     currentLocType = LocTypeInput;
     currentLoc = LocTopLevel;
-    if(!source.eof() && source.peek() == L'"')
+    if(!source.eof() && peekchar() == L'"')
     {
-      rule->name = parseIdent();
-      eatSpaces();
+      setUnreadMark();
+      wstring nm = parseIdent();
+      if(peekchar() == L'@')
+      {
+        unread();
+      }
+      else
+      {
+        rule->name = nm;
+        eatSpaces();
+      }
     }
-    if(isdigit(source.peek()))
+    if(isdigit(peekchar()))
     {
       rule->weight = parseWeight();
       nextToken(L":");
@@ -1151,8 +1187,20 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     {
       rule->weight = 0;
     }
-    while(!source.eof() && source.peek() != L'{' && source.peek() != L'[' && source.peek() != L'(' && source.peek() != L'?')
+    while(!source.eof() && peekchar() != L'{' && peekchar() != L'(' && peekchar() != L'?')
     {
+      if(peekchar() == L'[')
+      {
+        setUnreadMark();
+        getchar();
+        eatSpaces();
+        if(peekchar() == L'$')
+        {
+          unread();
+          break;
+        }
+        else unread();
+      }
       parsePatternElement(rule);
     }
     if(rule->pattern.size() == 0)
@@ -1179,7 +1227,7 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
           }
           nextToken(L"=");
           currentLoc = LocVarSet;
-          if(source.peek() == L'(') rule->globals[var] = parseOutputCond();
+          if(peekchar() == L'(') rule->globals[var] = parseOutputCond();
           else rule->globals[var] = chunkToCond(parseOutputElement());
           currentLoc = LocTopLevel;
           if(globalVarNames.find(var) == globalVarNames.end())
@@ -1215,7 +1263,7 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     {
       eatSpaces();
       if(source.eof()) die(L"Unexpected end of file.");
-      switch(source.peek())
+      switch(peekchar())
       {
         case L'(':
           rule->output.push_back(parseOutputCond());

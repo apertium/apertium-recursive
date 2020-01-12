@@ -261,6 +261,8 @@ private:
   // for generating error messages
   int currentLine;
   wstring recentlyRead;
+  wstring unreadbuf;
+  int unreadmark;
   bool errorsAreSyntax;
   string sourceFile;
   vector<wstring> macroNameStack;
@@ -283,6 +285,24 @@ private:
    * @return character
    */
   wchar_t getchar();
+
+  /**
+   * Return the next character in the input stream without reading
+   * Other functions should call this rather than source.peek()
+   * in order to properly manage unreadbuf
+   * @ return character
+   */
+  wchar_t peekchar();
+
+  /**
+   * Mark the current location so that it can be jumped back to with unread()
+   */
+  void setUnreadMark();
+
+  /**
+   * Move everything read since last call to setUnreadMark() into unreadbuf
+   */
+  void unread();
 
   /**
    * Consume all space characters and comments at front of source

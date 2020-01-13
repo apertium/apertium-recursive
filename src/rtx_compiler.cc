@@ -1193,13 +1193,9 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
       {
         setUnreadMark();
         getchar();
-        eatSpaces();
-        if(peekchar() == L'$')
-        {
-          unread();
-          break;
-        }
-        else unread();
+        wchar_t next = peekchar();
+        unread();
+        if(next == L'$' || isspace(next)) break;
       }
       parsePatternElement(rule);
     }

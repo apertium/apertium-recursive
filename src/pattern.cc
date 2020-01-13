@@ -83,9 +83,13 @@ PatternBuilder::insertTags(int const base, const vector<wstring>& tags)
     }
     else
     {
-      wstring tg = L"<" + tags[i] + L">";
-      alphabet.includeSymbol(tg);
-      retval = transducer.insertSingleTransduction(alphabet(tg), retval);
+      vector<wstring> tgs = StringUtils::split_wstring(tags[i], L".");
+      for(auto t : tgs)
+      {
+        wstring tg = L"<" + t + L">";
+        alphabet.includeSymbol(tg);
+        retval = transducer.insertSingleTransduction(alphabet(tg), retval);
+      }
     }
   }
   return retval;

@@ -1387,6 +1387,10 @@ RTXCompiler::makePattern(int ruleid)
       if(rule->pattern[i][j][0] == L'[')
       {
         tg = tg.substr(1, tg.size()-2);
+        if(collections.find(tg) == collections.end())
+        {
+          die(L"unknown attribute category '" + tg + L"'");
+        }
         vector<vector<wstring>> tmp;
         for(auto tls : tags)
         {

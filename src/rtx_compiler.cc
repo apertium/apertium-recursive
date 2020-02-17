@@ -788,7 +788,7 @@ RTXCompiler::parseOutputElement()
       die(L"Cannot " + verb + L" to a blank.");
     }
     eatSpaces();
-    currentChunk->children.back()->chunks[0]->nextConjoined = true;
+    if(ret->interpolated) currentChunk->children.back()->chunks[0]->nextConjoined = true;
   }
   bool isInterp = isNextToken(L'>');
   eatSpaces();
@@ -1081,6 +1081,7 @@ RTXCompiler::parseOutputCond()
       OutputChunk* temp = new OutputChunk;
       temp->mode = L"[]";
       temp->pos = 0;
+      temp->conjoined = false;
       ret->chunks.push_back(temp);
       ret->clips.push_back(NULL);
     }
@@ -1094,6 +1095,7 @@ RTXCompiler::parseOutputChunk()
 {
   int end;
   OutputChunk* ch = new OutputChunk;
+  ch->conjoined = false;
   if(nextToken(L"{", L"[") == L"{")
   {
     currentLoc = LocChunk;
@@ -1794,6 +1796,11 @@ wstring
 RTXCompiler::processOutputChunk(OutputChunk* r)
 {
   wstring ret;
+  if(r->conjoined && currentLocType == LocTypeOutput)
+  {
+    ret += CONJOIN;
+    ret += OUTPUT;
+  }
   if(r->mode == L"_")
   {
     ret += INT;
@@ -1806,17 +1813,11 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
   }
   else if(r->mode == L"$$")
   {
-    if(r->conjoined)
-    {
-      ret += compileString(L"+");
-      ret += APPENDSURFACE;
-    }
     ret += INT;
     ret += (wchar_t)globalVarNames[r->pattern];
     ret += FETCHCHUNK;
-    if(r->conjoined) ret += APPENDSURFACE;
-    else if(r->interpolated) ret += APPENDCHILD;
-    if(currentLocType == LocTypeOutput && !r->nextConjoined)
+    if(r->interpolated) ret += APPENDCHILD;
+    if(currentLocType == LocTypeOutput)
     {
       ret += OUTPUT;
     }
@@ -1847,9 +1848,8 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       if(interp)
       {
         ret += compileClip(L"whole", r->pos, L"tl");
-        if(r->conjoined) ret += APPENDSURFACE;
-        else if(r->interpolated) ret += APPENDCHILD;
-        if(!r->nextConjoined) ret += OUTPUT;
+        if(r->interpolated) ret += APPENDCHILD;
+        ret += OUTPUT;
         return ret;
       }
       die(L"Could not find output pattern '" + patname + L"'.");
@@ -1879,28 +1879,12 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     }
     if(pattern.size() == 1 && pattern[0] == L"macro")
     {
-      if(r->nextConjoined)
-      {
-        die(L"Cannot currently conjoin to a macro.");
-      }
-      if(r->conjoined)
-      {
-        die(L"Cannot currently conjoin a macro.");
-      }
       macroNameStack.push_back(patname);
       ret = processOutputChoice(processMacroChoice(macros[patname], r));
       macroNameStack.pop_back();
       return ret;
     }
-    else if(r->conjoined)
-    {
-      ret += compileString(L"+");
-      ret += APPENDSURFACE;
-    }
-    else
-    {
-      ret += CHUNK;
-    }
+    ret += CHUNK;
     if(r->mode == L"#@")
     {
       unsigned int j;
@@ -2094,12 +2078,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       ret += BLANK;
       ret += APPENDCHILD;
     }
-    if(r->conjoined)
-    {
-      ret += compileString(L"+");
-      ret += APPENDSURFACE;
-    }
-    else ret += CHUNK;
+    ret += CHUNK;
     ret += compileString(r->lemma);
     ret += APPENDSURFACE;
     for(unsigned int i = 0; i < r->tags.size(); i++)
@@ -2111,7 +2090,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     {
       ret += APPENDCHILD;
     }
-    if(currentLocType == LocTypeOutput && !r->nextConjoined)
+    if(currentLocType == LocTypeOutput)
     {
       ret += OUTPUT;
     }

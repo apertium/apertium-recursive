@@ -196,6 +196,9 @@ void writeRule(wstring rule, FILE* out)
       case SETRULE:
         fwprintf(out, L"SETRULE\n");
         break;
+      case CONJOIN:
+        fwprintf(out, L"CONJOIN\n");
+        break;
       default:
         auto tmp = rule.substr(i, 1);
         fwprintf(out, L"Unknown instruction: %s", tmp.c_str());

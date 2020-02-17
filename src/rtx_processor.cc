@@ -852,6 +852,16 @@ RTXProcessor::applyRule(const wstring& rule)
         }
       }
         break;
+      case CONJOIN:
+        if(printingSteps) { wcerr << "conjoin" << endl; }
+      {
+        Chunk* join = chunkPool.next();
+        join->isBlank = true;
+        join->isJoiner = true;
+        join->target = L"+";
+        pushStack(join);
+      }
+        break;
       case REJECTRULE:
         if(printingSteps) { wcerr << "rejectrule" << endl; }
         return false;
@@ -1200,6 +1210,7 @@ void
 RTXProcessor::outputAll(FILE* out)
 {
   unsigned int queueSize = outputQueue.size() - 1;
+  bool conjoining = false;
   while(outputQueue.size() > 0)
   {
     Chunk* ch = outputQueue.front();
@@ -1228,7 +1239,10 @@ RTXProcessor::outputAll(FILE* out)
         ch->writeTree(treePrintMode, NULL);
         wcerr << endl;
       }
-      ch->output(out);
+      bool nextjoin = false;
+      if(outputQueue.size() > 0 && outputQueue.front()->isJoiner) nextjoin = true;
+      ch->output(out, conjoining, nextjoin);
+      conjoining = ch->isJoiner;
     }
     else
     {

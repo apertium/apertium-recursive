@@ -30,19 +30,20 @@ public:
   wstring target;
   wstring coref;
   bool isBlank;
+  bool isJoiner;
   vector<Chunk*> contents;
   int rule;
   Chunk()
-  : isBlank(false), rule(-1)
+  : isBlank(false), isJoiner(false), rule(-1)
   {}
   Chunk(wstring blankContent)
-  : target(blankContent), isBlank(true), rule(-1)
+  : target(blankContent), isBlank(true), isJoiner(false), rule(-1)
   {}
   Chunk(wstring src, wstring dest, wstring cor)
-  : source(src), target(dest), coref(cor), isBlank(false), rule(-1)
+  : source(src), target(dest), coref(cor), isBlank(false), isJoiner(false), rule(-1)
   {}
   Chunk(wstring dest, vector<Chunk*>& children, int r = -1)
-  : target(dest), isBlank(false), contents(children), rule(r)
+  : target(dest), isBlank(false), isJoiner(false), contents(children), rule(r)
   {}
   Chunk(Chunk& other) // copy constructor
   {
@@ -50,6 +51,7 @@ public:
     target = other.target;
     coref = other.coref;
     isBlank = other.isBlank;
+    isJoiner = other.isJoiner;
     contents = other.contents;
     rule = other.rule;
   }
@@ -59,6 +61,7 @@ public:
     target.swap(other.target);
     coref.swap(other.coref);
     isBlank = other.isBlank;
+    isJoiner = other.isJoiner;
     contents.swap(other.contents);
     rule = other.rule;
   }
@@ -68,6 +71,7 @@ public:
     target.swap(other.target);
     coref.swap(other.coref);
     isBlank = other.isBlank;
+    isJoiner = other.isJoiner;
     contents.swap(other.contents);
     rule = other.rule;
     return *this;
@@ -76,6 +80,7 @@ public:
   {
     Chunk* ret = new Chunk();
     ret->isBlank = isBlank;
+    ret->isJoiner = isJoiner;
     ret->source = source;
     ret->target = target;
     ret->coref = coref;
@@ -217,7 +222,7 @@ public:
     }
     target = result;
   }
-  void output(const vector<wstring>& parentTags, FILE* out = NULL)
+  void output(const vector<wstring>& parentTags, FILE* out = NULL, bool preJoin = false, bool postJoin = false)
   {
     if(contents.size() > 0)
     {
@@ -246,20 +251,22 @@ public:
       }
       else if(out == NULL)
       {
-        cout << "^" << UtfConverter::toUtf8(target) << "$";
+        if(!preJoin) cout << "^";
+        cout << UtfConverter::toUtf8(target);
+        if(!postJoin) cout << "$";
       }
       else
       {
-        fputc_unlocked('^', out);
+        if(!preJoin) fputc_unlocked('^', out);
         fputs_unlocked(UtfConverter::toUtf8(target).c_str(), out);
-        fputc_unlocked('$', out);
+        if(!postJoin) fputc_unlocked('$', out);
       }
     }
   }
-  void output(FILE* out)
+  void output(FILE* out, bool preJoin = false, bool postJoin = false)
   {
     vector<wstring> tags;
-    output(tags, out);
+    output(tags, out, preJoin, postJoin);
   }
   wstring matchSurface()
   {

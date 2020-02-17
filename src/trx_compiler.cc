@@ -1050,10 +1050,8 @@ TRXCompiler::processValue(xmlNode* node)
       }
       if(ret.size() > 1)
       {
-        ret += STRING;
-        ret += (wchar_t)1;
-        ret += L'+';
-        ret += APPENDSURFACE;
+        ret += CONJOIN;
+        ret += APPENDCHILD;
         // apertium/transfer.cc has checks against appending '' wstring or '+#'
         // TODO?
       }
@@ -1062,7 +1060,7 @@ TRXCompiler::processValue(xmlNode* node)
         if(p->type == XML_ELEMENT_NODE)
         {
           ret += processValue(p);
-          ret += APPENDSURFACE;
+          ret += APPENDCHILD;
         }
       }
     }

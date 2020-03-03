@@ -4,7 +4,7 @@
 #include <rtx_config.h>
 #include <vector>
 
-template<class ElementType, int BucketSize = 1024>
+template<class ElementType, int BucketSize = 64>//1024>
 class Pool
 {
 private:
@@ -51,6 +51,10 @@ public:
       bucketList.pop_back();
       delete cur;
     }
+  }
+  int size()
+  {
+    return BucketSize*(bucketList.size()-1) + cur->inUse;
   }
   void reset()
   {

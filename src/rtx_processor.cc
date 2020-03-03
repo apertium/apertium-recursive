@@ -941,7 +941,7 @@ RTXProcessor::readToken(FILE *in)
       cur += L'\\';
       cur += wchar_t(fgetwc_unlocked(in));
     }
-    else if(val == L'[')
+    else if(val == L'[' && !inword)
     {
       cur += L'[';
       inSquare = true;
@@ -1445,6 +1445,18 @@ RTXProcessor::filterParseGraph()
   }
   if(printingAll && treePrintMode == TreeModeLatex) wcerr << "\\end{itemize}" << endl << endl;
   if(count == N) return shouldOutput;
+  if(count > 100 && filter.size() > 0)
+  {
+    int maxbin = 100 / filter.size();
+    for(auto& it : filter)
+    {
+      for(unsigned int i = maxbin; i < it.second.size(); i++)
+      {
+        state[it.second[i]] = 0;
+        count--;
+      }
+    }
+  }
   vector<ParseNode*> temp;
   temp.reserve(count);
   for(int i = 0; i < N; i++)
@@ -1594,6 +1606,8 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
         blanks.push_back(temp->isBlank);
         inputBuffer.pop_front();
       }
+      //wcerr << "clearing chunkPool, size was " << chunkPool.size() << endl;
+      //wcerr << "clearing parsePool, size was " << parsePool.size() << endl;
       chunkPool.reset();
       parsePool.reset();
       newBranchId = 0;

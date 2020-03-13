@@ -1211,6 +1211,7 @@ RTXProcessor::outputAll(FILE* out)
 {
   unsigned int queueSize = outputQueue.size() - 1;
   bool conjoining = false;
+  Chunk* tojoin = NULL;
   while(outputQueue.size() > 0)
   {
     Chunk* ch = outputQueue.front();
@@ -1225,7 +1226,7 @@ RTXProcessor::outputAll(FILE* out)
     }
     if(ch->rule == -1)
     {
-      if(printingRules && !ch->isBlank)
+      if(printingRules)// && !ch->isBlank)
       {
         fflush(out);
         wcerr << endl << "No rule specified: ";
@@ -1239,10 +1240,28 @@ RTXProcessor::outputAll(FILE* out)
         ch->writeTree(treePrintMode, NULL);
         wcerr << endl;
       }
-      bool nextjoin = false;
-      if(outputQueue.size() > 0 && outputQueue.front()->isJoiner) nextjoin = true;
-      ch->output(out, conjoining, nextjoin);
-      conjoining = ch->isJoiner;
+      if(conjoining && !ch->isBlank)
+      {
+        tojoin->target = tojoin->target + L"+" + ch->target;
+        // if there's ever a situation where a parent node doesn't have a rule
+        // associated with it, this will get very annoying -D.S. 3/13/20
+      }
+      else if(ch->isJoiner)
+      {
+        wcerr << L"JOINER!" << endl;
+        if(tojoin != NULL) conjoining = true;
+      }
+      else
+      {
+        conjoining = false;
+        if(tojoin != NULL)
+        {
+          tojoin->output(out);
+          tojoin = NULL;
+        }
+        if(ch->isBlank) ch->output(out);
+        else tojoin = ch;
+      }
     }
     else
     {
@@ -1297,6 +1316,7 @@ RTXProcessor::outputAll(FILE* out)
       }
     }
   }
+  if(tojoin != NULL) tojoin->output(out);
 }
 
 bool

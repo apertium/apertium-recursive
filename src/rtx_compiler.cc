@@ -1880,7 +1880,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     if(pattern.size() == 1 && pattern[0] == L"macro")
     {
       macroNameStack.push_back(patname);
-      ret = processOutputChoice(processMacroChoice(macros[patname], r));
+      ret += processOutputChoice(processMacroChoice(macros[patname], r));
       macroNameStack.pop_back();
       return ret;
     }

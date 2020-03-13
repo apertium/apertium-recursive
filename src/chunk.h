@@ -222,7 +222,7 @@ public:
     }
     target = result;
   }
-  void output(const vector<wstring>& parentTags, FILE* out = NULL, bool preJoin = false, bool postJoin = false)
+  void output(const vector<wstring>& parentTags, FILE* out = NULL)
   {
     if(contents.size() > 0)
     {
@@ -251,22 +251,22 @@ public:
       }
       else if(out == NULL)
       {
-        if(!preJoin) cout << "^";
+        cout << "^";
         cout << UtfConverter::toUtf8(target);
-        if(!postJoin) cout << "$";
+        cout << "$";
       }
       else
       {
-        if(!preJoin) fputc_unlocked('^', out);
+        fputc_unlocked('^', out);
         fputs_unlocked(UtfConverter::toUtf8(target).c_str(), out);
-        if(!postJoin) fputc_unlocked('$', out);
+        fputc_unlocked('$', out);
       }
     }
   }
-  void output(FILE* out, bool preJoin = false, bool postJoin = false)
+  void output(FILE* out)
   {
     vector<wstring> tags;
-    output(tags, out, preJoin, postJoin);
+    output(tags, out);
   }
   wstring matchSurface()
   {

@@ -1248,7 +1248,6 @@ RTXProcessor::outputAll(FILE* out)
       }
       else if(ch->isJoiner)
       {
-        wcerr << L"JOINER!" << endl;
         if(tojoin != NULL) conjoining = true;
       }
       else

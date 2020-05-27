@@ -126,25 +126,29 @@ TRXCompiler::makeDefaultOutputRule()
   ret += (wchar_t)2;
   ret += L"Aa";
   ret += EQUAL;
+
+  wstring ifblock;
+  ifblock += INT;
+  ifblock += (wchar_t)1;
+  ifblock += PUSHINPUT;
+  ifblock += STRING;
+  ifblock += (wchar_t)3;
+  ifblock += L"lem";
+  ifblock += TARGETCLIP;
+  ifblock += STRING;
+  ifblock += (wchar_t)2;
+  ifblock += L"Aa";
+  ifblock += SETCASE;
+  ifblock += STRING;
+  ifblock += (wchar_t)3;
+  ifblock += L"lem";
+  ifblock += INT;
+  ifblock += (wchar_t)1;
+  ifblock += SETCLIP;
+
   ret += JUMPONFALSE;
-  ret += (wchar_t)21;
-  ret += INT;
-  ret += (wchar_t)1;
-  ret += PUSHINPUT;
-  ret += STRING;
-  ret += (wchar_t)3;
-  ret += L"lem";
-  ret += TARGETCLIP;
-  ret += STRING;
-  ret += (wchar_t)2;
-  ret += L"Aa";
-  ret += SETCASE;
-  ret += STRING;
-  ret += (wchar_t)3;
-  ret += L"lem";
-  ret += INT;
-  ret += (wchar_t)1;
-  ret += SETCLIP;
+  ret += (wchar_t)ifblock.size();
+  ret += ifblock;
   ret += OUTPUTALL;
   for(vector<wstring>::reverse_iterator c = cond.rbegin(), limit = cond.rend(), a = outputRules.rbegin();
           c != limit; c++, a++)
@@ -618,25 +622,29 @@ TRXCompiler::processRules(xmlNode* node)
           action += (wchar_t)2;
           action += L"Aa";
           action += EQUAL;
+
+          wstring ifblock;
+          ifblock += INT;
+          ifblock += (wchar_t)1;
+          ifblock += PUSHINPUT;
+          ifblock += STRING;
+          ifblock += (wchar_t)3;
+          ifblock += L"lem";
+          ifblock += TARGETCLIP;
+          ifblock += STRING;
+          ifblock += (wchar_t)2;
+          ifblock += L"Aa";
+          ifblock += SETCASE;
+          ifblock += STRING;
+          ifblock += (wchar_t)3;
+          ifblock += L"lem";
+          ifblock += INT;
+          ifblock += (wchar_t)1;
+          ifblock += SETCLIP;
+
           action += JUMPONFALSE;
-          action += (wchar_t)21;
-          action += INT;
-          action += (wchar_t)1;
-          action += PUSHINPUT;
-          action += STRING;
-          action += (wchar_t)3;
-          action += L"lem";
-          action += TARGETCLIP;
-          action += STRING;
-          action += (wchar_t)2;
-          action += L"Aa";
-          action += SETCASE;
-          action += STRING;
-          action += (wchar_t)3;
-          action += L"lem";
-          action += INT;
-          action += (wchar_t)1;
-          action += SETCLIP;
+          action += (wchar_t)ifblock.size();
+          action += ifblock;
         }
         for(xmlNode* state = part->children; state != NULL; state = state->next)
         {

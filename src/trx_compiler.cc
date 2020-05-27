@@ -1704,8 +1704,8 @@ TRXCompiler::write(const char* binfile)
   vector<pair<int, wstring>> inRules;
   for(unsigned int i = 0; i < inputRules.size(); i++)
   {
-    inRules.push_back(make_pair(inputRuleSizes[i], inputRules[i]));
+    inRules.push_back(make_pair((inputRuleSizes[i]*2 - 1), inputRules[i]));
   }
-  PB.write(bin, longestPattern, inRules, outputRules);
+  PB.write(bin, (longestPattern*2) - 1, inRules, outputRules);
   fclose(bin);
 }

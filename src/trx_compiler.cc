@@ -1045,14 +1045,28 @@ TRXCompiler::processValue(xmlNode* node)
   else if(!xmlStrcmp(node->name, (const xmlChar*) "lu"))
   {
     ret += CHUNK;
+    wstring children;
     for(xmlNode* p = node->children; p != NULL; p = p->next)
     {
       if(p->type == XML_ELEMENT_NODE)
       {
+        if(!xmlStrcmp(p->name, (const xmlChar*) "clip"))
+        {
+          wstring part = toWstring(getAttr(p, (const xmlChar*) "part"));
+          if(part == L"whole" || part == L"chcontent" || part == L"content")
+          {
+            children += INT;
+            children += (wchar_t)getPos(p);
+            children += PUSHINPUT;
+            children += APPENDALLCHILDREN;
+            if(part != L"whole") continue;
+          }
+        }
         ret += processValue(p);
         ret += APPENDSURFACE;
       }
     }
+    ret += children;
   }
   else if(!xmlStrcmp(node->name, (const xmlChar*) "mlu"))
   {

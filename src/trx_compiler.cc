@@ -748,6 +748,10 @@ TRXCompiler::processStatement(xmlNode* node)
         part = attrMangle[part];
         // there's some checking to do here...
       }
+      if(!PB.isAttrDefined(part))
+      {
+        die(var, L"Unknown attribute '" + part + L"'");
+      }
       if(name == L"modify-case")
       {
         ret += INT;
@@ -898,6 +902,10 @@ TRXCompiler::processValue(xmlNode* node)
     if(attrMangle.find(part) != attrMangle.end())
     {
       part = attrMangle[part];
+    }
+    if(!PB.isAttrDefined(part))
+    {
+      die(node, L"Unknown attribute '" + part + L"'");
     }
     ret += (wchar_t)part.size();
     ret += part;

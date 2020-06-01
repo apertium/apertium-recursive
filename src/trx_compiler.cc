@@ -957,6 +957,10 @@ TRXCompiler::processValue(xmlNode* node)
     ret += STRING;
     wstring v = L"<" + toWstring(requireAttr(node, (const xmlChar*) "v")) + L">";
     v = StringUtils::substitute(v, L".", L"><");
+    if(v == L"<>")
+    {
+      v = L"";
+    }
     ret += (wchar_t)v.size();
     ret += v;
   }

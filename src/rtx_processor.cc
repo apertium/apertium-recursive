@@ -722,17 +722,17 @@ RTXProcessor::applyRule(const wstring& rule)
         break;
       case FETCHVAR:
         if(printingSteps) { wcerr << "fetchvar" << endl; }
-        pushStack(variables[popString()]);
+        pushStack(currentBranch->stringVars[popString()]);
         break;
       case FETCHCHUNK:
         if(printingSteps) { wcerr << "fetchchunk" << endl; }
-        pushStack(currentBranch->variables[popInt()]);
+        pushStack(currentBranch->chunkVars[popInt()]);
         break;
       case SETCHUNK:
         if(printingSteps) { wcerr << "setchunk" << endl; }
         {
           int pos = popInt();
-          currentBranch->variables[pos] = popChunk();
+          currentBranch->chunkVars[pos] = popChunk();
         }
         break;
       case GETCASE:
@@ -1147,7 +1147,8 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
         first = back->lastWord+1;
         cur->init(back, currentOutput[0], weight);
       }
-      cur->variables = node->variables;
+      cur->stringVars = node->stringVars;
+      cur->chunkVars = node->chunkVars;
       cur->id = node->id;
       if(temp.size() == 0)
       {
@@ -1165,7 +1166,8 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
         {
           cur = parsePool.next();
           cur->init(*it, temp.back());
-          cur->variables = (*it)->variables;
+          cur->stringVars = (*it)->stringVars;
+          cur->chunkVars = (*it)->chunkVars;
           cur->firstWord = first;
           cur->lastWord = last;
           checkForReduce(res2, cur);
@@ -1533,7 +1535,8 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       ParseNode* temp = parsePool.next();
       temp->init(mx, next);
       temp->id = ++newBranchId;
-      temp->variables = vector<Chunk*>(varCount, NULL);
+      temp->stringVars = variables;
+      temp->chunkVars = vector<Chunk*>(varCount, NULL);
       checkForReduce(parseGraph, temp);
     }
     else
@@ -1546,7 +1549,8 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
         ParseNode* tempNode = parsePool.next();
         tempNode->init(parseGraph[i], next, true);
         tempNode->id = parseGraph[i]->id;
-        tempNode->variables = parseGraph[i]->variables;
+        tempNode->stringVars = parseGraph[i]->stringVars;
+        tempNode->chunkVars = parseGraph[i]->chunkVars;
         checkForReduce(temp, tempNode);
       }
       parseGraph.swap(temp);

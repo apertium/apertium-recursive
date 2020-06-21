@@ -280,6 +280,23 @@ public:
   {
     contents.push_back(kid);
   }
+  void conjoin(Chunk* other)
+  {
+    unsigned int lemq_loc = 0;
+    for(; lemq_loc < target.size(); lemq_loc++)
+    {
+      if(target[lemq_loc] == L'\\')
+      {
+        lemq_loc++;
+        continue;
+      }
+      else if(target[lemq_loc] == L'#')
+      {
+        break;
+      }
+    }
+    target.insert(lemq_loc, L"+" + other->target);
+  }
   void writeTree(TreeMode mode, FILE* out)
   {
     switch(mode)

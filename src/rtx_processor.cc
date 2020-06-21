@@ -1244,7 +1244,7 @@ RTXProcessor::outputAll(FILE* out)
       }
       if(conjoining && !ch->isBlank)
       {
-        tojoin->target = tojoin->target + L"+" + ch->target;
+        tojoin->conjoin(ch);
         // if there's ever a situation where a parent node doesn't have a rule
         // associated with it, this will get very annoying -D.S. 3/13/20
       }

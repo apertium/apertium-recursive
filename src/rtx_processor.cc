@@ -574,7 +574,8 @@ RTXProcessor::applyRule(const wstring& rule)
       {
         wstring var = popString();
         wstring val = popString();
-        variables[var] = val;
+        currentBranch->stringVars[var] = val;
+        if(printingSteps) { wcerr << " -> " << var << " = '" << val << "'" << endl; }
       }
         break;
       case OUTPUT:
@@ -722,7 +723,12 @@ RTXProcessor::applyRule(const wstring& rule)
         break;
       case FETCHVAR:
         if(printingSteps) { wcerr << "fetchvar" << endl; }
-        pushStack(currentBranch->stringVars[popString()]);
+        {
+          wstring name = popString();
+          wstring val = currentBranch->stringVars[name];
+          pushStack(val);
+          if(printingSteps) { wcerr << " -> " << name << " = " << val << endl; }
+        }
         break;
       case FETCHCHUNK:
         if(printingSteps) { wcerr << "fetchchunk" << endl; }

@@ -315,6 +315,7 @@ bool
 RTXProcessor::applyRule(const wstring& rule)
 {
   stackIdx = 0;
+  vector<bool> editted = vector<bool>(currentInput.size(), false);
   const wchar_t* rule_data = rule.data();
   for(unsigned int i = 0, rule_size = rule.size(); i < rule_size; i++)
   {
@@ -712,6 +713,11 @@ RTXProcessor::applyRule(const wstring& rule)
         wstring part = popString();
         if(pos >= 0)
         {
+          if(!editted[pos])
+          {
+            currentInput[pos] = currentInput[pos]->copy();
+            editted[pos] = true;
+          }
           currentInput[pos]->setChunkPart(attr_items[part], popString());
           if(printingSteps) { wcerr << " -> " << currentInput[pos]->target << endl; }
         }

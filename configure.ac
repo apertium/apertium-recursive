@@ -17,8 +17,11 @@ CFLAGS="-Wall -Wextra $CFLAGS"
 CXXFLAGS="-Wall -Wextra $CXXFLAGS"
 
 AC_ARG_ENABLE(debug,
-              [  --enable-debug  Enable "-g -Wall" compiler options],
-              [CXXFLAGS="-g -Wall";CFLAGS="-g -Wall"])
+              [  --enable-debug  Enable debug compiler options],
+              [case "${enableval}" in
+              yes ) CXXFLAGS="-g -Wall";CFLAGS="-g -ggdb -Og -DDEBUG" ;;
+              no  ) ;;
+              *   ) AC_MSG_ERROR("Invalid value ${enableval} for --enable-debug") ;; esac])
 
 PKG_CHECK_MODULES([LTTOOLBOX], [lttoolbox >= required_lttoolbox_version])
 

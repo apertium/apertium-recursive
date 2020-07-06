@@ -630,7 +630,7 @@ TRXCompiler::processRules(xmlNode* node)
         if(assertClause.size() > 0)
         {
           action = assertClause;
-          action += JUMPONFALSE;
+          action += JUMPONTRUE;
           action += (wchar_t)1;
           action += REJECTRULE;
         }

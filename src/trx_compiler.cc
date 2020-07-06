@@ -610,7 +610,7 @@ TRXCompiler::processRules(xmlNode* node)
         bool firstAssert = (assertClause.size() == 0);
         for(xmlNode* clause = part->children; clause != NULL; clause = clause->next)
         {
-          if(part->type != XML_ELEMENT_NODE) continue;
+          if(clause->type != XML_ELEMENT_NODE) continue;
           assertClause += processCond(clause);
           if(!firstAssert)
           {

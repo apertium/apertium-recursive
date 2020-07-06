@@ -530,6 +530,7 @@ TRXCompiler::processRules(xmlNode* node)
     if(firstChunk == L"") firstChunk = L"*";
     bool pat = false;
     bool act = false;
+    wstring assertClause = L"";
     for(xmlNode* part = rule->children; part != NULL; part = part->next)
     {
       if(part->type != XML_ELEMENT_NODE) continue;
@@ -600,6 +601,24 @@ TRXCompiler::processRules(xmlNode* node)
           inputRuleSizes.push_back(pls.size());
         }
       }
+      else if(!xmlStrcmp(part->name, (const xmlChar*) "assert"))
+      {
+        if(act)
+        {
+          die(rule, L"<assert> must come before <action>.");
+        }
+        bool firstAssert = (assertClause.size() == 0);
+        for(xmlNode* clause = part->children; clause != NULL; clause = clause->next)
+        {
+          if(part->type != XML_ELEMENT_NODE) continue;
+          assertClause += processCond(clause);
+          if(!firstAssert)
+          {
+            assertClause += AND;
+          }
+          firstAssert = false;
+        }
+      }
       else if(!xmlStrcmp(part->name, (const xmlChar*) "action"))
       {
         if(act)
@@ -608,6 +627,13 @@ TRXCompiler::processRules(xmlNode* node)
         }
         act = true;
         wstring action;
+        if(assertClause.size() > 0)
+        {
+          action = assertClause;
+          action += JUMPONFALSE;
+          action += (wchar_t)1;
+          action += REJECTRULE;
+        }
         if(inOutput)
         {
           action += INT;

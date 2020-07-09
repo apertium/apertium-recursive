@@ -146,6 +146,8 @@ patterns used in rules
 -->
 
 <!ELEMENT rule (pattern, assert?, action)>
+<!ATTLIST rule firstChunk CDATA #REQUIRED>
+<!ATTLIST rule weight CDATA #IMPLIED>
 <!ATTLIST rule comment CDATA #IMPLIED>
 <!ATTLIST rule c CDATA #IMPLIED>
 <!ATTLIST rule id CDATA #IMPLIED>

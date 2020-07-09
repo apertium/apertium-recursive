@@ -23,13 +23,18 @@ private:
 
   struct OutputChoice;
 
+  enum ClipSource
+  {
+    // positive values refer to input nodes
+    ConstantClip  = 0,
+    ParentClip    = -1,
+    ConditionClip = -2,
+    StringVarClip = -3,
+    ChunkVarClip  = -4
+  };
+
   struct Clip
   {
-    // > 0 = input
-    // 0 = constant
-    // -1 = parent node
-    // -2 = if statement
-    // -4 = global var
     int src;
     wstring part;
     wstring side;
@@ -77,8 +82,11 @@ private:
     wstring name;
     vector<vector<wstring>> pattern;
     vector<OutputChoice*> output;
+    vector<OutputChoice*> output_sl;
+    vector<OutputChoice*> output_ref;
     map<wstring, Clip*> vars;
     map<wstring, OutputChoice*> globals;
+    map<wstring, Clip*> stringGlobals;
     vector<wstring> result;
     wstring compiled;
     Cond* cond;
@@ -227,6 +235,12 @@ private:
    * Global variable currently being assigned to
    */
   unsigned int currentVar;
+
+  /**
+   * Which surface of a chunk is being assigned to
+   * one of APPENDSURFACE, APPENDSURFACESL, APPENDSURFACEREF
+   */
+  wchar_t currentSurface;
 
   /**
    * All attributes which can be clipped from the chunk whose children

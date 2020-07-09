@@ -1,0 +1,13 @@
+gender = m f;
+number = sg pl;
+
+n: _.gender.number;
+det: _.gender.number;
+adj: _.number;
+NP: _.gender.number;
+DP: _.gender.number;
+
+NP -> %n adj [$%something=(if (1.gender = m) 2.number else sg)]
+             { 1 _ 2 } ;
+DP -> det %NP { whatever@thing.[$%something] _ %1 _1 2 } ;
+

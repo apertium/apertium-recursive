@@ -584,7 +584,6 @@ RTXProcessor::applyRule(const wstring& rule)
       {
         Chunk* ch = popChunk();
         if(ch == NULL) break; // FETCHCHUNK
-        ch->source.clear();
         if(isLinear && ch->contents.size() == 0)
         {
           bool word = true;
@@ -833,6 +832,56 @@ RTXProcessor::applyRule(const wstring& rule)
         if(printingSteps) { wcerr << " -> " << theStack[stackIdx+1].s << endl; }
       }
         break;
+      case APPENDSURFACESL:
+        if(printingSteps) { wcerr << "appendsurfacesl" << endl; }
+      {
+        if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
+        {
+          wcerr << L"Cannot append non-string to chunk surface." << endl;
+          exit(EXIT_FAILURE);
+        }
+        stackIdx--;
+        if(theStack[stackIdx].mode != 3)
+        {
+          wcerr << L"Cannot APPENDSURFACESL to non-chunk." << endl;
+          exit(EXIT_FAILURE);
+        }
+        if(theStack[stackIdx+1].mode == 2)
+        {
+          theStack[stackIdx].c->source += theStack[stackIdx+1].s;
+        }
+        else
+        {
+          theStack[stackIdx].c->source += theStack[stackIdx+1].c->source;
+        }
+        if(printingSteps) { wcerr << " -> " << theStack[stackIdx+1].s << endl; }
+      }
+        break;
+      case APPENDSURFACEREF:
+        if(printingSteps) { wcerr << "appendsurfaceref" << endl; }
+      {
+        if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
+        {
+          wcerr << L"Cannot append non-string to chunk surface." << endl;
+          exit(EXIT_FAILURE);
+        }
+        stackIdx--;
+        if(theStack[stackIdx].mode != 3)
+        {
+          wcerr << L"Cannot APPENDSURFACEREF to non-chunk." << endl;
+          exit(EXIT_FAILURE);
+        }
+        if(theStack[stackIdx+1].mode == 2)
+        {
+          theStack[stackIdx].c->coref += theStack[stackIdx+1].s;
+        }
+        else
+        {
+          theStack[stackIdx].c->coref += theStack[stackIdx+1].c->coref;
+        }
+        if(printingSteps) { wcerr << " -> " << theStack[stackIdx+1].s << endl; }
+      }
+        break;
       case APPENDALLCHILDREN:
         if(printingSteps) { wcerr << "appendallchildren" << endl; }
       {
@@ -845,7 +894,10 @@ RTXProcessor::applyRule(const wstring& rule)
         break;
       case APPENDALLINPUT:
         if(printingSteps) { wcerr << "appendallinput" << endl; }
-        theStack[stackIdx].c->contents.swap(currentInput);
+      {
+        vector<Chunk*>& vec = theStack[stackIdx].c->contents;
+        vec.insert(vec.end(), currentInput.begin(), currentInput.end());
+      }
         break;
       case BLANK:
         if(printingSteps) { wcerr << "blank" << endl; }

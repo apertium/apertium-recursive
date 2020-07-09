@@ -83,6 +83,8 @@ static const wchar_t APPENDSURFACE     = L'2';
 static const wchar_t APPENDALLCHILDREN = L'3';
 static const wchar_t APPENDALLINPUT    = L'4';
 static const wchar_t PUSHINPUT         = L'7';
+static const wchar_t APPENDSURFACESL   = L'8';
+static const wchar_t APPENDSURFACEREF  = L'9';
 
 // Output
 

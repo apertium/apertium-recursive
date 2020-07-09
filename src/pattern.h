@@ -165,6 +165,12 @@ public:
   void addVar(wstring name, wstring val);
   void loadLexFile(const string& fname);
   void write(FILE* output, int longest, vector<pair<int, wstring>> inputBytecode, vector<wstring> outputBytecode);
+
+  //////////
+  // BYTECODE CONSTRUCTION
+  //////////
+  wstring BCstring(const wstring& s);
+  wstring BCifthenelse(const wstring& cond, const wstring& yes, const wstring& no);
 };
 
 #endif

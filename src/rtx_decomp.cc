@@ -172,6 +172,12 @@ void writeRule(wstring rule, FILE* out)
       case PUSHINPUT:
         fwprintf(out, L"PUSHINPUT\n");
         break;
+      case APPENDSURFACESL:
+        fwprintf(out, L"APPENDSURFACESL\n");
+        break;
+      case APPENDSURFACEREF:
+        fwprintf(out, L"APPENDSURFACEREF\n");
+        break;
       case OUTPUT:
         fwprintf(out, L"OUTPUT\n");
         break;
@@ -201,7 +207,7 @@ void writeRule(wstring rule, FILE* out)
         break;
       default:
         auto tmp = rule.substr(i, 1);
-        fwprintf(out, L"Unknown instruction: %s", tmp.c_str());
+        fwprintf(out, L"Unknown instruction: %s\n", tmp.c_str());
     }
   }
   fwprintf(out, L"\n");

@@ -270,11 +270,11 @@ public:
   }
   wstring matchSurface()
   {
-    if(source.size() == 0)
+    if(contents.size() == 0)
     {
-      return target;
+      return source;
     }
-    return source;
+    return target;
   }
   void appendChild(Chunk* kid)
   {

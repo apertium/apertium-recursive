@@ -486,13 +486,18 @@ RTXCompiler::parseClip(int src = -2)
   {
     if(isNextToken(L'$'))
     {
-      ret->src = -4;
+      ret->src = ChunkVarClip;
       ret->varName = parseIdent();
       nextToken(L".");
     }
+    else if(isNextToken(L'%'))
+    {
+      ret->src = StringVarClip;
+      ret->varName = parseIdent();
+    }
     else
     {
-      ret->src = -1;
+      ret->src = ParentClip;
       if(currentLocType != LocTypeOutput)
       {
         die(L"Chunk tags can only be accessed from output sections of reduction rules.");
@@ -506,7 +511,7 @@ RTXCompiler::parseClip(int src = -2)
     currentClip = ret;
     currentChunk = NULL;
     currentChoice = NULL;
-    ret->src = -2;
+    ret->src = ConditionClip;
     Location locwas = currentLoc;
     currentLoc = LocClip;
     ret->choice = parseOutputCond();
@@ -518,11 +523,11 @@ RTXCompiler::parseClip(int src = -2)
   }
   else
   {
-    ret->src = 0;
+    ret->src = ConstantClip;
   }
   if(currentLocType == LocTypeMacro)
   {
-    if(ret->src != 0 && ret->src != 1 && ret->src != -2 && ret->src != -4)
+    if(ret->src == ParentClip || ret->src > 1)
     {
       die(L"Macros can only access their single argument.");
     }
@@ -531,26 +536,33 @@ RTXCompiler::parseClip(int src = -2)
   {
     die(L"Clip source is out of bounds (position " + to_wstring(ret->src) + L" requested, but rule has only " + to_wstring(currentRule->pattern.size()) + L" elements in its pattern).");
   }
-  ret->part = (src == -3) ? nextToken() : parseIdent();
+  if(ret->src != StringVarClip)
+  {
+    ret->part = (src == -3) ? nextToken() : parseIdent();
+  }
   if(isNextToken(L'/'))
   {
-    if(ret->src == 0)
+    if(ret->src == ConstantClip)
     {
       die(L"literal value cannot have a side");
     }
-    else if(ret->src == -1)
+    else if(ret->src == StringVarClip)
     {
       die(L"variable cannot have a side");
     }
     ret->side = parseIdent();
   }
+  else if(ret->src == ParentClip)
+  {
+    ret->side = L"tl";
+  }
   if(isNextToken(L'>'))
   {
-    if(ret->src == 0)
+    if(ret->src == ConstantClip)
     {
       die(L"literal value cannot be rewritten");
     }
-    else if(ret->src == -1)
+    else if(ret->src == ParentClip || ret->src == StringVarClip)
     {
       die(L"variable cannot be rewritten");
     }
@@ -1148,7 +1160,7 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     {
       if(SPECIAL_CHARS.find(cur) != wstring::npos)
       {
-        die(L"Chunk names must be identifiers. (I think I'm parsing a reduction rule.)");
+        die(L"Chunk names must be identifiers. (I think I'm parsing a reduction rule.)\nIf this error doesn't make sense to you, a common reason is that on the line before this you have ; instead of |");
       }
       outNodes.push_back(cur);
       cur = nextToken();
@@ -1161,6 +1173,8 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     currentRule = rule;
     rule->grab_all = -1;
     rule->result = outNodes;
+    rule->output_sl = vector<OutputChoice*>(outNodes.size(), NULL);
+    rule->output_ref = vector<OutputChoice*>(outNodes.size(), NULL);
     eatSpaces();
     rule->line = currentLine;
     currentLocType = LocTypeInput;
@@ -1215,8 +1229,42 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     {
       while(!source.eof())
       {
-        nextToken(L"$");
-        if(isNextToken(L'$'))
+        if(!isNextToken(L'$'))
+        {
+          unsigned int idx = 1;
+          if(isdigit(peekchar()))
+          {
+            idx = parseInt();
+          }
+          if(idx == 0 || idx > outNodes.size())
+          {
+            die(L"Chunk index for setting source or reference is out of range.");
+          }
+          nextToken(L"/");
+          bool sl = (nextToken(L"sl", L"ref") == L"sl");
+          nextToken(L"=");
+          currentLoc = LocVarSet;
+          OutputChoice* cond;
+          if(peekchar() == L'(') cond = parseOutputCond();
+          else cond = chunkToCond(parseOutputElement());
+          if(sl)
+          {
+            if(rule->output_sl[idx-1] != NULL)
+            {
+              die(L"Rule sets chunk source multiple times.");
+            }
+            rule->output_sl[idx-1] = cond;
+          }
+          else
+          {
+            if(rule->output_ref[idx-1] != NULL)
+            {
+              die(L"Rule sets chunk reference multiple times.");
+            }
+            rule->output_ref[idx-1] = cond;
+          }
+        }
+        else if(isNextToken(L'$'))
         {
           wstring var = parseIdent();
           if(rule->globals.find(var) != rule->globals.end())
@@ -1233,6 +1281,16 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
             int temp = globalVarNames.size();
             globalVarNames[var] = temp;
           }
+        }
+        else if(isNextToken(L'%'))
+        {
+          wstring var = parseIdent();
+          if(rule->stringGlobals.find(var) != rule->stringGlobals.end())
+          {
+            die(L"Rule sets global variable $%" + var + L" multiple times.");
+          }
+          nextToken(L"=");
+          rule->stringGlobals[var] = parseClip();
         }
         else
         {
@@ -1490,6 +1548,10 @@ RTXCompiler::compileClip(Clip* c, wstring _dest = L"")
       ret += DISTAG;
     }
     return ret;
+  }
+  if(c->src == -3)
+  {
+    return PB.BCstring(c->varName) + FETCHVAR;
   }
   if(c->src != 0 && !(c->part == L"lemcase" ||
       collections.find(c->part) != collections.end() || PB.isAttrDefined(c->part)))
@@ -1884,7 +1946,10 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       macroNameStack.pop_back();
       return ret;
     }
-    ret += CHUNK;
+    if(currentSurface == APPENDSURFACE)
+    {
+      ret += CHUNK;
+    }
     if(r->mode == L"#@")
     {
       unsigned int j;
@@ -1936,7 +2001,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       ret += compileClip(r->vars[L"lemcase"], L"lemcase");
       ret += SETCASE;
     }
-    ret += APPENDSURFACE;
+    ret += currentSurface;
     for(unsigned int i = 0; i < pattern.size(); i++)
     {
       if(pattern[i] == L"_")
@@ -1954,12 +2019,12 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
         {
           ret += compileTag(pos);
         }
-        ret += APPENDSURFACE;
+        ret += currentSurface;
       }
       else if(pattern[i][0] == L'<')
       {
         ret += compileString(pattern[i]);
-        ret += APPENDSURFACE;
+        ret += currentSurface;
       }
       else
       {
@@ -2033,18 +2098,18 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
           ret += DROP;
         }
         ret += ret_temp;
-        ret += APPENDSURFACE;
+        ret += currentSurface;
       }
     }
     if(r->vars.find(L"lemq") != r->vars.end())
     {
       ret += compileClip(r->vars[L"lemq"], L"lemq");
-      ret += APPENDSURFACE;
+      ret += currentSurface;
     }
     else if(r->pos != 0)
     {
       ret += compileClip(L"lemq", r->pos, L"tl");
-      ret += APPENDSURFACE;
+      ret += currentSurface;
     }
     if(r->pos != 0)
     {
@@ -2080,11 +2145,11 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     }
     ret += CHUNK;
     ret += compileString(r->lemma);
-    ret += APPENDSURFACE;
+    ret += currentSurface;
     for(unsigned int i = 0; i < r->tags.size(); i++)
     {
       ret += compileClip(r->vars[r->tags[i]]);
-      ret += APPENDSURFACE;
+      ret += currentSurface;
     }
     if(r->interpolated)
     {
@@ -2273,23 +2338,32 @@ RTXCompiler::processRules()
       currentLocType = LocTypeInput;
       currentLoc = LocVarSet;
       currentVar = globalVarNames[it.first];
+      currentSurface = APPENDSURFACE;
       comp += processOutputChoice(it.second);
+    }
+    for(auto it : rule->stringGlobals)
+    {
+      comp += compileClip(it.second);
+      comp += compileString(it.first);
+      comp += SETVAR;
     }
     currentLoc = LocTopLevel;
     vector<wstring> outcomp;
     outcomp.resize(rule->pattern.size());
     parentTags.clear();
-    int patidx = 0;
+    unsigned int patidx = 0;
     for(unsigned int i = 0; i < rule->output.size(); i++)
     {
       currentLocType = LocTypeInput;
       OutputChoice* cur = rule->output[i];
       if(cur->chunks.size() == 1 && cur->chunks[0]->mode == L"_")
       {
+        currentSurface = APPENDSURFACE;
         comp += processOutputChoice(cur);
       }
       else if(cur->chunks.size() == 1 && cur->chunks[0]->mode == L"#")
       {
+        currentSurface = APPENDSURFACE;
         comp += processOutputChoice(cur);
         patidx++;
       }
@@ -2312,7 +2386,18 @@ RTXCompiler::processRules()
         ch->interpolated = false;
         ch->nextConjoined = false;
         ch->pattern = rule->result[patidx];
+        currentSurface = APPENDSURFACE;
         comp += processOutputChunk(ch);
+        if(rule->output_sl.size() > patidx && rule->output_sl[patidx] != NULL)
+        {
+          currentSurface = APPENDSURFACESL;
+          comp += processOutputChoice(rule->output_sl[patidx]);
+        }
+        if(rule->output_ref.size() > patidx && rule->output_ref[patidx] != NULL)
+        {
+          currentSurface = APPENDSURFACEREF;
+          comp += processOutputChoice(rule->output_ref[patidx]);
+        }
         comp += INT;
         comp += (wchar_t)outputBytecode.size();
         comp += INT;
@@ -2321,6 +2406,7 @@ RTXCompiler::processRules()
         comp += APPENDALLINPUT;
         parentTags = outputRules[ch->pattern];
         currentLocType = LocTypeOutput;
+        currentSurface = APPENDSURFACE;
         outputBytecode.push_back(processOutputChoice(cur));
         if(rule->name.size() > 0)
         {

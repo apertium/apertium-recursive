@@ -1,0 +1,9 @@
+n: _.number;
+adj: _.number;
+NP: _;
+
+whatever: tags;
+
+number = sg pl sp;
+
+NP -> adj n [ /sl=*(whatever)[lem=2.lem/sl,tags=2.tags/sl]] {2 _1 1[number=$number/sl]};

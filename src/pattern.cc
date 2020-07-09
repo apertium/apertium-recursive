@@ -1,5 +1,6 @@
 #include <rtx_config.h>
 #include <pattern.h>
+#include <bytecode.h>
 
 #include <lttoolbox/compression.h>
 #include <apertium/string_utils.h>
@@ -294,6 +295,44 @@ void
 PatternBuilder::addVar(wstring name, wstring val)
 {
   variables[name] = val;
+}
+
+wstring
+PatternBuilder::BCstring(const wstring& s)
+{
+  wstring ret;
+  ret += STRING;
+  ret += (wchar_t)s.size();
+  ret += s;
+  return ret;
+}
+
+wstring
+PatternBuilder::BCifthenelse(const wstring& cond, const wstring& yes, const wstring& no)
+{
+  wstring ret = cond;
+  if(yes.size() == 0)
+  {
+    ret += JUMPONTRUE;
+    ret += (wchar_t)no.size();
+    ret += no;
+  }
+  else if(no.size() == 0)
+  {
+    ret += JUMPONFALSE;
+    ret += (wchar_t)yes.size();
+    ret += yes;
+  }
+  else
+  {
+    ret += JUMPONFALSE;
+    ret += (wchar_t)(yes.size() + 2);
+    ret += yes;
+    ret += JUMP;
+    ret += (wchar_t)no.size();
+    ret += no;
+  }
+  return ret;
 }
 
 void

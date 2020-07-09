@@ -1128,210 +1128,59 @@ TRXCompiler::processValue(xmlNode* node)
   else if(!xmlStrcmp(node->name, (const xmlChar*) "chunk"))
   {
     ret += CHUNK;
-    bool inLitChunk = false;
-    bool surface = true;
-    wstring whole;
-    int partct = 0;
+    bool target = false;
+    bool contents = false;
     for(xmlNode* part = node->children; part != NULL; part = part->next)
     {
       if(part->type != XML_ELEMENT_NODE) continue;
-      partct++;
-      if(!xmlStrcmp(part->name, (const xmlChar*) "tags"))
+      if(!xmlStrcmp(part->name, (const xmlChar*) "source"))
       {
-        surface = false;
-        if(ret.size() > 1)
+        for(xmlNode* seg = part->children; seg != NULL; seg = seg->next)
         {
-          die(part, L"<tags> must be the first child of <chunk>.");
+          if(seg->type != XML_ELEMENT_NODE) continue;
+          ret += processValue(seg);
+          ret += APPENDSURFACESL;
         }
-        wstring name = toWstring(getAttr(node, (const xmlChar*) "name"));
-        wstring namefrom = toWstring(getAttr(node, (const xmlChar*) "namefrom"));
-        if(varMangle.find(namefrom) != varMangle.end())
+      }
+      else if(!xmlStrcmp(part->name, (const xmlChar*) "target"))
+      {
+        target = true;
+        for(xmlNode* seg = part->children; seg != NULL; seg = seg->next)
         {
-          namefrom = varMangle[namefrom];
-        }
-        wstring casevar = toWstring(getAttr(node, (const xmlChar*) "case"));
-        if(varMangle.find(casevar) != varMangle.end())
-        {
-          casevar = varMangle[casevar];
-        }
-        wstring csadd;
-        if(casevar.size() != 0)
-        {
-          csadd += STRING;
-          csadd += (wchar_t)casevar.size();
-          csadd += casevar;
-          csadd += FETCHVAR;
-          csadd += SETCASE;
-        }
-        // TODO: what happens when name and namefrom are both empty?
-        if(namefrom.size() == 0)
-        {
-          wstring lowname = StringUtils::tolower(name);
-          ret += STRING;
-          if(name.size() == 0)
-          {
-            ret += (wchar_t)7;
-            ret += L"default";
-            lowname = L"default";
-          }
-          else
-          {
-            ret += (wchar_t)name.size();
-            ret += name;
-          }
-          ret += csadd;
+          if(seg->type != XML_ELEMENT_NODE) continue;
+          ret += processValue(seg);
           ret += APPENDSURFACE;
-          ret += INT;
-          if(outputMap.find(lowname) != outputMap.end())
-          {
-            ret += (wchar_t)(outputMap[lowname]);
-          }
-          else
-          {
-            ret += (wchar_t)(outputRules.size()-1);
-          }
-          ret += INT;
-          ret += (wchar_t)0;
-          ret += SETRULE;
-        }
-        else
-        {
-          ret += STRING;
-          ret += (wchar_t)namefrom.size();
-          ret += namefrom;
-          ret += FETCHVAR;
-          ret += csadd;
-          ret += APPENDSURFACE;
-          ret += INT;
-          ret += (wchar_t)(outputRules.size()-1);
-          ret += INT;
-          ret += (wchar_t)0;
-          ret += SETRULE;
-        }
-        for(xmlNode* tag = part->children; tag != NULL; tag = tag->next)
-        {
-          if(tag->type != XML_ELEMENT_NODE) continue;
-          if(xmlStrcmp(tag->name, (const xmlChar*) "tag"))
-          {
-            warn(tag, L"Ignoring non-<tag> material in <tags>.");
-            continue;
-          }
-          for(xmlNode* v = tag->children; v != NULL; v = v->next)
-          {
-            if(v->type == XML_ELEMENT_NODE)
-            {
-              ret += processValue(v);
-              ret += APPENDSURFACE;
-              break;
-            }
-          }
         }
       }
-      else if(!xmlStrcmp(part->name, (const xmlChar*) "var"))
+      else if(!xmlStrcmp(part->name, (const xmlChar*) "reference"))
       {
-        ret += CHUNK;
-        ret += STRING;
-        wstring name = toWstring(requireAttr(part, (const xmlChar*) "n"));
-        if(varMangle.find(name) != varMangle.end())
+        for(xmlNode* seg = part->children; seg != NULL; seg = seg->next)
         {
-          name = varMangle[name];
+          if(seg->type != XML_ELEMENT_NODE) continue;
+          ret += processValue(seg);
+          ret += APPENDSURFACEREF;
         }
-        ret += (wchar_t)name.size();
-        ret += name;
-        ret += FETCHVAR;
-        ret += APPENDSURFACE;
-        ret += APPENDCHILD;
       }
-      else if(surface && !xmlStrcmp(part->name, (const xmlChar*) "lit"))
+      else if(!xmlStrcmp(part->name, (const xmlChar*) "contents"))
       {
-        wstring val = toWstring(requireAttr(part, (const xmlChar*) "v"));
-        wstring app;
-        if(inLitChunk)
+        contents = true;
+        for(xmlNode* seg = part->children; seg != NULL; seg = seg->next)
         {
-          if(val.size() >= 2 && val[val.size()-2] == L'$' && val[val.size()-1] == L'}')
-          {
-            app += APPENDCHILD;
-            val = val.substr(0, val.size()-2);
-            inLitChunk = false;
-            if(val.size() == 0)
-            {
-              continue;
-            }
-          }
-          if(val.find(L"}") != wstring::npos)
-          {
-            warn(part, L"Possible end of literal chunk detected. Unable to properly compile if so.");
-          }
-        }
-        else
-        {
-          if(val.size() >= 2 && val[0] == L'{' && val[1] == L'^')
-          {
-            ret += CHUNK;
-            val = val.substr(2);
-            inLitChunk = true;
-            if(val.size() == 0)
-            {
-              continue;
-            }
-          }
-          if(val.find(L"{") != wstring::npos)
-          {
-            warn(part, L"Possible start of literal chunk detected. Unable to properly compile if so.");
-          }
-        }
-        ret += STRING;
-        ret += (wchar_t)val.size();
-        ret += val;
-        ret += APPENDSURFACE;
-        ret += app;
-      }
-      else if(!xmlStrcmp(part->name, (const xmlChar*) "clip"))
-      {
-        // TODO: maybe there should be some error checking here
-        // also, generally ensure that we're not getting chunks and wstrings mixed up
-        wstring temp = processValue(part);
-        ret += temp;
-        wstring prt = toWstring(getAttr(part, (const xmlChar*) "part"));
-        if(prt == L"whole")
-        {
-          whole = temp;
+          if(seg->type != XML_ELEMENT_NODE) continue;
+          ret += processValue(seg);
           ret += APPENDCHILD;
         }
-        else if(prt == L"content" || prt == L"chcontent")
-        {
-          ret += APPENDALLCHILDREN;
-        }
-        else
-        {
-          ret += APPENDSURFACE;
-          if(!inOutput && (prt == L"lem" || prt == L"lemh"))
-          {
-            ret += INT;
-            ret += (wchar_t)getPos(part);
-            ret += GETRULE;
-            ret += INT;
-            ret += (wchar_t)0;
-            ret += SETRULE;
-          }
-        }
-      }
-      else
-      {
-        ret += processValue(part);
-        ret += surface ? APPENDSURFACE : APPENDCHILD;
       }
     }
-    if(whole.size() > 0 && partct == 1)
+    if(!target)
     {
-      ret = whole;
+      die(node, L"<chunk> must contain <target>");
+    }
+    if(!contents)
+    {
+      die(node, L"<chunk> must contain <contents>");
     }
   }
-  // <pseudolemma> seems not to have been implemented
-  // so I can't actually determine what it's supposed to do
-  //else if(!xmlStrcmp(node->name, (const xmlChar*) "pseudolemma"))
-  //{
-  //}
   else if(!xmlStrcmp(node->name, (const xmlChar*) "lu-count"))
   {
     ret += LUCOUNT;

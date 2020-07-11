@@ -341,6 +341,10 @@ TRXCompiler::processRules(xmlNode* node)
       warn(rule, L"Ignoring non-<rule> element in <section-rules>.");
       continue;
     }
+    if(!xmlStrcmp(getAttr(rule, (const xmlChar*) "i"), (const xmlChar*) "yes"))
+    {
+      continue;
+    }
     curPatternSize = 0;
     localVars.clear();
 
@@ -488,6 +492,10 @@ TRXCompiler::processRules(xmlNode* node)
 wstring
 TRXCompiler::processStatement(xmlNode* node)
 {
+  if(!xmlStrcmp(getAttr(node, (const xmlChar*) "i"), (const xmlChar*) "yes"))
+  {
+    return L"";
+  }
   wstring ret;
   if(!xmlStrcmp(node->name, (const xmlChar*) "let") ||
      !xmlStrcmp(node->name, (const xmlChar*) "modify-case"))

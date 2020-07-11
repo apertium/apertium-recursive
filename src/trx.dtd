@@ -151,6 +151,7 @@ patterns used in rules
 <!ATTLIST rule comment CDATA #IMPLIED>
 <!ATTLIST rule c CDATA #IMPLIED>
 <!ATTLIST rule id CDATA #IMPLIED>
+<!ATTLIST rule i (no|yes) #IMPLIED>
 <!--
       Each rule has a pattern and an action
       * attribute 'comment' allows to put in comments about the purpose of
@@ -185,6 +186,7 @@ representing a lexical form in the matched pattern
 
 <!ELEMENT choose (when+,otherwise?)>
 <!ATTLIST choose c CDATA #IMPLIED>
+<!ATTLIST choose i (no|yes) #IMPLIED>
 <!--
      The choose statement is a selection statement (similar to a case
      statement) composed of one or more tested cases and an optional
@@ -193,6 +195,7 @@ representing a lexical form in the matched pattern
 
 <!ELEMENT when (test,(%sentence;)*)>
 <!ATTLIST when c CDATA #IMPLIED>
+<!ATTLIST choose i (no|yes) #IMPLIED>
 <!--
      Each tested case is a block of zero or more statements
 -->
@@ -313,6 +316,7 @@ representing a lexical form in the matched pattern
 -->
 
 <!ELEMENT let (%container;, %value;)>
+<!ATTLIST choose i (no|yes) #IMPLIED>
 <!--
       An assignment statement ('let') assigns the value of a clip (see
       below), a literal string ('lit'), a literal tag('lit-tag') or the
@@ -322,6 +326,7 @@ representing a lexical form in the matched pattern
 
 <!ELEMENT append (%value;)+>
 <!ATTLIST append n IDREF #REQUIRED>
+<!ATTLIST choose i (no|yes) #IMPLIED>
 <!--
       This instruction appends the value of a clip (see
       below), a literal string ('lit'), a literal tag('lit-tag') or the
@@ -332,6 +337,7 @@ representing a lexical form in the matched pattern
 
 <!ELEMENT out (mlu|lu|b|chunk|var)+>
 <!ATTLIST out c CDATA #IMPLIED>
+<!ATTLIST choose i (no|yes) #IMPLIED>
 <!--
       'out' is an output statement; it may output any sequence of
       clips, literal strings, literal tags, variables, and whitespace items
@@ -339,6 +345,7 @@ representing a lexical form in the matched pattern
 -->
 
 <!ELEMENT modify-case (%container;, %stringvalue;)>
+<!ATTLIST choose i (no|yes) #IMPLIED>
 <!--
       The first argument of 'modify-case' copy the case of the second
       argument.
@@ -346,6 +353,7 @@ representing a lexical form in the matched pattern
 
 <!ELEMENT call-macro (with-param)*>
 <!ATTLIST call-macro n IDREF #REQUIRED>
+<!ATTLIST choose i (no|yes) #IMPLIED>
 <!--
       A macro may be called anywhere by name with one or more
       arguments

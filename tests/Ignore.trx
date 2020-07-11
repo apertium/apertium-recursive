@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transfer>
+  <section-def-cats>
+    <def-cat n="adj">
+      <cat-item tags="adj"/>
+      <cat-item tags="adj.*"/>
+    </def-cat>
+    <def-cat n="n">
+      <cat-item tags="n"/>
+      <cat-item tags="n.*"/>
+    </def-cat>
+    <def-cat n="n_sg">
+      <cat-item tags="n.sg"/>
+      <cat-item tags="n.sg.*"/>
+    </def-cat>
+  </section-def-cats>
+  <section-def-attrs>
+    <def-attr n="gender">
+      <attr-item tags="m"/>
+      <attr-item tags="f"/>
+      <attr-item tags="mf"/>
+    </def-attr>
+    <def-attr n="number">
+      <attr-item tags="sg"/>
+      <attr-item tags="pl"/>
+      <attr-item tags="sp"/>
+    </def-attr>
+  </section-def-attrs>
+  <section-rules>
+    <rule weight="0" firstChunk="NP">
+      <pattern>
+        <pattern-item n="adj"/>
+        <pattern-item n="n"/>
+      </pattern>
+      <action>
+        <choose i="yes">
+          <when>
+            <test><equal><lit v="i"/><lit v="i"/></equal></test>
+            <let><clip part="lem" pos="1" side="tl"/><lit v="bwahahahah"/></let>
+          </when>
+        </choose>
+        <out i="yes">
+          <lu><lit v="glarg"/><lit-tag v="shoop"/></lu>
+        </out>
+        <out>
+          <chunk>
+            <source><clip pos="2" part="whole" side="sl"/></source>
+            <contents>
+              <lu>
+                <clip pos="2" part="lemh" side="tl"/>
+                <lit-tag v="n"/>
+                <clip pos="2" part="gender" side="tl"/>
+                <clip pos="2" part="number" side="sl"/>
+                <clip pos="2" part="lemq" side="tl"/>
+              </lu>
+              <b pos="1"/>
+              <lu>
+                <clip pos="1" part="lemh" side="tl"/>
+                <lit-tag v="adj"/>
+                <clip pos="1" part="gender" side="tl"/>
+                <clip pos="2" part="number" side="sl"/>
+                <clip pos="1" part="lemq" side="tl"/>
+              </lu>
+            </contents>
+          </chunk>
+        </out>
+      </action>
+    </rule>
+  </section-rules>
+</transfer>

@@ -21,8 +21,6 @@ class InterpreterTest:
         args = ['../src/rtx-comp']
         if len(self.lex_file) > 0:
             args += ['-l', self.lex_file]
-        if self.rules_file.endswith('trx'):
-            args += ['-x']
         args += [self.rules_file, self.bin_file]
         subprocess.check_output(args, stderr=subprocess.STDOUT, universal_newlines=True)
     def test_output(self):

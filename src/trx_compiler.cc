@@ -503,6 +503,7 @@ TRXCompiler::processStatement(xmlNode* node)
     wstring name = toWstring(node->name);
     xmlNode* var = NULL;
     wstring val;
+    bool val_is_clip = false;
     for(xmlNode* n = node->children; n != NULL; n = n->next)
     {
       if(n->type != XML_ELEMENT_NODE) continue;
@@ -512,6 +513,7 @@ TRXCompiler::processStatement(xmlNode* node)
       }
       else if(val.size() == 0)
       {
+        val_is_clip = (!xmlStrcmp(n->name, (const xmlChar*) "clip"));
         val = processValue(n);
       }
       else
@@ -560,6 +562,11 @@ TRXCompiler::processStatement(xmlNode* node)
       {
         die(var, L"Unknown attribute '" + part + L"'");
       }
+      wstring set_str;
+      set_str += PB.BCstring(part);
+      set_str += INT;
+      set_str += (wchar_t)getPos(var);
+      set_str += SETCLIP;
       if(name == L"modify-case")
       {
         ret += INT;
@@ -571,17 +578,24 @@ TRXCompiler::processStatement(xmlNode* node)
         ret += TARGETCLIP;
         ret += val;
         ret += SETCASE;
+        ret += set_str;
       }
       else
       {
         ret = val;
+        if(val_is_clip)
+        {
+          wstring cond;
+          cond += DUP;
+          cond += PB.BCstring(L"");
+          cond += EQUAL;
+          ret += PB.BCifthenelse(cond, wstring(1, DROP), set_str);
+        }
+        else
+        {
+          ret += set_str;
+        }
       }
-      ret += STRING;
-      ret += (wchar_t)part.size();
-      ret += part;
-      ret += INT;
-      ret += (wchar_t)getPos(var);
-      ret += SETCLIP;
     }
     else
     {

@@ -1675,6 +1675,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       parseGraph[0]->getChunks(outputQueue, parseGraph[0]->length-1);
       parseGraph.clear();
       outputAll(out);
+      variables = currentBranch->stringVars;
       fflush(out);
       vector<wstring> sources;
       vector<wstring> targets;

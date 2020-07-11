@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transfer>
+  <section-def-cats>
+    <def-cat n="adj">
+      <cat-item tags="adj"/>
+      <cat-item tags="adj.*"/>
+    </def-cat>
+    <def-cat n="n">
+      <cat-item tags="n"/>
+      <cat-item tags="n.*"/>
+    </def-cat>
+    <def-cat n="n_sg">
+      <cat-item tags="n.sg"/>
+      <cat-item tags="n.sg.*"/>
+    </def-cat>
+    <def-cat n="blarg">
+      <cat-item tags="BLOOP"/>
+    </def-cat>
+  </section-def-cats>
+  <section-def-attrs>
+    <def-attr n="gender">
+      <attr-item tags="m"/>
+      <attr-item tags="f"/>
+      <attr-item tags="mf"/>
+    </def-attr>
+    <def-attr n="number">
+      <attr-item tags="sg"/>
+      <attr-item tags="pl"/>
+      <attr-item tags="sp"/>
+    </def-attr>
+  </section-def-attrs>
+  <section-rules>
+    <rule weight="0" firstChunk="KRAGGLE">
+      <pattern>
+        <pattern-item n="blarg"/>
+      </pattern>
+      <action>
+        <out>
+          <chunk>
+            <source><clip pos="1" part="whole" side="sl"/></source>
+            <contents>
+              <lu>
+                <clip pos="1" part="lemh" side="tl"/>
+                <lit-tag v="skarg"/>
+                <clip pos="1" part="lemq" side="tl"/>
+              </lu>
+            </contents>
+          </chunk>
+        </out>
+      </action>
+    </rule>
+  </section-rules>
+</transfer>

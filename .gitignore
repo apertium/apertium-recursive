@@ -13,9 +13,9 @@ install-sh
 missing
 src/rtx-comp
 src/rtx-proc
-src/trx-comp
 src/rtx-decomp
 src/random-path
+src/apertium-validate-trx
 stamp-h1
 *.bin
 *.decomp

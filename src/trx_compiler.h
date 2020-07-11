@@ -34,27 +34,15 @@ private:
   map<wstring, vector<PatternElement*>, Ltstr> patterns;
 
   /**
-   * All attribute categories
-   */
-  map<wstring, set<wstring, Ltstr>, Ltstr> attrs;
-
-  /**
-   * Map of names used in current file to possibly mangled names used overall
-   * local name => global name
-   */
-  map<wstring, wstring, Ltstr> attrMangle;
-
-  /**
-   * All variables
+   * Global string variables
    * name => initial value
    */
   map<wstring, wstring, Ltstr> vars;
 
   /**
-   * Map of names used in current file to possibly mangled global names
-   * local name => global name
+   * Rule-specific string variable names
    */
-  map<wstring, wstring, Ltstr> varMangle;
+  set<wstring, Ltstr> localVars;
 
   /**
    * All lists
@@ -62,21 +50,9 @@ private:
   map<wstring, set<wstring, Ltstr>, Ltstr> lists;
 
   /**
-   * Map of names used in current file to possibly mangled global names
-   * local name => global name
+   * Ids of rules which should not be compiled
    */
-  map<wstring, wstring, Ltstr> listMangle;
-
-  /**
-   * Map of lemmas to postchunk rule indecies
-   */
-  map<wstring, int, Ltstr> outputMap;
-
-  /**
-   * Postchunk patterns
-   * name => [ lemmas ]
-   */
-  map<wstring, vector<wstring>, Ltstr> outputNames;
+  set<wstring, Ltstr> excludedRules;
 
   /**
    * Bytecode for non-postchunk rules
@@ -103,6 +79,12 @@ private:
    * Whether the rule currently being compiled is a postchunk rule or not
    */
   bool inOutput;
+
+  /**
+   * Index of output-time bytecode for this rule
+   * set to -1 if there is no bytecode
+   */
+  int currentOutputRule;
 
   /**
    * Pointer to the current file for error message purposes
@@ -270,8 +252,13 @@ public:
   TRXCompiler();
   ~TRXCompiler();
   void loadLex(const string& fname);
-  void compile(vector<string> files);
+  void compile(string file);
   void write(const char* binfile);
+  void excludeRule(wstring name)
+  {
+    excludedRules.insert(name);
+  }
+  void printStats();
 };
 
 #endif

@@ -145,7 +145,7 @@ patterns used in rules
      The rules section contains a sequence of one or more rules
 -->
 
-<!ELEMENT rule (pattern, assert?, action)>
+<!ELEMENT rule (pattern, local?, assert?, action, output-action?)>
 <!ATTLIST rule firstChunk CDATA #REQUIRED>
 <!ATTLIST rule weight CDATA #IMPLIED>
 <!ATTLIST rule comment CDATA #IMPLIED>
@@ -171,6 +171,8 @@ representing a lexical form in the matched pattern
        Each attribute to be activated is referred to by its name in the def-cats section
 -->
 
+<!ELEMENT local (var)+>
+
 <!ELEMENT assert (%condition;)+>
 
 <!ELEMENT action (%sentence;)*>
@@ -178,6 +180,8 @@ representing a lexical form in the matched pattern
 <!--
        Encloses the procedural part of a rule
 -->
+
+<!ELEMENT output-action (%sentence;)*>
 
 <!ELEMENT choose (when+,otherwise?)>
 <!ATTLIST choose c CDATA #IMPLIED>
@@ -453,7 +457,7 @@ get-case-from -->
       This instruction cancels the execution of the rule being processed.
 -->
 
-<!ELEMENT chunk (source?, target, reference?, contents)>
+<!ELEMENT chunk (source, target?, reference?, contents)>
 <!--
      Encloses a chunk inside an 'out' element.
 -->

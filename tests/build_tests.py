@@ -21,6 +21,8 @@ class InterpreterTest:
         args = ['../src/rtx-comp']
         if len(self.lex_file) > 0:
             args += ['-l', self.lex_file]
+        if self.rules_file.endswith('trx'):
+            args += ['-x']
         args += [self.rules_file, self.bin_file]
         subprocess.check_output(args, stderr=subprocess.STDOUT, universal_newlines=True)
     def test_output(self):
@@ -46,6 +48,14 @@ class {0}(InterpreterTest, unittest.TestCase):
     output = """{2}"""
 '''
 
+run_xml = '''
+class {0}XML(InterpreterTest, unittest.TestCase):
+    rules_file = '{0}.trx'
+    bin_file = '{0}.bin'
+    input = """{1}"""
+    output = """{2}"""
+'''
+
 cook = '''
 class Cookbook{0}(InterpreterTest, unittest.TestCase):
     rules_file = 'cookbook/{0}.rtx'
@@ -58,8 +68,8 @@ from os import listdir
 from os.path import basename
 ls = listdir('.')
 for fname in ls:
-    if fname.endswith('.rtx'):
-        base = fname.split('.')[0]
+    if fname.endswith('.rtx') or fname.endswith('.trx'):
+        base, ext = fname.split('.')
         if (base + '.input') in ls:
             fi = open(base + '.input')
             i = fi.read()
@@ -67,7 +77,10 @@ for fname in ls:
             fo = open(base + '.output')
             o = fo.read()
             fo.close()
-            f.write(run.format(base, i, o))
+            if ext == 'trx':
+                f.write(run_xml.format(base, i, o))
+            else:
+                f.write(run.format(base, i, o))
             if (base + '.lex') in ls:
                 f.write("    lex_file = '%s.lex'\n" % base)
         else:

@@ -1306,11 +1306,18 @@ RTXProcessor::outputAll(FILE* out)
         ch->writeTree(treePrintMode, NULL);
         wcerr << endl;
       }
-      if(conjoining && !ch->isBlank)
+      if(ch->contents.size() > 0)
+      {
+        vector<wstring> tags = ch->getTags(vector<wstring>());
+        for(auto it = ch->contents.rbegin(); it != ch->contents.rend(); it++)
+        {
+          (*it)->updateTags(tags);
+          outputQueue.push_front(*it);
+        }
+      }
+      else if(conjoining && !ch->isBlank)
       {
         tojoin->conjoin(ch);
-        // if there's ever a situation where a parent node doesn't have a rule
-        // associated with it, this will get very annoying -D.S. 3/13/20
       }
       else if(ch->isJoiner)
       {

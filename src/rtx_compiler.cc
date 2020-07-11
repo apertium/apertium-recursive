@@ -1078,6 +1078,11 @@ RTXCompiler::parseOutputCond()
   }
   if(ret->conds.size() == ret->nest.size())
   {
+    if(currentLoc == LocChunk && currentLocType == LocTypeMacro)
+    {
+      wcerr << L"Warning: if statement without else in macro on line " << currentLine << L"." << endl;
+      wcerr << L"  This may fail to produce output and cause crashes at runtime." << endl;
+    }
     //die(L"If statement has no else clause and thus could produce no output.");
     ret->nest.push_back(NULL);
     if(currentLoc == LocClip)

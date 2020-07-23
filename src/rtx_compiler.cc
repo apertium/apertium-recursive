@@ -1764,7 +1764,14 @@ RTXCompiler::processMacroClip(Clip* mac, OutputChunk* arg)
     }
     else if(arg->pos == 0)
     {
-      die(L"Macro not given value for attribute '" + mac->part + L"'.");
+      if(currentRule->grab_all != -1)
+      {
+        ret->src = currentRule->grab_all;
+      }
+      else
+      {
+        die(L"Macro not given value for attribute '" + mac->part + L"'.");
+      }
     }
     else ret->src = arg->pos;
   }

@@ -195,6 +195,12 @@ private:
    * Initial value: false
    */
   bool inword;
+  
+  /**
+   * true if the next input token should be parsed as a wordbound blank, false otherwise
+   * Initial value: false
+   */
+  bool inwblank;
 
   /**
    * Whether output should flush on \0

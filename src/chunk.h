@@ -29,6 +29,7 @@ public:
   wstring source;
   wstring target;
   wstring coref;
+  wstring wblank;
   bool isBlank;
   bool isJoiner;
   vector<Chunk*> contents;
@@ -39,8 +40,8 @@ public:
   Chunk(wstring blankContent)
   : target(blankContent), isBlank(true), isJoiner(false), rule(-1)
   {}
-  Chunk(wstring src, wstring dest, wstring cor)
-  : source(src), target(dest), coref(cor), isBlank(false), isJoiner(false), rule(-1)
+  Chunk(wstring src, wstring dest, wstring cor, wstring wbl)
+  : source(src), target(dest), coref(cor), wblank(wbl), isBlank(false), isJoiner(false), rule(-1)
   {}
   Chunk(wstring dest, vector<Chunk*>& children, int r = -1)
   : target(dest), isBlank(false), isJoiner(false), contents(children), rule(r)
@@ -50,6 +51,7 @@ public:
     source = other.source;
     target = other.target;
     coref = other.coref;
+    wblank = other.wblank;
     isBlank = other.isBlank;
     isJoiner = other.isJoiner;
     contents = other.contents;
@@ -60,6 +62,7 @@ public:
     source.swap(other.source);
     target.swap(other.target);
     coref.swap(other.coref);
+    wblank.swap(other.wblank);
     isBlank = other.isBlank;
     isJoiner = other.isJoiner;
     contents.swap(other.contents);
@@ -70,6 +73,7 @@ public:
     source.swap(other.source);
     target.swap(other.target);
     coref.swap(other.coref);
+    wblank.swap(other.wblank);
     isBlank = other.isBlank;
     isJoiner = other.isJoiner;
     contents.swap(other.contents);
@@ -84,6 +88,7 @@ public:
     ret->source = source;
     ret->target = target;
     ret->coref = coref;
+    ret->wblank = wblank;
     ret->contents.reserve(contents.size());
     for(unsigned int i = 0, limit = contents.size(); i < limit; i++)
     {

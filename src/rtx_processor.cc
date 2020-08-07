@@ -16,6 +16,7 @@ RTXProcessor::RTXProcessor()
 {
   furtherInput = true;
   inword = false;
+  inwblank = false;
   printingSteps = false;
   printingRules = false;
   printingBranches = false;
@@ -984,6 +985,7 @@ RTXProcessor::readToken(FILE *in)
 {
   int pos = 0;
   wstring cur;
+  wstring wbl;
   wstring src;
   wstring dest;
   wstring coref;
@@ -1007,8 +1009,32 @@ RTXProcessor::readToken(FILE *in)
     }
     else if(val == L'[' && !inword)
     {
-      cur += L'[';
-      inSquare = true;
+      val = fgetwc_unlocked(in);
+      
+      if(val == L'[')
+      {
+        inwblank = true;
+        Chunk* ret = chunkPool.next();
+        ret->target = cur;
+        ret->isBlank = true;
+        return ret;
+      }
+      else
+      {
+        cur += L'[';
+        inSquare = true;
+        
+        if(val == L'\\')
+        {
+          cur += L'\\';
+          cur += wchar_t(fgetwc_unlocked(in));
+        }
+        else if(val == L']')
+        {
+          cur += val;
+          inSquare = false;
+        }
+      }
     }
     else if(inSquare)
     {
@@ -1016,6 +1042,49 @@ RTXProcessor::readToken(FILE *in)
       if(val == L']')
       {
         inSquare = false;
+      }
+    }
+    else if(inwblank)
+    {
+      if(val == L']')
+      {
+        cur += val;
+        val = fgetwc_unlocked(in);
+        
+        if(val == L'\\')
+        {
+          cur += L'\\';
+          cur += wchar_t(fgetwc_unlocked(in));
+        }
+        else if(val == L']')
+        {
+          cur += val;
+          val = fgetwc_unlocked(in);
+          
+          if(val == L'\\')
+          {
+            cur += L'\\';
+            cur += wchar_t(fgetwc_unlocked(in));
+          }
+          else if(val == L'^')
+          {
+            inwblank = false;
+            wbl.swap(cur);
+            inword = true;
+          }
+          else
+          {
+            //ParseError TODO
+          }
+        }
+        else
+        {
+          cur += val;
+        }
+      }
+      else
+      {
+        cur += val;
       }
     }
     else if(inword && (val == L'$' || val == L'/'))
@@ -1041,6 +1110,7 @@ RTXProcessor::readToken(FILE *in)
       {
         inword = false;
         Chunk* ret = chunkPool.next();
+        ret->wblank = wbl;
         ret->source = src;
         ret->target = dest;
         ret->coref = coref;

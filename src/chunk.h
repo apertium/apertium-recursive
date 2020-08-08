@@ -121,6 +121,10 @@ public:
       return UtfConverter::fromUtf8(result);
     }
   }
+  wstring getWblank()
+  {
+    return wblank;
+  }
   void setChunkPart(ApertiumRE const &part, wstring const &value)
   {
     string surf = UtfConverter::toUtf8(target);
@@ -414,7 +418,14 @@ private:
     {
       base += L'\t';
     }
-    if(!isBlank) base += L"^";
+    if(!isBlank)
+    {
+      if(wblank.size() > 0)
+      {
+        base += wblank;
+      }
+      base += L"^";
+    }
     if(source.size() > 0)
     {
       base += source + L"/";

@@ -121,10 +121,6 @@ public:
       return UtfConverter::fromUtf8(result);
     }
   }
-  wstring getWblank()
-  {
-    return wblank;
-  }
   void setChunkPart(ApertiumRE const &part, wstring const &value)
   {
     string surf = UtfConverter::toUtf8(target);

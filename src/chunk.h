@@ -256,12 +256,14 @@ public:
       }
       else if(out == NULL)
       {
+        cout << UtfConverter::toUtf8(wblank);
         cout << "^";
         cout << UtfConverter::toUtf8(target);
         cout << "$";
       }
       else
       {
+        fputs_unlocked(UtfConverter::toUtf8(wblank).c_str(), out);
         fputc_unlocked('^', out);
         fputs_unlocked(UtfConverter::toUtf8(target).c_str(), out);
         fputc_unlocked('$', out);

@@ -122,6 +122,23 @@ private:
    * Index of the top element on theStack
    */
   int stackIdx;
+  
+  /**
+   * A parallel stack to store wordbound blanks that mimics the operations
+   * of the main stack. wblanks are added everytime lemmas are clipped
+   */
+  wstring theWblankStack[32];
+  
+  /**
+   * wordbound blank to be output
+   */
+  wstring out_wblank;
+  
+  /**
+   * A map of variable name to the wblank of the lemma in the variable
+   * if one was clipped and added to the variable
+  */
+  map <wstring, wstring> var_out_wblank;
 
   /**
    * Input to the virtual machine
@@ -356,21 +373,25 @@ private:
   {
     theStack[++stackIdx].mode = 0;
     theStack[stackIdx].b = b;
+    theWblankStack[stackIdx].clear();
   }
   inline void pushStack(int i)
   {
     theStack[++stackIdx].mode = 1;
     theStack[stackIdx].i = i;
+    theWblankStack[stackIdx].clear();
   }
-  inline void pushStack(const wstring& s)
+  inline void pushStack(const wstring& s, wstring wbl = L"")
   {
     theStack[++stackIdx].mode = 2;
     theStack[stackIdx].s.assign(s);
+    theWblankStack[stackIdx] = wbl;
   }
   inline void pushStack(Chunk* c)
   {
     theStack[++stackIdx].mode = 3;
     theStack[stackIdx].c = c;
+    theWblankStack[stackIdx].clear();
   }
 
   /**
@@ -429,6 +450,16 @@ private:
    * Read input, call processTRXLayer twice, apply output-time rules, output
    */
   void processTRX(FILE* in, FILE* out);
+  
+  /**
+   * True if clipping lem/lemh/whole
+  */
+  bool gettingLemmaFromWord(wstring attr);
+  
+  /**
+   * Combines two wordbound blanks and returns it
+  */
+  wstring combineWblanks(wstring wblank_current, wstring wblank_to_add);
   
 public:
   RTXProcessor();

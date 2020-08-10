@@ -1,0 +1,13 @@
+n: _.gender.number;
+adj: _.gender.number;
+NP: _;
+V: _;
+vblex: _.number;
+
+gender = m f mf;
+number = sg pl sp;
+
+NP -> adj n [$%number=2.number] {2 _1 1[number=2.number]};
+
+V -> vblex { 1[number=(if ($%number not = "") $%number else sg)] } ;
+

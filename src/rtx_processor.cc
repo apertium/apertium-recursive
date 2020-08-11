@@ -398,6 +398,7 @@ RTXProcessor::applyRule(const wstring& rule)
     if(!theWblankStack[stackIdx].empty())
     {
       wcerr << "\n%%wblstack%%" << theWblankStack[stackIdx] << "%%\n";
+      wcerr << "\n%%outwbl%%" << out_wblank << "%%\n";
     }
      */
     
@@ -902,6 +903,8 @@ RTXProcessor::applyRule(const wstring& rule)
           Chunk* ch = chunkPool.next();
           ch->isBlank = false;
           ch->target = kid->target.substr(1, j-1);
+          ch->wblank = out_wblank;
+          out_wblank.clear();
           theStack[stackIdx].c->contents.push_back(ch);
           ch = chunkPool.next();
           ch->isBlank = true;
@@ -910,6 +913,8 @@ RTXProcessor::applyRule(const wstring& rule)
         }
         else
         {
+          kid->wblank = out_wblank;
+          out_wblank.clear();
           theStack[stackIdx].c->contents.push_back(kid);
         }
         if(printingSteps) { wcerr << " -> child with surface '" << kid->target << L"' appended" << endl; }
@@ -933,6 +938,7 @@ RTXProcessor::applyRule(const wstring& rule)
         {
           theStack[stackIdx].c->target += theStack[stackIdx+1].s;
           out_wblank = combineWblanks(out_wblank, theWblankStack[stackIdx+1]);
+          theWblankStack[stackIdx+1].clear();
         }
         else
         {
@@ -960,6 +966,7 @@ RTXProcessor::applyRule(const wstring& rule)
         {
           theStack[stackIdx].c->source += theStack[stackIdx+1].s;
           out_wblank = combineWblanks(out_wblank, theWblankStack[stackIdx+1]);
+          theWblankStack[stackIdx+1].clear();
         }
         else
         {

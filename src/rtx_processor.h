@@ -56,6 +56,12 @@ private:
    * name => value
    */
   map<wstring, wstring, Ltstr> variables;
+  
+  /**
+   * Virtual machine global variables to wblank map
+   * name => value
+   */
+  map<wstring, wstring, Ltstr> wblank_variables;
 
   /**
    * Lists

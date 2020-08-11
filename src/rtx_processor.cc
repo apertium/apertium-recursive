@@ -659,6 +659,8 @@ RTXProcessor::applyRule(const wstring& rule)
         wstring var = popString();
         wstring val = popString();
         currentBranch->stringVars[var] = val;
+        currentBranch->wblankVars[var] = theWblankStack[stackIdx+1];
+        theWblankStack[stackIdx+1].clear();
         if(printingSteps) { wcerr << " -> " << var << " = '" << val << "'" << endl; }
       }
         break;
@@ -840,7 +842,8 @@ RTXProcessor::applyRule(const wstring& rule)
         {
           wstring name = popString();
           wstring val = currentBranch->stringVars[name];
-          pushStack(val);
+          wstring wblank_val = currentBranch->wblankVars[name];
+          pushStack(val, wblank_val);
           if(printingSteps) { wcerr << " -> " << name << " = " << val << endl; }
         }
         break;
@@ -1401,6 +1404,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
         cur->init(back, currentOutput[0], weight);
       }
       cur->stringVars = node->stringVars;
+      cur->wblankVars = node->wblankVars;
       cur->chunkVars = node->chunkVars;
       cur->id = node->id;
       if(temp.size() == 0)
@@ -1420,6 +1424,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
           cur = parsePool.next();
           cur->init(*it, temp.back());
           cur->stringVars = (*it)->stringVars;
+          cur->wblankVars = (*it)->wblankVars;
           cur->chunkVars = (*it)->chunkVars;
           cur->firstWord = first;
           cur->lastWord = last;
@@ -1796,6 +1801,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       temp->init(mx, next);
       temp->id = ++newBranchId;
       temp->stringVars = variables;
+      temp->wblankVars = wblank_variables;
       temp->chunkVars = vector<Chunk*>(varCount, NULL);
       checkForReduce(parseGraph, temp);
     }
@@ -1810,6 +1816,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
         tempNode->init(parseGraph[i], next, true);
         tempNode->id = parseGraph[i]->id;
         tempNode->stringVars = parseGraph[i]->stringVars;
+        tempNode->wblankVars = parseGraph[i]->wblankVars;
         tempNode->chunkVars = parseGraph[i]->chunkVars;
         checkForReduce(temp, tempNode);
       }
@@ -1865,6 +1872,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       parseGraph.clear();
       outputAll(out);
       variables = currentBranch->stringVars;
+      wblank_variables = currentBranch->wblankVars;
       fflush(out);
       vector<wstring> wblanks;
       vector<wstring> sources;

@@ -358,6 +358,7 @@ public:
   int lastWord;
   int id;
   map<wstring, wstring, Ltstr> stringVars;
+  map<wstring, wstring, Ltstr> wblankVars;
   vector<Chunk*> chunkVars;
   ParseNode()
   : first(0), last(0), firstWord(0), lastWord(0), id(-1)
@@ -393,6 +394,7 @@ public:
     mx = prevNode->mx;
     length = prev->length+1;
     stringVars = prev->stringVars;
+    wblankVars = prev->wblankVars;
     chunkVars = prev->chunkVars;
     weight = (w == 0) ? prev->weight : w;
     if(next->isBlank)
@@ -418,6 +420,7 @@ public:
     firstWord = prev->lastWord+1;
     lastWord = firstWord;
     stringVars = prev->stringVars;
+    wblankVars = prev->wblankVars;
     chunkVars = prev->chunkVars;
     if(next->isBlank)
     {
@@ -446,6 +449,7 @@ public:
     firstWord = other->firstWord;
     lastWord = other->lastWord;
     stringVars = other->stringVars;
+    wblankVars = other->wblankVars;
     chunkVars = other->chunkVars;
   }
   void getChunks(list<Chunk*>& chls, int count)

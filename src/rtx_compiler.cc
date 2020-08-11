@@ -1234,6 +1234,7 @@ RTXCompiler::parseReduceRule(wstring output, wstring next)
     {
       while(!source.eof())
       {
+        eatSpaces();
         if(!isNextToken(L'$'))
         {
           unsigned int idx = 1;

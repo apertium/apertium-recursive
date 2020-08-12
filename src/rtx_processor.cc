@@ -1148,7 +1148,7 @@ RTXProcessor::readToken(FILE *in)
         if(val == L'\\')
         {
           cur += L'\\';
-          cur += wchar_t(fgetwc_unlocked(in));
+          cur += static_cast<wchar_t>(fgetwc_unlocked(in));
         }
         else if(val == L']')
         {
@@ -1175,7 +1175,7 @@ RTXProcessor::readToken(FILE *in)
         if(val == L'\\')
         {
           cur += L'\\';
-          cur += wchar_t(fgetwc_unlocked(in));
+          cur += static_cast<wchar_t>(fgetwc_unlocked(in));
         }
         else if(val == L']')
         {
@@ -1185,7 +1185,7 @@ RTXProcessor::readToken(FILE *in)
           if(val == L'\\')
           {
             cur += L'\\';
-            cur += wchar_t(fgetwc_unlocked(in));
+            cur += static_cast<wchar_t>(fgetwc_unlocked(in));
           }
           else if(val == L'^')
           {

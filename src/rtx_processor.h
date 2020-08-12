@@ -139,12 +139,6 @@ private:
    * wordbound blank to be output
    */
   wstring out_wblank;
-  
-  /**
-   * A map of variable name to the wblank of the lemma in the variable
-   * if one was clipped and added to the variable
-  */
-  map <wstring, wstring> var_out_wblank;
 
   /**
    * Input to the virtual machine

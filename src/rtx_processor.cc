@@ -765,7 +765,6 @@ RTXProcessor::applyRule(const wstring& rule)
           if(gettingLemmaFromWord(part))
           {
             pushStack(ch->chunkPart(attr_items[part], SourceClip), ch->wblank);
-            //wcerr << "\n\n#" << part << "#s#" << theWblankStack[stackIdx] << "###\n\n";
           }
           else
           {
@@ -787,7 +786,6 @@ RTXProcessor::applyRule(const wstring& rule)
           if(gettingLemmaFromWord(part))
           {
             pushStack(ch->chunkPart(attr_items[part], TargetClip), ch->wblank);
-            //wcerr << "\n\n#" << part << "#t#" << theWblankStack[stackIdx] << "###\n\n";
           }
           else
           {

@@ -46,7 +46,7 @@ public:
   Chunk(wstring src, wstring dest, wstring cor, wstring wbl)
   : source(src), target(dest), coref(cor), wblank(wbl), isBlank(false), isJoiner(false), rule(-1)
   {}
-  Chunk(wstring dest, vector<Chunk*>& children, int r)
+  Chunk(wstring dest, vector<Chunk*>& children, int r = -1)
   : target(dest), isBlank(false), isJoiner(false), contents(children), rule(r)
   {}
   Chunk(Chunk& other) // copy constructor

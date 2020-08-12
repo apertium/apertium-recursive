@@ -394,14 +394,6 @@ RTXProcessor::applyRule(const wstring& rule)
   const wchar_t* rule_data = rule.data();
   for(unsigned int i = 0, rule_size = rule.size(); i < rule_size; i++)
   {
-    /*
-    if(!theWblankStack[stackIdx].empty())
-    {
-      wcerr << "\n%%wblstack%%" << theWblankStack[stackIdx] << "%%\n";
-      wcerr << "\n%%outwbl%%" << out_wblank << "%%\n";
-    }
-     */
-    
     switch(rule_data[i])
     {
       case DROP:
@@ -1196,7 +1188,8 @@ RTXProcessor::readToken(FILE *in)
           }
           else
           {
-            //ParseError TODO
+            wcerr << L"Parse Error: Wordbound blank should be immediately followed by a Lexical Unit -> [[..]]^..$" << endl;
+            exit(EXIT_FAILURE);
           }
         }
         else

@@ -1512,6 +1512,7 @@ RTXProcessor::outputAll(FILE* out)
       else if(conjoining && !ch->isBlank)
       {
         tojoin->conjoin(ch);
+        tojoin->wblank = combineWblanks(ch->wblank, tojoin->wblank);
       }
       else if(ch->isJoiner)
       {

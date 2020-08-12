@@ -456,11 +456,6 @@ private:
   */
   bool gettingLemmaFromWord(wstring attr);
   
-  /**
-   * Combines two wordbound blanks and returns it
-  */
-  wstring combineWblanks(wstring wblank_current, wstring wblank_to_add);
-  
 public:
   RTXProcessor();
   ~RTXProcessor();

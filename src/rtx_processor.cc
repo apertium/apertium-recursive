@@ -322,70 +322,6 @@ RTXProcessor::gettingLemmaFromWord(wstring attr)
     return (attr.compare(L"lem") == 0 || attr.compare(L"lemh") == 0 || attr.compare(L"whole") == 0);
 }
 
-wstring
-RTXProcessor::combineWblanks(wstring wblank_current, wstring wblank_to_add)
-{
-  if(wblank_current.empty() && wblank_to_add.empty())
-  {
-    return wblank_current;
-  }
-  else if(wblank_current.empty())
-  {
-    return wblank_to_add;
-  }
-  else if(wblank_to_add.empty())
-  {
-    return wblank_current;
-  }
-  
-  wstring new_out_wblank;
-  for(wstring::const_iterator it = wblank_current.begin(); it != wblank_current.end(); it++)
-  {
-    if(*it == '\\')
-    {
-      new_out_wblank += *it;
-      it++;
-      new_out_wblank += *it;
-    }
-    else if(*it == ']')
-    {
-      if(*(it+1) == ']')
-      {
-        new_out_wblank += ';';
-        break;
-      }
-    }
-    else
-    {
-      new_out_wblank += *it;
-    }
-  }
-  
-  for(wstring::const_iterator it = wblank_to_add.begin(); it != wblank_to_add.end(); it++)
-  {
-    if(*it == '\\')
-    {
-      new_out_wblank += *it;
-      it++;
-      new_out_wblank += *it;
-    }
-    else if(*it == '[')
-    {
-      if(*(it+1) == '[')
-      {
-        new_out_wblank += ' ';
-        it++;
-      }
-    }
-    else
-    {
-      new_out_wblank += *it;
-    }
-  }
-  
-  return new_out_wblank;
-}
-
 bool
 RTXProcessor::applyRule(const wstring& rule)
 {
@@ -1503,7 +1439,6 @@ RTXProcessor::outputAll(FILE* out)
       else if(conjoining && !ch->isBlank)
       {
         tojoin->conjoin(ch);
-        tojoin->wblank = combineWblanks(ch->wblank, tojoin->wblank);
       }
       else if(ch->isJoiner)
       {

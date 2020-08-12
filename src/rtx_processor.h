@@ -56,6 +56,12 @@ private:
    * name => value
    */
   map<wstring, wstring, Ltstr> variables;
+  
+  /**
+   * Virtual machine global variables to wblank map
+   * name => value
+   */
+  map<wstring, wstring, Ltstr> wblank_variables;
 
   /**
    * Lists
@@ -122,6 +128,17 @@ private:
    * Index of the top element on theStack
    */
   int stackIdx;
+  
+  /**
+   * A parallel stack to store wordbound blanks that mimics the operations
+   * of the main stack. wblanks are added everytime lemmas are clipped
+   */
+  wstring theWblankStack[32];
+  
+  /**
+   * wordbound blank to be output
+   */
+  wstring out_wblank;
 
   /**
    * Input to the virtual machine
@@ -195,6 +212,12 @@ private:
    * Initial value: false
    */
   bool inword;
+  
+  /**
+   * true if the next input token should be parsed as a wordbound blank, false otherwise
+   * Initial value: false
+   */
+  bool inwblank;
 
   /**
    * Whether output should flush on \0
@@ -350,21 +373,25 @@ private:
   {
     theStack[++stackIdx].mode = 0;
     theStack[stackIdx].b = b;
+    theWblankStack[stackIdx].clear();
   }
   inline void pushStack(int i)
   {
     theStack[++stackIdx].mode = 1;
     theStack[stackIdx].i = i;
+    theWblankStack[stackIdx].clear();
   }
-  inline void pushStack(const wstring& s)
+  inline void pushStack(const wstring& s, wstring wbl = L"")
   {
     theStack[++stackIdx].mode = 2;
     theStack[stackIdx].s.assign(s);
+    theWblankStack[stackIdx] = wbl;
   }
   inline void pushStack(Chunk* c)
   {
     theStack[++stackIdx].mode = 3;
     theStack[stackIdx].c = c;
+    theWblankStack[stackIdx].clear();
   }
 
   /**
@@ -423,6 +450,11 @@ private:
    * Read input, call processTRXLayer twice, apply output-time rules, output
    */
   void processTRX(FILE* in, FILE* out);
+  
+  /**
+   * True if clipping lem/lemh/whole
+  */
+  bool gettingLemmaFromWord(wstring attr);
   
 public:
   RTXProcessor();

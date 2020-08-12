@@ -1,0 +1,12 @@
+n: _.gender.number;
+adj: _.gender.number;
+vblex: _.number;
+NP: _;
+V: _;
+
+gender = m f mf;
+number = sg pl sp;
+
+NP -> adj %n [$%number=2.number/tl,$%lemvar=1.lemh/tl] { 2 _1 1[lemh=$%lemvar,number=2.number/sl] } ;
+
+V -> %vblex [$%number=(if ($%number = "") sg else $%number),$%lemvar=1.lemh/tl] { 1[lemh=$%lemvar,number=$%number] } ;

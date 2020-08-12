@@ -16,6 +16,7 @@ RTXProcessor::RTXProcessor()
 {
   furtherInput = true;
   inword = false;
+  inwblank = false;
   printingSteps = false;
   printingRules = false;
   printingBranches = false;
@@ -295,20 +296,30 @@ RTXProcessor::stackCopy(int src, int dest)
   {
     case 0:
       theStack[dest].b = theStack[src].b;
+      theWblankStack[dest] = theWblankStack[src];
       break;
     case 1:
       theStack[dest].i = theStack[src].i;
+      theWblankStack[dest] = theWblankStack[src];
       break;
     case 2:
       theStack[dest].s = theStack[src].s;
+      theWblankStack[dest] = theWblankStack[src];
       break;
     case 3:
       theStack[dest].c = theStack[src].c;
+      theWblankStack[dest] = theWblankStack[src];
       break;
     default:
       wcerr << "Unknown StackElement mode " << theStack[src].mode;
       break;
   }
+}
+
+bool
+RTXProcessor::gettingLemmaFromWord(wstring attr)
+{
+    return (attr.compare(L"lem") == 0 || attr.compare(L"lemh") == 0 || attr.compare(L"whole") == 0);
 }
 
 bool
@@ -576,6 +587,8 @@ RTXProcessor::applyRule(const wstring& rule)
         wstring var = popString();
         wstring val = popString();
         currentBranch->stringVars[var] = val;
+        currentBranch->wblankVars[var] = theWblankStack[stackIdx+1];
+        theWblankStack[stackIdx+1].clear();
         if(printingSteps) { wcerr << " -> " << var << " = '" << val << "'" << endl; }
       }
         break;
@@ -599,6 +612,8 @@ RTXProcessor::applyRule(const wstring& rule)
               Chunk* temp = chunkPool.next();
               temp->isBlank = false;
               temp->target = ch->target.substr(last, c-last);
+              temp->wblank = out_wblank;
+              out_wblank.clear();
               if(chunk) currentOutput.back()->contents.push_back(temp);
               else currentOutput.push_back(temp);
               last = c+1;
@@ -633,7 +648,9 @@ RTXProcessor::applyRule(const wstring& rule)
         }
         else
         {
+          ch->wblank = out_wblank;
           currentOutput.push_back(ch);
+          out_wblank.clear();
         }
       }
         break;
@@ -679,7 +696,17 @@ RTXProcessor::applyRule(const wstring& rule)
         popString(part);
         Chunk* ch = popChunk();
         if(ch == NULL) pushStack(L"");
-        else pushStack(ch->chunkPart(attr_items[part], SourceClip));
+        else
+        {
+          if(gettingLemmaFromWord(part))
+          {
+            pushStack(ch->chunkPart(attr_items[part], SourceClip), ch->wblank);
+          }
+          else
+          {
+            pushStack(ch->chunkPart(attr_items[part], SourceClip));
+          }
+        }
         if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
       }
         break;
@@ -690,7 +717,17 @@ RTXProcessor::applyRule(const wstring& rule)
         popString(part);
         Chunk* ch = popChunk();
         if(ch == NULL) pushStack(L"");
-        else pushStack(ch->chunkPart(attr_items[part], TargetClip));
+        else
+        {
+          if(gettingLemmaFromWord(part))
+          {
+            pushStack(ch->chunkPart(attr_items[part], TargetClip), ch->wblank);
+          }
+          else
+          {
+             pushStack(ch->chunkPart(attr_items[part], TargetClip));
+          }
+        }
         if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
       }
         break;
@@ -731,7 +768,8 @@ RTXProcessor::applyRule(const wstring& rule)
         {
           wstring name = popString();
           wstring val = currentBranch->stringVars[name];
-          pushStack(val);
+          wstring wblank_val = currentBranch->wblankVars[name];
+          pushStack(val, wblank_val);
           if(printingSteps) { wcerr << " -> " << name << " = " << val << endl; }
         }
         break;
@@ -794,6 +832,8 @@ RTXProcessor::applyRule(const wstring& rule)
           Chunk* ch = chunkPool.next();
           ch->isBlank = false;
           ch->target = kid->target.substr(1, j-1);
+          ch->wblank = out_wblank;
+          out_wblank.clear();
           theStack[stackIdx].c->contents.push_back(ch);
           ch = chunkPool.next();
           ch->isBlank = true;
@@ -802,6 +842,8 @@ RTXProcessor::applyRule(const wstring& rule)
         }
         else
         {
+          kid->wblank = out_wblank;
+          out_wblank.clear();
           theStack[stackIdx].c->contents.push_back(kid);
         }
         if(printingSteps) { wcerr << " -> child with surface '" << kid->target << L"' appended" << endl; }
@@ -824,10 +866,13 @@ RTXProcessor::applyRule(const wstring& rule)
         if(theStack[stackIdx+1].mode == 2)
         {
           theStack[stackIdx].c->target += theStack[stackIdx+1].s;
+          out_wblank = combineWblanks(out_wblank, theWblankStack[stackIdx+1]);
+          theWblankStack[stackIdx+1].clear();
         }
         else
         {
           theStack[stackIdx].c->target += theStack[stackIdx+1].c->target;
+          theStack[stackIdx].c->wblank += theStack[stackIdx+1].c->wblank;
         }
         if(printingSteps) { wcerr << " -> " << theStack[stackIdx+1].s << endl; }
       }
@@ -849,10 +894,13 @@ RTXProcessor::applyRule(const wstring& rule)
         if(theStack[stackIdx+1].mode == 2)
         {
           theStack[stackIdx].c->source += theStack[stackIdx+1].s;
+          out_wblank = combineWblanks(out_wblank, theWblankStack[stackIdx+1]);
+          theWblankStack[stackIdx+1].clear();
         }
         else
         {
           theStack[stackIdx].c->source += theStack[stackIdx+1].c->source;
+          theStack[stackIdx].c->wblank += theStack[stackIdx+1].c->wblank;
         }
         if(printingSteps) { wcerr << " -> " << theStack[stackIdx+1].s << endl; }
       }
@@ -984,6 +1032,7 @@ RTXProcessor::readToken(FILE *in)
 {
   int pos = 0;
   wstring cur;
+  wstring wbl;
   wstring src;
   wstring dest;
   wstring coref;
@@ -1007,8 +1056,32 @@ RTXProcessor::readToken(FILE *in)
     }
     else if(val == L'[' && !inword)
     {
-      cur += L'[';
-      inSquare = true;
+      val = fgetwc_unlocked(in);
+      
+      if(val == L'[')
+      {
+        inwblank = true;
+        Chunk* ret = chunkPool.next();
+        ret->target = cur;
+        ret->isBlank = true;
+        return ret;
+      }
+      else
+      {
+        cur += L'[';
+        inSquare = true;
+        
+        if(val == L'\\')
+        {
+          cur += L'\\';
+          cur += static_cast<wchar_t>(fgetwc_unlocked(in));
+        }
+        else if(val == L']')
+        {
+          cur += val;
+          inSquare = false;
+        }
+      }
     }
     else if(inSquare)
     {
@@ -1016,6 +1089,51 @@ RTXProcessor::readToken(FILE *in)
       if(val == L']')
       {
         inSquare = false;
+      }
+    }
+    else if(inwblank)
+    {
+      if(val == L']')
+      {
+        cur += val;
+        val = fgetwc_unlocked(in);
+        
+        if(val == L'\\')
+        {
+          cur += L'\\';
+          cur += static_cast<wchar_t>(fgetwc_unlocked(in));
+        }
+        else if(val == L']')
+        {
+          cur += val;
+          val = fgetwc_unlocked(in);
+          
+          if(val == L'\\')
+          {
+            cur += L'\\';
+            cur += static_cast<wchar_t>(fgetwc_unlocked(in));
+          }
+          else if(val == L'^')
+          {
+            inwblank = false;
+            cur = L"[[" + cur;
+            wbl.swap(cur);
+            inword = true;
+          }
+          else
+          {
+            wcerr << L"Parse Error: Wordbound blank should be immediately followed by a Lexical Unit -> [[..]]^..$" << endl;
+            exit(EXIT_FAILURE);
+          }
+        }
+        else
+        {
+          cur += val;
+        }
+      }
+      else
+      {
+        cur += val;
       }
     }
     else if(inword && (val == L'$' || val == L'/'))
@@ -1041,6 +1159,7 @@ RTXProcessor::readToken(FILE *in)
       {
         inword = false;
         Chunk* ret = chunkPool.next();
+        ret->wblank = wbl;
         ret->source = src;
         ret->target = dest;
         ret->coref = coref;
@@ -1212,6 +1331,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
         cur->init(back, currentOutput[0], weight);
       }
       cur->stringVars = node->stringVars;
+      cur->wblankVars = node->wblankVars;
       cur->chunkVars = node->chunkVars;
       cur->id = node->id;
       if(temp.size() == 0)
@@ -1231,6 +1351,7 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
           cur = parsePool.next();
           cur->init(*it, temp.back());
           cur->stringVars = (*it)->stringVars;
+          cur->wblankVars = (*it)->wblankVars;
           cur->chunkVars = (*it)->chunkVars;
           cur->firstWord = first;
           cur->lastWord = last;
@@ -1607,6 +1728,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       temp->init(mx, next);
       temp->id = ++newBranchId;
       temp->stringVars = variables;
+      temp->wblankVars = wblank_variables;
       temp->chunkVars = vector<Chunk*>(varCount, NULL);
       checkForReduce(parseGraph, temp);
     }
@@ -1621,6 +1743,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
         tempNode->init(parseGraph[i], next, true);
         tempNode->id = parseGraph[i]->id;
         tempNode->stringVars = parseGraph[i]->stringVars;
+        tempNode->wblankVars = parseGraph[i]->wblankVars;
         tempNode->chunkVars = parseGraph[i]->chunkVars;
         checkForReduce(temp, tempNode);
       }
@@ -1676,7 +1799,9 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       parseGraph.clear();
       outputAll(out);
       variables = currentBranch->stringVars;
+      wblank_variables = currentBranch->wblankVars;
       fflush(out);
+      vector<wstring> wblanks;
       vector<wstring> sources;
       vector<wstring> targets;
       vector<wstring> corefs;
@@ -1695,6 +1820,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
         {
           unknowns.push_back(false);
         }
+        wblanks.push_back(temp->wblank);
         sources.push_back(temp->source);
         targets.push_back(temp->target);
         corefs.push_back(temp->coref);
@@ -1714,6 +1840,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       for(int i = 0; i < N; i++)
       {
         Chunk* c = chunkPool.next();
+        c->wblank = wblanks[i];
         c->source = sources[i];
         c->target = targets[i];
         c->coref = corefs[i];

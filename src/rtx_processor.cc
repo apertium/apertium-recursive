@@ -1076,10 +1076,13 @@ RTXProcessor::readToken(FILE *in)
           cur += L'\\';
           cur += static_cast<wchar_t>(fgetwc_unlocked(in));
         }
-        else if(val == L']')
+        else
         {
           cur += val;
-          inSquare = false;
+          if(val == L']')
+          {
+            inSquare = false;
+          }
         }
       }
     }

@@ -2092,6 +2092,12 @@ RTXProcessor::process(FILE* in, FILE* out)
       }
       chunkPool.reset();
       parsePool.reset();
+      inputBuffer.clear();
+      // I'm not sure how the leading blank after a null gets into inputBuffer,
+      // but it does and clearing the buffer seems to fix the problem
+      // (in theory, clearing the buffer here should have no effect at all
+      // because processGLR() should consume everything in it)
+      // - D.S. Aug 26 2020
     }
   }
   else if(isLinear)

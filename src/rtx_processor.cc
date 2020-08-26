@@ -1727,6 +1727,22 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
     inputBuffer.pop_front();
     if(parseGraph.size() == 0)
     {
+      // skip parseGraph stuff if a blank is the only thing being processed
+      if(next->isBlank)
+      {
+        next->output(out);
+        if(furtherInput)
+        {
+          inputBuffer.push_back(readToken(in));
+        }
+        if(inputBuffer.empty())
+        {
+          wcerr.flush();
+          fflush(out);
+          break;
+        }
+        continue;
+      }
       ParseNode* temp = parsePool.next();
       temp->init(mx, next);
       temp->id = ++newBranchId;

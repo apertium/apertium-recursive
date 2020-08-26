@@ -2084,12 +2084,8 @@ RTXProcessor::process(FILE* in, FILE* out)
       {
         processGLR(in, out);
       }
-      fputwc_unlocked(L'\0', out);
-      int code = fflush(out);
-      if(code != 0)
-      {
-        wcerr << L"Could not flush output " << errno << endl;
-      }
+      fputc_unlocked('\0', out);
+      fflush(out);
       chunkPool.reset();
       parsePool.reset();
       inputBuffer.clear();

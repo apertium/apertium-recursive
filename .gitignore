@@ -1,5 +1,6 @@
 *.o
 *.in
+*.pc
 *Makefile
 src/.deps/*
 configure

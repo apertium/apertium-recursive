@@ -284,6 +284,7 @@ RTXProcessor::popChunk()
   else
   {
     wcerr << "tried to pop Chunk but mode is " << theStack[stackIdx].mode << endl;
+    wcerr << "The most common reason for getting this error is a macro that is missing an else clause." << endl;
     exit(1);
   }
 }

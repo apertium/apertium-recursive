@@ -824,6 +824,7 @@ RTXCompiler::parseOutputElement()
       {
         die(L"Position index of blank out of bounds, expected an integer from 1 to " + to_wstring(currentRule->pattern.size()-1) + L".");
       }
+      wcerr << L"Warning: Use of indexed blank on line " << currentLine << L" is deprecated." << endl;
     }
     else
     {

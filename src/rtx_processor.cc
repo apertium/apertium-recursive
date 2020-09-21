@@ -1416,7 +1416,7 @@ RTXProcessor::outputAll(FILE* out)
     }
     if(ch->rule == -1)
     {
-      if(printingRules)// && !ch->isBlank)
+      if(printingRules && !ch->isBlank)
       {
         fflush(out);
         wcerr << endl << "No rule specified: ";
@@ -1455,7 +1455,10 @@ RTXProcessor::outputAll(FILE* out)
           tojoin->output(out);
           tojoin = NULL;
         }
-        if(ch->isBlank) ch->output(out);
+        if(ch->isBlank)
+        {
+          writeBlank(out);
+        }
         else tojoin = ch;
       }
     }
@@ -1513,6 +1516,31 @@ RTXProcessor::outputAll(FILE* out)
     }
   }
   if(tojoin != NULL) tojoin->output(out);
+  while(!blankQueue.empty())
+  {
+    if(blankQueue.front() == L" ")
+    {
+      blankQueue.pop_front();
+    }
+    else
+    {
+      writeBlank(out);
+    }
+  }
+}
+
+void
+RTXProcessor::writeBlank(FILE* out)
+{
+  if(blankQueue.empty())
+  {
+    blankQueue.push_back(L" ");
+  }
+  Chunk* blank = chunkPool.next();
+  blank->target = blankQueue.front();
+  blankQueue.pop_front();
+  blank->isBlank = true;
+  blank->output(out);
 }
 
 bool
@@ -1715,7 +1743,19 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
   while(true)
   {
     Chunk* next = inputBuffer.front();
-    if(next->isBlank) printingAll = false;
+    if(next->isBlank)
+    {
+      printingAll = false;
+      if(!parseGraph.empty() && !next->target.empty())
+      {
+        // if parseGraph is empty, we're about to write it immediately anyway,
+        // so don't bother with the queue
+        // if target is empty, we don't want to put it in the wrong place
+        // if a rule asks for a space
+        // -D.S. 2020-09-21
+        blankQueue.push_back(next->target);
+      }
+    }
     if(printingAll)
     {
       wcerr << endl;
@@ -1880,6 +1920,8 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       // if stream is empty, the last token is definitely a blank
       wcerr.flush();
       inputBuffer.front()->output(out);
+      blankQueue.clear();
+      inputBuffer.pop_front();
       fflush(out);
       break;
     }

@@ -166,6 +166,16 @@ private:
   list<Chunk*> outputQueue;
 
   /**
+   * Blanks waiting to be written to output stream
+   * Note that this is updated by processGLR(), NOT readToken()
+   * The reason for this is that if a blank is outside a parse tree
+   * (such as at the very beginning or very end of the stream)
+   * then we want to output it directly, particularly if it's empty
+   * and because of lookahead, only processGLR() knows which blanks are which
+   */
+  list<wstring> blankQueue;
+
+  /**
    * The parse stack
    * Each element represents one possible partial or complete parse
    * of the input read in since the last flush
@@ -420,6 +430,11 @@ private:
    * append resulting node(s) to result
    */
   void checkForReduce(vector<ParseNode*>& result, ParseNode* node);
+
+  /**
+   * Output the next blank in blankQueue, or a space if the queue is empty
+   */
+  void writeBlank(FILE* out);
 
   /**
    * Apply output-time rules and write nodes to output stream

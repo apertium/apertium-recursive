@@ -1008,6 +1008,13 @@ RTXProcessor::applyRule(const wstring& rule)
         int rl = popInt();
         if(pos == -2)
         {
+          if(stackIdx == 0 || theStack[stackIdx].mode != 3)
+          {
+            wcerr << "Empty stack or top item is not chunk." << endl;
+            wcerr << "Check for conditionals that might not generate output" << endl;
+            wcerr << "and ensure that lists of attributes are complete." << endl;
+            exit(1);
+          }
           theStack[stackIdx].c->rule = rl;
         }
         else

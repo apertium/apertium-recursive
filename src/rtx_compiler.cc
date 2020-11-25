@@ -319,6 +319,12 @@ RTXCompiler::parseOutputRule(wstring pattern)
     currentLoc = locwas;
     nextToken(L";");
   }
+  else if(peekchar() == L'%')
+  {
+    output.push_back(L"%");
+    nextToken(L"%");
+    nextToken(L";");
+  }
   else
   {
     wstring cur;
@@ -1958,6 +1964,15 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
       macroNameStack.push_back(patname);
       ret += processOutputChoice(processMacroChoice(macros[patname], r));
       macroNameStack.pop_back();
+      return ret;
+    }
+    if(pattern.size() == 1 && pattern[0] == L"%")
+    {
+      ret += compileClip(L"whole", r->pos, L"tl");
+      if(currentLocType == LocTypeOutput && !r->nextConjoined)
+      {
+        ret += OUTPUT;
+      }
       return ret;
     }
     if(currentSurface == APPENDSURFACE)

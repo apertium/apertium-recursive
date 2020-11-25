@@ -234,7 +234,13 @@ RTXCompiler::parseIdent(bool prespace = false)
   {
     eatSpaces();
   }
+  wchar_t next = peekchar();
   wstring ret = nextTokenNoSpace();
+  if(next == L'"')
+  {
+    // so that quoted special characters don't fail the next check
+    return ret;
+  }
   if(ret == L"->" || (ret.size() == 1 && SPECIAL_CHARS.find(ret[0]) != string::npos))
   {
     die(L"expected identifier, found '" + ret + L"'");

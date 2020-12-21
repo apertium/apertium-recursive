@@ -17,11 +17,10 @@ apertium_recursive_DATA = trx.dtd
 
 apertium-validate-trx: Makefile.am validate-header.sh
 	@echo "Creating apertium-validate-trx script"
-	@echo "#!$(BASH)" > $@
+	@echo "#!/bin/bash" > $@
 	@cat $(abs_srcdir)/validate-header.sh >> $@
 	@echo "xmllint --dtdvalid \"$(apertium_recursivedir)\"/trx.dtd --noout \"\$$FILE1\"" >>$@
 	@chmod a+x $@
 
 EXTRA_DIST = trx.dtd
 CLEANFILES = $(bin_SCRIPTS)
-

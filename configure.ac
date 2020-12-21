@@ -4,7 +4,7 @@ m4_define([required_libxml_version], [2.6.17])
 m4_define([required_apertium_version], [3.7.0])
 m4_define([required_lttoolbox_version], [3.5.3])
 
-AC_INIT([apertium-recursive], [1.0.0], [awesomeevildudes@gmail.com])
+AC_INIT([apertium-recursive], [1.0.1], [awesomeevildudes@gmail.com])
 AM_INIT_AUTOMAKE
 AC_CONFIG_HEADER([src/auto_config.h])
 AC_CONFIG_MACRO_DIR([m4])

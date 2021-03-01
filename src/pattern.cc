@@ -163,6 +163,7 @@ PatternBuilder::unbuildTrie(PatternBuilder::TrieNode* t)
     else groups.push_back(blob);
   }
   wstring ret;
+  if(t->self == L'#') ret += L'\\';
   ret += t->self;
   if(single.size() == 0 && groups.size() == 0) return ret;
   if(single.size() > 1) single = L"[" + single + L"]";

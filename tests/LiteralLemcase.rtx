@@ -1,0 +1,8 @@
+n: _.gender.number;
+NP: _;
+
+gender = m f mf;
+number = sg pl sp;
+
+NP -> n { verde@{1.lemcase/sl}.adj _ 1[lemcase=aa] };
+

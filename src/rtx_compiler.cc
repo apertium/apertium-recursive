@@ -914,6 +914,13 @@ RTXCompiler::parseOutputElement()
           cl = parseClip();
           nextToken(L"]");
         }
+        else if(cur == L"{")
+        {
+          ret->tags.pop_back();
+          var = L"lemcase";
+          cl = parseClip();
+          nextToken(L"}");
+        }
         else
         {
           cl->src = 0;
@@ -2180,6 +2187,11 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     }
     ret += CHUNK;
     ret += compileString(r->lemma);
+    if(r->vars.find(L"lemcase") != r->vars.end())
+    {
+      ret += compileClip(r->vars[L"lemcase"]);
+      ret += SETCASE;
+    }
     ret += currentSurface;
     for(unsigned int i = 0; i < r->tags.size(); i++)
     {

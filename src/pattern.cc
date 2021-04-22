@@ -512,7 +512,7 @@ PatternBuilder::loadLexFile(const string& fname)
     while(!lex.eof() && lex.peek() != L'\n')
     {
       PatternElement* p = new PatternElement;
-      while(lex.peek() != L'@') p->lemma += lex.get();
+      while(lex.peek() != L'@') p->lemma += towlower(lex.get());
       lex.get();
       wstring tag;
       while(lex.peek() != L' ' && lex.peek() != L'\n')

@@ -134,9 +134,9 @@ public:
 
     initial = t.getInitial();
 
-    any_char = (*a)(L"<ANY_CHAR>");
-    any_tag = (*a)(L"<ANY_TAG>");
-    lookahead = (*a)(L"<LOOK:AHEAD>");
+    any_char = (*a)("<ANY_CHAR>"_u);
+    any_tag = (*a)("<ANY_TAG>"_u);
+    lookahead = (*a)("<LOOK:AHEAD>"_u);
 
     prematchIdx = 0;
   }
@@ -173,26 +173,26 @@ public:
   }
   void matchBlank(int* state, int& first, int& last)
   {
-    step(state, first, last, L' ');
+    step(state, first, last, ' ');
   }
-  void matchChunk(int* state, int& first, int& last, const wstring& ch, bool addInit = true)
+  void matchChunk(int* state, int& first, int& last, const UString& ch, bool addInit = true)
   {
-    step(state, first, last, L'^');
+    step(state, first, last, '^');
     if(addInit)
     {
-      applySymbol(initial, L'^', state, last);
+      applySymbol(initial, '^', state, last);
     }
     for(unsigned int i = 0, limit = ch.size(); i < limit; i++)
     {
       switch(ch[i])
       {
-        case L'\\':
+        case '\\':
           step(state, first, last, towlower(ch[++i]), any_char);
           break;
-        case L'<':
+        case '<':
           for(unsigned int j = i+1; j < ch.size(); j++)
           {
-            if(ch[j] == L'>')
+            if(ch[j] == '>')
             {
               int symbol = (*alpha)(ch.substr(i, j-i+1));
               if(symbol)
@@ -213,23 +213,23 @@ public:
           break;
       }
     }
-    step(state, first, last, L'$');
+    step(state, first, last, '$');
   }
-  void prepareChunk(const wstring& chunk)
+  void prepareChunk(const UString& chunk)
   {
     prematchIdx = 0;
     for(unsigned int i = 0, limit = chunk.size(); i < limit; i++)
     {
       switch(chunk[i])
       {
-        case L'\\':
+        case '\\':
           prematchAlt[prematchIdx] = any_char;
           prematch[prematchIdx++] = towlower(chunk[++i]);
           break;
-        case L'<':
+        case '<':
           for(unsigned int j = i+1; j < chunk.size(); j++)
           {
-            if(chunk[j] == L'>')
+            if(chunk[j] == '>')
             {
               int symbol = (*alpha)(chunk.substr(i, j-i+1));
               prematchAlt[prematchIdx] = any_tag;
@@ -248,8 +248,8 @@ public:
   }
   void matchPreparedChunk(int* state, int& first, int& last)
   {
-    step(state, first, last, L'^');
-    applySymbol(initial, L'^', state, last);
+    step(state, first, last, '^');
+    applySymbol(initial, '^', state, last);
     for(int i = 0; i < prematchIdx; i++)
     {
       if(prematch[i] == any_tag)
@@ -261,20 +261,20 @@ public:
         step(state, first, last, prematch[i], prematchAlt[i]);
       }
     }
-    step(state, first, last, L'$');
+    step(state, first, last, '$');
   }
   bool shouldShift(int* state, int first, int last)
   {
     for(int i = first; i != last; i = (i+1)%RTXStateSize)
     {
-      if(nodes[state[i]].search(L' ') != -1)
+      if(nodes[state[i]].search(' ') != -1)
       {
         return true;
       }
     }
     return false;
   }
-  bool shouldShift(int* state, int first, int last, const wstring& chunk)
+  bool shouldShift(int* state, int first, int last, const UString& chunk)
   {
     int local_state[RTXStateSize];
     memcpy(local_state, state, RTXStateSize*sizeof(int));
@@ -357,8 +357,8 @@ public:
   int firstWord;
   int lastWord;
   int id;
-  map<wstring, wstring, Ltstr> stringVars;
-  map<wstring, wstring, Ltstr> wblankVars;
+  map<UString, UString> stringVars;
+  map<UString, UString> wblankVars;
   vector<Chunk*> chunkVars;
   ParseNode()
   : first(0), last(0), firstWord(0), lastWord(0), id(-1)

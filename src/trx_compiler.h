@@ -10,6 +10,7 @@
 #include <libxml/xmlreader.h>
 #include <map>
 #include <string>
+#include <cstdarg>
 
 using namespace std;
 
@@ -26,38 +27,38 @@ private:
    * Macros defined in the current file
    * name => ( parameters, xml node )
    */
-  map<wstring, pair<int, xmlNode*>, Ltstr> macros;
+  map<UString, pair<int, xmlNode*>> macros;
 
   /**
    * Patterns defined in the current file
    */
-  map<wstring, vector<PatternElement*>, Ltstr> patterns;
+  map<UString, vector<PatternElement*>> patterns;
 
   /**
    * Global string variables
    * name => initial value
    */
-  map<wstring, wstring, Ltstr> vars;
+  map<UString, UString> vars;
 
   /**
    * Rule-specific string variable names
    */
-  set<wstring, Ltstr> localVars;
+  set<UString> localVars;
 
   /**
    * All lists
    */
-  map<wstring, set<wstring, Ltstr>, Ltstr> lists;
+  map<UString, set<UString>> lists;
 
   /**
    * Ids of rules which should not be compiled
    */
-  set<wstring, Ltstr> excludedRules;
+  set<UString> excludedRules;
 
   /**
    * Bytecode for non-postchunk rules
    */
-  vector<wstring> inputRules;
+  vector<UString> inputRules;
 
   /**
    * Sizes of patterns for non-postchunk rules
@@ -67,7 +68,7 @@ private:
   /**
    * Bytecode for postchunk rules
    */
-  vector<wstring> outputRules;
+  vector<UString> outputRules;
 
   /**
    * Remapped positions within macros
@@ -109,25 +110,17 @@ private:
    * Report a fatal error and exit
    * @param node - xml element closest to the error
    */
-  void die(xmlNode* node, wstring msg);
+  void die(xmlNode* node, const char* fmt, ...);
 
   /**
    * Report a non-fatal error
    * @param node - xml element closest to the error
    */
-  void warn(xmlNode* node, wstring msg);
+  void warn(xmlNode* node, const char* fmt, ...);
 
   //////////
   // PARSING UTILITIES
   //////////
-
-  /**
-   * Return the value of an attribute or an empty string
-   * @param node - xml element
-   * @param attr - name of attribute
-   * @return attribute value or empty string
-   */
-  xmlChar* getAttr(xmlNode* node, const xmlChar* attr);
 
   /**
    * getAttr(), but calls die() if attribute isn't found
@@ -135,14 +128,7 @@ private:
    * @param attr - name of attribute
    * @return attribute value
    */
-  xmlChar* requireAttr(xmlNode* node, const xmlChar* attr);
-
-  /**
-   * Convert a the libxml string format to std::wstring
-   * @param s - libxml string
-   * @return equivalent wstring
-   */
-  wstring toWstring(const xmlChar* s);
+  UString requireAttr(xmlNode* node, const char* attr);
 
   /**
    * Parse pos attribute and convert appropriately if in a macro
@@ -169,7 +155,7 @@ private:
    * @param ats - category elements
    * @return inserted name, may or may not be equal to name
    */
-  wstring insertAttr(wstring name, set<wstring, Ltstr> ats);
+  UString insertAttr(UString name, set<UString> ats);
 
   /**
    * Pass a list to PatternBuilder, name-mangling if necessary
@@ -177,7 +163,7 @@ private:
    * @param ats - list elements
    * @return inserted name, may or may not be equal to name
    */
-  wstring insertList(wstring name, set<wstring, Ltstr> ats);
+  UString insertList(UString name, set<UString> ats);
 
   //////////
   // XML PARSING
@@ -224,7 +210,7 @@ private:
    * <let>, <out>, <choose>, <modify-case>, <call-macro>, <append>, <reject-current-rule>
    * @return bytecode
    */
-  wstring processStatement(xmlNode* node);
+  UString processStatement(xmlNode* node);
 
   /**
    * Parse and compile one of
@@ -232,7 +218,7 @@ private:
    * <concat>, <lu>, <mlu>, <chunk>, <lu-count>
    * @return bytecode
    */
-  wstring processValue(xmlNode* node);
+  UString processValue(xmlNode* node);
 
   /**
    * Parse and compile one of
@@ -240,13 +226,13 @@ private:
    * <ends-with>, <ends-with-list>, <contains-substring>, <in>
    * @return bytecode
    */
-  wstring processCond(xmlNode* node);
+  UString processCond(xmlNode* node);
 
   /**
    * Parse and compile <choose>
    * @return bytecode
    */
-  wstring processChoose(xmlNode* node);
+  UString processChoose(xmlNode* node);
 
 public:
   TRXCompiler();
@@ -254,7 +240,7 @@ public:
   void loadLex(const string& fname);
   void compile(string file);
   void write(const char* binfile);
-  void excludeRule(wstring name)
+  void excludeRule(UString name)
   {
     excludedRules.insert(name);
   }

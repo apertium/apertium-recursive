@@ -2,11 +2,10 @@
 #define __RTXPROCESSOR__
 
 #include <rtx_config.h>
-#include <apertium_re.h>
+#include <apertium/apertium_re.h>
 #include <apertium/utf_converter.h>
 #include <lttoolbox/alphabet.h>
 #include <lttoolbox/buffer.h>
-#include <lttoolbox/ltstr.h>
 #include <matcher.h>
 #include <chunk.h>
 #include <pool.h>
@@ -24,7 +23,7 @@ struct StackElement
   int mode;
   bool b;
   int i;
-  wstring s;
+  UString s;
   Chunk* c;
 };
 
@@ -49,52 +48,52 @@ private:
   /**
    * Attribute category regular expressions
    */
-  map<wstring, ApertiumRE, Ltstr> attr_items;
+  map<UString, ApertiumRE> attr_items;
 
   /**
    * Virtual machine global variables
    * name => value
    */
-  map<wstring, wstring, Ltstr> variables;
+  map<UString, UString> variables;
   
   /**
    * Virtual machine global variables to wblank map
    * name => value
    */
-  map<wstring, wstring, Ltstr> wblank_variables;
+  map<UString, UString> wblank_variables;
 
   /**
    * Lists
    * name => { values }
    */
-  map<wstring, set<wstring, Ltstr>, Ltstr> lists;
+  map<UString, set<UString>> lists;
 
   /**
    * Lists, but all values are converted to lower case
    * Used for case-insensitive comparison
    * name => { values }
    */
-  map<wstring, set<wstring, Ltstr>, Ltstr> listslow;
+  map<UString, set<UString>> listslow;
 
   /**
    * Bytecode for input-time rules
    */
-  vector<wstring> rule_map;
+  vector<UString> rule_map;
 
   /**
    * Bytecode for output-time rules
    */
-  vector<wstring> output_rules;
+  vector<UString> output_rules;
 
   /**
    * Debug names for input-time rules (may be empty)
    */
-  vector<wstring> inRuleNames;
+  vector<UString> inRuleNames;
 
   /**
    * Debug names for output-time rules (may be empty)
    */
-  vector<wstring> outRuleNames;
+  vector<UString> outRuleNames;
 
   /**
    * Length of pattern of each input-time rule, including blanks
@@ -133,12 +132,12 @@ private:
    * A parallel stack to store wordbound blanks that mimics the operations
    * of the main stack. wblanks are added everytime lemmas are clipped
    */
-  wstring theWblankStack[32];
+  UString theWblankStack[32];
   
   /**
    * wordbound blank to be output
    */
-  wstring out_wblank;
+  UString out_wblank;
 
   /**
    * Input to the virtual machine
@@ -173,7 +172,7 @@ private:
    * then we want to output it directly, particularly if it's empty
    * and because of lookahead, only processGLR() knows which blanks are which
    */
-  list<wstring> blankQueue;
+  list<UString> blankQueue;
 
   /**
    * The parse stack
@@ -316,7 +315,7 @@ private:
    * @param str - input string
    * @return L"AA", L"Aa", or L"aa"
    */
-  wstring caseOf(wstring const &str);
+  UString caseOf(UString const &str);
 
   /**
    * Produce a version of target_word with the case of source_word
@@ -324,17 +323,17 @@ private:
    * @param target_word - source of content
    * @return generated string
    */
-  wstring copycase(wstring const &source_word, wstring const &target_word);
+  UString copycase(UString const &source_word, UString const &target_word);
 
   /**
    * Return whether str1 begins with str2
    */
-  bool beginsWith(wstring const &str1, wstring const &str2) const;
+  bool beginsWith(UString const &str1, UString const &str2) const;
 
   /**
    * Return whether str1 ends with str2
    */
-  bool endsWith(wstring const &str1, wstring const &str2) const;
+  bool endsWith(UString const &str1, UString const &str2) const;
 
   /**
    * The virtual machine
@@ -343,7 +342,7 @@ private:
    * @param rule - bytecode for rule to be applied
    * @return false if REJECTRULE was executed, true otherwise
    */
-  bool applyRule(const wstring& rule);
+  bool applyRule(const UString& rule);
 
   /**
    * Pop and return a boolean from theStack
@@ -358,20 +357,20 @@ private:
   int popInt();
 
   /**
-   * Pop and return a wstring from theStack
-   * Log error and call exit(1) if top element is not a wstring
+   * Pop and return a UString from theStack
+   * Log error and call exit(1) if top element is not a UString
    */
-  wstring popString();
+  UString popString();
 
   /**
    * Equivalent to popString(), but with called as
-   * wstring x; popString(x);
+   * UString x; popString(x);
    * rather than
-   * wstring x = popString();
+   * UString x = popString();
    * This uses a swap to save an allocation and a copy, which is almost twice
    * as fast, which has a noticeable impact on overall speed
    */
-  void popString(wstring& dest);
+  void popString(UString& dest);
 
   /**
    * Pop and return a Chunk pointer from theStack
@@ -391,7 +390,7 @@ private:
     theStack[stackIdx].i = i;
     theWblankStack[stackIdx].clear();
   }
-  inline void pushStack(const wstring& s, wstring wbl = L"")
+  inline void pushStack(const UString& s, UString wbl = ""_u)
   {
     theStack[++stackIdx].mode = 2;
     theStack[stackIdx].s.assign(s);
@@ -434,13 +433,13 @@ private:
   /**
    * Output the next blank in blankQueue, or a space if the queue is empty
    */
-  void writeBlank(FILE* out);
+  void writeBlank(UFILE* out);
 
   /**
    * Apply output-time rules and write nodes to output stream
    * @param out - output stream
    */
-  void outputAll(FILE* out);
+  void outputAll(UFILE* out);
 
   /**
    * Prune any ParseNodes that have reached error states
@@ -453,7 +452,7 @@ private:
    * Process input as a GLR parser
    * Read input, call checkForReduce(), call filterParseGraph(), call outputAll()
    */
-  void processGLR(FILE* in, FILE* out);
+  void processGLR(FILE* in, UFILE* out);
 
   /**
    * Apply longest rule matching the beginning of t1x and append the result to t2x
@@ -464,19 +463,19 @@ private:
    * Mimic apertium-transfer | apertium-interchunk | apertium-postchunk
    * Read input, call processTRXLayer twice, apply output-time rules, output
    */
-  void processTRX(FILE* in, FILE* out);
+  void processTRX(FILE* in, UFILE* out);
   
   /**
    * True if clipping lem/lemh/whole
   */
-  bool gettingLemmaFromWord(wstring attr);
+  bool gettingLemmaFromWord(UString attr);
   
 public:
   RTXProcessor();
   ~RTXProcessor();
 
   void read(string const &filename);
-  void process(FILE *in, FILE *out);
+  void process(FILE *in, UFILE *out);
   bool getNullFlush(void);
   void setNullFlush(bool null_flush);
   void printSteps(bool val)

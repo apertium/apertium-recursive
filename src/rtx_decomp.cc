@@ -22,9 +22,9 @@ void endProgram(char *name)
   exit(EXIT_FAILURE);
 }
 
-void writeRule(wstring rule, FILE* out)
+void writeRule(UString rule, FILE* out)
 {
-  wstring line;
+  UString line;
   for(unsigned int i = 0; i < rule.size(); i++)
   {
     line.clear();
@@ -51,7 +51,7 @@ void writeRule(wstring rule, FILE* out)
         {
           fputwc(rule[++i], out);
         }
-        //wstring s = rule.substr(i+1, len);
+        //UString s = rule.substr(i+1, len);
         fwprintf(out, L"\"\n");
       }
         break;
@@ -278,11 +278,11 @@ int main(int argc, char *argv[])
   fwprintf(out, L"Input rules:\n");
   fwprintf(out, L"Longest pattern: %d chunks\nNumber of rules: %d\n\n", longestPattern, count);
   int patlen;
-  wstring cur;
+  UString cur;
   for(int i = 0; i < count; i++)
   {
     patlen = Compression::multibyte_read(in);
-    cur = Compression::wstring_read(in);
+    cur = Compression::string_read(in);
     fwprintf(out, L"Rule %d (%d bytes, pattern %d chunks)\n", i+1, cur.size(), patlen);
     writeRule(cur, out);
   }
@@ -291,7 +291,7 @@ int main(int argc, char *argv[])
   fwprintf(out, L"Output rules:\nNumber of rules: %d\n\n", count);
   for(int i = 0; i < count; i++)
   {
-    cur = Compression::wstring_read(in);
+    cur = Compression::string_read(in);
     fwprintf(out, L"Rule %d (%d bytes)\n", i, cur.size());
     writeRule(cur, out);
   }

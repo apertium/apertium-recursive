@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 
   bool stats = false;
   bool summary = false;
-  vector<wstring> exclude;
+  vector<UString> exclude;
   vector<string> lexFiles;
 
   while(true)
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
     switch(c)
     {
     case 'e':
-      exclude.push_back(UtfConverter::fromUtf8(optarg));
+      exclude.push_back(to_ustring(optarg));
       break;
 
     case 'l':

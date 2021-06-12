@@ -36,16 +36,16 @@ private:
   struct Clip
   {
     int src;
-    wstring part;
-    wstring side;
-    vector<wstring> rewrite;
+    UString part;
+    UString side;
+    vector<UString> rewrite;
     OutputChoice* choice;
-    wstring varName;
+    UString varName;
   };
 
   struct Cond
   {
-    wchar_t op;
+    UChar op;
     Clip* val;
     Cond* left;
     Cond* right;
@@ -53,13 +53,13 @@ private:
 
   struct OutputChunk
   {
-    wstring mode;
+    UString mode;
     unsigned int pos;
-    wstring lemma;
-    vector<wstring> tags;
+    UString lemma;
+    vector<UString> tags;
     bool getall;
-    map<wstring, Clip*> vars;
-    wstring pattern;
+    map<UString, Clip*> vars;
+    UString pattern;
     vector<OutputChoice*> children;
     bool conjoined;
     bool interpolated;
@@ -79,16 +79,16 @@ private:
     int line;
     int grab_all;
     float weight;
-    wstring name;
-    vector<vector<wstring>> pattern;
+    UString name;
+    vector<vector<UString>> pattern;
     vector<OutputChoice*> output;
     vector<OutputChoice*> output_sl;
     vector<OutputChoice*> output_ref;
-    map<wstring, Clip*> vars;
-    map<wstring, OutputChoice*> globals;
-    map<wstring, Clip*> stringGlobals;
-    vector<wstring> result;
-    wstring compiled;
+    map<UString, Clip*> vars;
+    map<UString, OutputChoice*> globals;
+    map<UString, Clip*> stringGlobals;
+    vector<UString> result;
+    UString compiled;
     Cond* cond;
   };
 
@@ -121,7 +121,7 @@ private:
   /**
    * Names of rules that should be excluded from the pattern transducer
    */
-  set<wstring> excluded;
+  set<UString> excluded;
 
   //////////
   // COLLECTIONS AND DATA STRUCTURES
@@ -130,10 +130,10 @@ private:
   /**
    * All characters not allowed in identifiers
    */
-  static wstring const SPECIAL_CHARS;
+  static UString const SPECIAL_CHARS;
 
-  static wstring const ANY_TAG;
-  static wstring const ANY_CHAR;
+  static UString const ANY_TAG;
+  static UString const ANY_CHAR;
 
   /**
    * Pattern-file generator
@@ -143,20 +143,20 @@ private:
   /**
    * Map of names to attribute lists
    */
-  map<wstring, vector<wstring>> collections;
+  map<UString, vector<UString>> collections;
 
   /**
    * Map of attribute names to default and replacement values
    * First value of pair is value to return if the attribute is not found
    * Second value is value to overwrite it with if it's still there at output
    */
-  map<wstring, pair<wstring, wstring>> attrDefaults;
+  map<UString, pair<UString, UString>> attrDefaults;
 
   /**
    * Map of attribute names to values that should never be modified
    * Note: This is not currently used
    */
-  map<wstring, vector<wstring>> noOverwrite;
+  map<UString, vector<UString>> noOverwrite;
   
   /**
    * List of tag-replacement rules
@@ -164,33 +164,33 @@ private:
    * Followed by some number of pair<old attribute value, new attribute value>
    * Note: This is not currently used
    */
-  vector<vector<pair<wstring, wstring>>> retagRules;
+  vector<vector<pair<UString, UString>>> retagRules;
 
   /**
    * Map key => [ value ]
    * Where key and value both name attribute lists
    * Where for each value, there is a tag-replacement rule from value to key
    */
-  map<wstring, vector<wstring>> altAttrs;
+  map<UString, vector<UString>> altAttrs;
   
   /**
    * Map of pattern names to output patterns
    * Where '_' represents "lemh" and the part of speech tag
    * (which is usually the pattern name)
    * "lemq" is automatically appended to the end
-   * If the contents of the vector is L"macro", look at macros
+   * If the contents of the vector is "macro"_u, look at macros
    */
-  map<wstring, vector<wstring>> outputRules;
+  map<UString, vector<UString>> outputRules;
 
   /**
    * Map of pattern names to conditioned output patterns
    */
-  map<wstring, OutputChoice*> macros;
+  map<UString, OutputChoice*> macros;
 
   /**
    * Names of global chunk-type variables and corresponding indecies
    */
-  map<wstring, unsigned int> globalVarNames;
+  map<UString, unsigned int> globalVarNames;
 
   /**
    * Map of pattern names to booleans
@@ -198,7 +198,7 @@ private:
    * and thus all clips should be target clips
    * true indicates both surface only and unspecified
    */
-  map<wstring, bool> nodeIsSurface;
+  map<UString, bool> nodeIsSurface;
 
   /**
    * List of all reduction rules in the order they were parsed
@@ -209,7 +209,7 @@ private:
    * List of compiled forms of output-time rules
    * in the order they were generated
    */
-  vector<wstring> outputBytecode;
+  vector<UString> outputBytecode;
 
   /**
    * Either the current rule being parsed or the current rule being compiled
@@ -240,13 +240,13 @@ private:
    * Which surface of a chunk is being assigned to
    * one of APPENDSURFACE, APPENDSURFACESL, APPENDSURFACEREF
    */
-  wchar_t currentSurface;
+  UChar currentSurface;
 
   /**
    * All attributes which can be clipped from the chunk whose children
    * are currently being compiled
    */
-  vector<wstring> parentTags;
+  vector<UString> parentTags;
 
   /**
    * Current construct being parsed or compiled
@@ -266,7 +266,7 @@ private:
   /**
    * Input stream
    */
-  wifstream source;
+  ifstream source;
 
   //////////
   // ERROR REPORTING
@@ -274,19 +274,19 @@ private:
 
   // for generating error messages
   int currentLine;
-  wstring recentlyRead;
-  wstring unreadbuf;
+  UString recentlyRead;
+  UString unreadbuf;
   int unreadmark;
   bool errorsAreSyntax;
   string sourceFile;
-  vector<wstring> macroNameStack;
+  vector<UString> macroNameStack;
 
   /**
    * Report an error in the input file and exit
    * if errorsAreSyntax == true, will also print the most recently read line
    * with a marker of the approximate location of the error
    */
-  void die(wstring message);
+  void die(UString message);
 
   //////////
   // TOKENIZATION
@@ -298,7 +298,7 @@ private:
    * to ensure that recentlyRead gets updated properly
    * @return character
    */
-  wchar_t getchar();
+  UChar getchar();
 
   /**
    * Return the next character in the input stream without reading
@@ -306,7 +306,7 @@ private:
    * in order to properly manage unreadbuf
    * @ return character
    */
-  wchar_t peekchar();
+  UChar peekchar();
 
   /**
    * Mark the current location so that it can be jumped back to with unread()
@@ -328,7 +328,7 @@ private:
    * Report a syntax error if it is preceded by spaces
    * @return token
    */
-  wstring nextTokenNoSpace();
+  UString nextTokenNoSpace();
 
   /**
    * Parse the next token
@@ -337,14 +337,14 @@ private:
    * report a syntax error
    * @return token
    */
-  wstring nextToken(wstring check1, wstring check2);
+  UString nextToken(UString check1, UString check2);
 
   /**
    * Parse an identifier
    * Calls eatSpaces() beforehand if prespace == true
    * @return identifier
    */
-  wstring parseIdent(bool prespace);
+  UString parseIdent(bool prespace);
 
   /**
    * Parse an integer
@@ -362,7 +362,7 @@ private:
    * If the next character in the input stream is c, consume it and return true
    * Otherwise return false
    */
-  bool isNextToken(wchar_t c);
+  bool isNextToken(UChar c);
 
   //////////
   // COMPONENT PARSING
@@ -394,104 +394,104 @@ private:
    * @param op - the string from the rule
    * @return bytecode for corresponding operation or L'\0' if not found
    */
-  wchar_t lookupOperator(wstring op);
+  UChar lookupOperator(UString op);
 
-  const vector<pair<wstring, wchar_t>> OPERATORS = {
-    make_pair(L"and", AND),
-    make_pair(L"&", AND),
+  const vector<pair<UString, UChar>> OPERATORS = {
+    make_pair("and"_u, AND),
+    make_pair("&"_u, AND),
 
-    make_pair(L"or", OR),
-    make_pair(L"|", OR),
+    make_pair("or"_u, OR),
+    make_pair("|"_u, OR),
 
-    make_pair(L"not", NOT),
-    make_pair(L"~", NOT),
-    make_pair(L"⌐", NOT),
+    make_pair("not"_u, NOT),
+    make_pair("~"_u, NOT),
+    make_pair("⌐"_u, NOT),
 
-    make_pair(L"equal", EQUAL),
-    make_pair(L"=", EQUAL),
+    make_pair("equal"_u, EQUAL),
+    make_pair("="_u, EQUAL),
 
-    make_pair(L"isprefix", ISPREFIX),
-    make_pair(L"startswith", ISPREFIX),
-    make_pair(L"beginswith", ISPREFIX),
+    make_pair("isprefix"_u, ISPREFIX),
+    make_pair("startswith"_u, ISPREFIX),
+    make_pair("beginswith"_u, ISPREFIX),
 
-    make_pair(L"issuffix", ISSUFFIX),
-    make_pair(L"endswith", ISSUFFIX),
+    make_pair("issuffix"_u, ISSUFFIX),
+    make_pair("endswith"_u, ISSUFFIX),
 
-    make_pair(L"issubstring", ISSUBSTRING),
-    make_pair(L"contains", ISSUBSTRING),
+    make_pair("issubstring"_u, ISSUBSTRING),
+    make_pair("contains"_u, ISSUBSTRING),
 
-    make_pair(L"equalcl", EQUALCL),
-    make_pair(L"equalcaseless", EQUALCL),
-    make_pair(L"equalfold", EQUALCL),
-    make_pair(L"equalfoldcase", EQUALCL),
+    make_pair("equalcl"_u, EQUALCL),
+    make_pair("equalcaseless"_u, EQUALCL),
+    make_pair("equalfold"_u, EQUALCL),
+    make_pair("equalfoldcase"_u, EQUALCL),
 
-    make_pair(L"isprefixcl", ISPREFIXCL),
-    make_pair(L"startswithcl", ISPREFIXCL),
-    make_pair(L"beginswithcl", ISPREFIXCL),
-    make_pair(L"isprefixcaseless", ISPREFIXCL),
-    make_pair(L"startswithcaseless", ISPREFIXCL),
-    make_pair(L"beginswithcaseless", ISPREFIXCL),
-    make_pair(L"isprefixfold", ISPREFIXCL),
-    make_pair(L"startswithfold", ISPREFIXCL),
-    make_pair(L"beginswithfold", ISPREFIXCL),
-    make_pair(L"isprefixfoldcase", ISPREFIXCL),
-    make_pair(L"startswithfoldcase", ISPREFIXCL),
-    make_pair(L"beginswithfoldcase", ISPREFIXCL),
+    make_pair("isprefixcl"_u, ISPREFIXCL),
+    make_pair("startswithcl"_u, ISPREFIXCL),
+    make_pair("beginswithcl"_u, ISPREFIXCL),
+    make_pair("isprefixcaseless"_u, ISPREFIXCL),
+    make_pair("startswithcaseless"_u, ISPREFIXCL),
+    make_pair("beginswithcaseless"_u, ISPREFIXCL),
+    make_pair("isprefixfold"_u, ISPREFIXCL),
+    make_pair("startswithfold"_u, ISPREFIXCL),
+    make_pair("beginswithfold"_u, ISPREFIXCL),
+    make_pair("isprefixfoldcase"_u, ISPREFIXCL),
+    make_pair("startswithfoldcase"_u, ISPREFIXCL),
+    make_pair("beginswithfoldcase"_u, ISPREFIXCL),
 
-    make_pair(L"issuffixcl", ISSUFFIXCL),
-    make_pair(L"endswithcl", ISSUFFIXCL),
-    make_pair(L"issuffixcaseless", ISSUFFIXCL),
-    make_pair(L"endswithcaseless", ISSUFFIXCL),
-    make_pair(L"issuffixfold", ISSUFFIXCL),
-    make_pair(L"endswithfold", ISSUFFIXCL),
-    make_pair(L"issuffixfoldcase", ISSUFFIXCL),
-    make_pair(L"endswithfoldcase", ISSUFFIXCL),
+    make_pair("issuffixcl"_u, ISSUFFIXCL),
+    make_pair("endswithcl"_u, ISSUFFIXCL),
+    make_pair("issuffixcaseless"_u, ISSUFFIXCL),
+    make_pair("endswithcaseless"_u, ISSUFFIXCL),
+    make_pair("issuffixfold"_u, ISSUFFIXCL),
+    make_pair("endswithfold"_u, ISSUFFIXCL),
+    make_pair("issuffixfoldcase"_u, ISSUFFIXCL),
+    make_pair("endswithfoldcase"_u, ISSUFFIXCL),
 
-    make_pair(L"issubstringcl", ISSUBSTRINGCL),
-    make_pair(L"issubstringcaseless", ISSUBSTRINGCL),
-    make_pair(L"issubstringfold", ISSUBSTRINGCL),
-    make_pair(L"issubstringfoldcase", ISSUBSTRINGCL),
+    make_pair("issubstringcl"_u, ISSUBSTRINGCL),
+    make_pair("issubstringcaseless"_u, ISSUBSTRINGCL),
+    make_pair("issubstringfold"_u, ISSUBSTRINGCL),
+    make_pair("issubstringfoldcase"_u, ISSUBSTRINGCL),
 
-    make_pair(L"hasprefix", HASPREFIX),
-    make_pair(L"startswithlist", HASPREFIX),
-    make_pair(L"beginswithlist", HASPREFIX),
+    make_pair("hasprefix"_u, HASPREFIX),
+    make_pair("startswithlist"_u, HASPREFIX),
+    make_pair("beginswithlist"_u, HASPREFIX),
 
-    make_pair(L"hassuffix", HASSUFFIX),
-    make_pair(L"endswithlist", HASSUFFIX),
+    make_pair("hassuffix"_u, HASSUFFIX),
+    make_pair("endswithlist"_u, HASSUFFIX),
 
-    make_pair(L"in", IN),
-    make_pair(L"∈", IN),
+    make_pair("in"_u, IN),
+    make_pair("∈"_u, IN),
 
-    make_pair(L"hasprefixcl", HASPREFIXCL),
-    make_pair(L"startswithlistcl", HASPREFIXCL),
-    make_pair(L"beginswithlistcl", HASPREFIXCL),
-    make_pair(L"hasprefixcaseless", HASPREFIXCL),
-    make_pair(L"startswithlistcaseless", HASPREFIXCL),
-    make_pair(L"beginswithlistcaseless", HASPREFIXCL),
-    make_pair(L"hasprefixfold", HASPREFIXCL),
-    make_pair(L"startswithlistfold", HASPREFIXCL),
-    make_pair(L"beginswithlistfold", HASPREFIXCL),
-    make_pair(L"hasprefixfoldcase", HASPREFIXCL),
-    make_pair(L"startswithlistfoldcase", HASPREFIXCL),
-    make_pair(L"beginswithlistfoldcase", HASPREFIXCL),
+    make_pair("hasprefixcl"_u, HASPREFIXCL),
+    make_pair("startswithlistcl"_u, HASPREFIXCL),
+    make_pair("beginswithlistcl"_u, HASPREFIXCL),
+    make_pair("hasprefixcaseless"_u, HASPREFIXCL),
+    make_pair("startswithlistcaseless"_u, HASPREFIXCL),
+    make_pair("beginswithlistcaseless"_u, HASPREFIXCL),
+    make_pair("hasprefixfold"_u, HASPREFIXCL),
+    make_pair("startswithlistfold"_u, HASPREFIXCL),
+    make_pair("beginswithlistfold"_u, HASPREFIXCL),
+    make_pair("hasprefixfoldcase"_u, HASPREFIXCL),
+    make_pair("startswithlistfoldcase"_u, HASPREFIXCL),
+    make_pair("beginswithlistfoldcase"_u, HASPREFIXCL),
 
-    make_pair(L"hassuffixcl", HASSUFFIXCL),
-    make_pair(L"endswithlistcl", HASSUFFIXCL),
-    make_pair(L"hassuffixcaseless", HASSUFFIXCL),
-    make_pair(L"endswithlistcaseless", HASSUFFIXCL),
-    make_pair(L"hassuffixfold", HASSUFFIXCL),
-    make_pair(L"endswithlistfold", HASSUFFIXCL),
-    make_pair(L"hassuffixfoldcase", HASSUFFIXCL),
-    make_pair(L"endswithlistfoldcase", HASSUFFIXCL),
+    make_pair("hassuffixcl"_u, HASSUFFIXCL),
+    make_pair("endswithlistcl"_u, HASSUFFIXCL),
+    make_pair("hassuffixcaseless"_u, HASSUFFIXCL),
+    make_pair("endswithlistcaseless"_u, HASSUFFIXCL),
+    make_pair("hassuffixfold"_u, HASSUFFIXCL),
+    make_pair("endswithlistfold"_u, HASSUFFIXCL),
+    make_pair("hassuffixfoldcase"_u, HASSUFFIXCL),
+    make_pair("endswithlistfoldcase"_u, HASSUFFIXCL),
 
-    make_pair(L"incl", INCL),
-    make_pair(L"∈cl", INCL), // why you would want to use ∈ here I'm not sure
-    make_pair(L"incaseless", INCL),
-    make_pair(L"∈caseless", INCL), // but the documentation implies they exist
-    make_pair(L"infold", INCL),
-    make_pair(L"∈fold", INCL), // so here they are
-    make_pair(L"infoldcase", INCL),
-    make_pair(L"∈foldcase", INCL)
+    make_pair("incl"_u, INCL),
+    make_pair("∈cl"_u, INCL), // why you would want to use ∈ here I'm not sure
+    make_pair("incaseless"_u, INCL),
+    make_pair("∈caseless"_u, INCL), // but the documentation implies they exist
+    make_pair("infold"_u, INCL),
+    make_pair("∈fold"_u, INCL), // so here they are
+    make_pair("infoldcase"_u, INCL),
+    make_pair("∈foldcase"_u, INCL)
   };
 
   /**
@@ -532,23 +532,23 @@ private:
   /**
    * Parse a tag-order rule
    */
-  void parseOutputRule(wstring pattern);
+  void parseOutputRule(UString pattern);
 
   /**
    * Parse a tag-replacement rule
    * Note: these rules currently have no effect
    */
-  void parseRetagRule(wstring srcTag);
+  void parseRetagRule(UString srcTag);
 
   /**
    * Parse an attribute category
    */
-  void parseAttrRule(wstring name);
+  void parseAttrRule(UString name);
 
   /**
    * Parse a reduction rule and append it to reductionRules
    */
-  void parseReduceRule(wstring firstnode, wstring next);
+  void parseReduceRule(UString firstnode, UString next);
 
   //////////
   // ANALYSIS
@@ -574,14 +574,14 @@ private:
    * @param s - the string
    * @return bytecode
    */
-  wstring compileString(wstring s);
+  UString compileString(UString s);
 
   /**
    * Compiles a string as to a literal tag
    * @param s - the tag
    * @return bytecode
    */
-  wstring compileTag(wstring s);
+  UString compileTag(UString s);
 
   /**
    * Compile a Clip object
@@ -591,12 +591,12 @@ private:
    * @param dest - the destination attribute
    * @return bytecode
    */
-  wstring compileClip(Clip* c, wstring dest);
+  UString compileClip(Clip* c, UString dest);
 
   /**
    * Wrapper around compileClip(Clip*)
    */
-  wstring compileClip(wstring part, int pos, wstring side);
+  UString compileClip(UString part, int pos, UString side);
 
   // TODO
   Clip* processMacroClip(Clip* mac, OutputChunk* arg);
@@ -609,28 +609,28 @@ private:
    * @param ch - the element
    * @return bytecode
    */
-  wstring processOutputChunk(OutputChunk* ch);
+  UString processOutputChunk(OutputChunk* ch);
 
   /**
    * Compile and the output rule for a chunk
    * @param chunk - the chunk
    * @return bytecode
    */
-  wstring processOutput(OutputChunk* chunk);
+  UString processOutput(OutputChunk* chunk);
 
   /**
    * Compile the output rule for an if statement
    * @param chunk - the chunk
    * @return bytecode
    */
-  wstring processOutputChoice(OutputChoice* choice);
+  UString processOutputChoice(OutputChoice* choice);
 
   /**
    * Compile a Cond object
    * @param cond - the conditional
    * @return bytecode
    */
-  wstring processCond(Cond* cond);
+  UString processCond(Cond* cond);
 
   /**
    * Iterate over reductionRules, compiling them
@@ -646,7 +646,7 @@ public:
   {
     summarizing = value;
   }
-  void excludeRule(wstring name)
+  void excludeRule(UString name)
   {
     excluded.insert(name);
   }

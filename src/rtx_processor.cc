@@ -43,7 +43,7 @@ RTXProcessor::read(string const &filename)
   FILE *in = fopen(filename.c_str(), "rb");
   if(in == NULL)
   {
-    wcerr << "Unable to open file " << filename.c_str() << endl;
+    cerr << "Unable to open file " << filename.c_str() << endl;
     exit(EXIT_FAILURE);
   }
 
@@ -54,13 +54,13 @@ RTXProcessor::read(string const &filename)
   for(int i = 0; i < count; i++)
   {
     pat_size.push_back(Compression::multibyte_read(in));
-    rule_map.push_back(Compression::wstring_read(in));
+    rule_map.push_back(Compression::string_read(in));
   }
   count = Compression::multibyte_read(in);
   output_rules.reserve(count);
   for(int i = 0; i < count; i++)
   {
-    output_rules.push_back(Compression::wstring_read(in));
+    output_rules.push_back(Compression::string_read(in));
   }
 
   varCount = Compression::multibyte_read(in);
@@ -88,32 +88,35 @@ RTXProcessor::read(string const &filename)
   delete t;
 
   // attr_items
-  bool recompile_attrs = Compression::string_read(in) != string(pcre_version());
+  bool recompile_attrs = !Compression::string_read(in).empty();
   for(int i = 0, limit = Compression::multibyte_read(in); i != limit; i++)
   {
-    wstring const cad_k = Compression::wstring_read(in);
+    UString const cad_k = Compression::string_read(in);
     attr_items[cad_k].read(in);
-    wstring fallback = Compression::wstring_read(in);
-    if(recompile_attrs) {
-      attr_items[cad_k].compile(UtfConverter::toUtf8(fallback));
+    UString fallback = Compression::string_read(in);
+    if (recompile_attrs && cad_k == "chname"_u) {
+      // chname was previously "({([^/]+)\\/)"
+      // which is fine for PCRE, but ICU chokes on the unmatched bracket
+      fallback = "(\\{([^/]+)\\/)"_u;
     }
+    attr_items[cad_k].compile(fallback);
   }
 
   // variables
   for(int i = 0, limit = Compression::multibyte_read(in); i != limit; i++)
   {
-    wstring const cad_k = Compression::wstring_read(in);
-    variables[cad_k] = Compression::wstring_read(in);
+    UString const cad_k = Compression::string_read(in);
+    variables[cad_k] = Compression::string_read(in);
   }
 
   // lists
   for(int i = 0, limit = Compression::multibyte_read(in); i != limit; i++)
   {
-    wstring const cad_k = Compression::wstring_read(in);
+    UString const cad_k = Compression::string_read(in);
 
     for(int j = 0, limit2 = Compression::multibyte_read(in); j != limit2; j++)
     {
-      wstring const cad_v = Compression::wstring_read(in);
+      UString const cad_v = Compression::string_read(in);
       lists[cad_k].insert(cad_v);
       listslow[cad_k].insert(StringUtils::tolower(cad_v));
     }
@@ -122,19 +125,19 @@ RTXProcessor::read(string const &filename)
   int nameCount = Compression::multibyte_read(in);
   for(int i = 0; i < nameCount; i++)
   {
-    inRuleNames.push_back(Compression::wstring_read(in));
+    inRuleNames.push_back(Compression::string_read(in));
   }
   nameCount = Compression::multibyte_read(in);
   for(int i = 0; i < nameCount; i++)
   {
-    outRuleNames.push_back(Compression::wstring_read(in));
+    outRuleNames.push_back(Compression::string_read(in));
   }
 
   fclose(in);
 }
 
 bool
-RTXProcessor::beginsWith(wstring const &s1, wstring const &s2) const
+RTXProcessor::beginsWith(UString const &s1, UString const &s2) const
 {
   int const limit = s2.size(), constraint = s1.size();
 
@@ -154,7 +157,7 @@ RTXProcessor::beginsWith(wstring const &s1, wstring const &s2) const
 }
 
 bool
-RTXProcessor::endsWith(wstring const &s1, wstring const &s2) const
+RTXProcessor::endsWith(UString const &s1, UString const &s2) const
 {
   int const limit = s2.size(), constraint = s1.size();
 
@@ -173,10 +176,10 @@ RTXProcessor::endsWith(wstring const &s1, wstring const &s2) const
   return true;
 }
 
-wstring
-RTXProcessor::copycase(wstring const &source_word, wstring const &target_word)
+UString
+RTXProcessor::copycase(UString const &source_word, UString const &target_word)
 {
-  wstring result;
+  UString result;
 
   bool firstupper = iswupper(source_word[0]);
   bool uppercase = firstupper && iswupper(source_word[source_word.size()-1]);
@@ -204,10 +207,10 @@ RTXProcessor::copycase(wstring const &source_word, wstring const &target_word)
   return result;
 }
 
-wstring
-RTXProcessor::caseOf(wstring const &s)
+UString
+RTXProcessor::caseOf(UString const &s)
 {
-  return copycase(s, wstring(L"aa"));
+  return copycase(s, "aa"_u);
 }
 
 inline bool
@@ -219,7 +222,7 @@ RTXProcessor::popBool()
   }
   else
   {
-    wcerr << "tried to pop bool but mode is " << theStack[stackIdx].mode << endl;
+    cerr << "tried to pop bool but mode is " << theStack[stackIdx].mode << endl;
     exit(1);
   }
 }
@@ -233,12 +236,12 @@ RTXProcessor::popInt()
   }
   else
   {
-    wcerr << "tried to pop int but mode is " << theStack[stackIdx].mode << endl;
+    cerr << "tried to pop int but mode is " << theStack[stackIdx].mode << endl;
     exit(1);
   }
 }
 
-inline wstring
+inline UString
 RTXProcessor::popString()
 {
   if(theStack[stackIdx].mode == 2)
@@ -251,13 +254,13 @@ RTXProcessor::popString()
   }
   else
   {
-    wcerr << "tried to pop wstring but mode is " << theStack[stackIdx].mode << endl;
+    cerr << "tried to pop UString but mode is " << theStack[stackIdx].mode << endl;
     exit(1);
   }
 }
 
 inline void
-RTXProcessor::popString(wstring& dest)
+RTXProcessor::popString(UString& dest)
 {
   if(theStack[stackIdx].mode == 2)
   {
@@ -269,7 +272,7 @@ RTXProcessor::popString(wstring& dest)
   }
   else
   {
-    wcerr << "tried to pop wstring but mode is " << theStack[stackIdx].mode << endl;
+    cerr << "tried to pop UString but mode is " << theStack[stackIdx].mode << endl;
     exit(1);
   }
 }
@@ -283,8 +286,8 @@ RTXProcessor::popChunk()
   }
   else
   {
-    wcerr << "tried to pop Chunk but mode is " << theStack[stackIdx].mode << endl;
-    wcerr << "The most common reason for getting this error is a macro that is missing an else clause." << endl;
+    cerr << "tried to pop Chunk but mode is " << theStack[stackIdx].mode << endl;
+    cerr << "The most common reason for getting this error is a macro that is missing an else clause." << endl;
     exit(1);
   }
 }
@@ -312,43 +315,43 @@ RTXProcessor::stackCopy(int src, int dest)
       theWblankStack[dest] = theWblankStack[src];
       break;
     default:
-      wcerr << "Unknown StackElement mode " << theStack[src].mode;
+      cerr << "Unknown StackElement mode " << theStack[src].mode;
       break;
   }
 }
 
 bool
-RTXProcessor::gettingLemmaFromWord(wstring attr)
+RTXProcessor::gettingLemmaFromWord(UString attr)
 {
-    return (attr.compare(L"lem") == 0 || attr.compare(L"lemh") == 0 || attr.compare(L"whole") == 0);
+    return (attr.compare("lem"_u) == 0 || attr.compare("lemh"_u) == 0 || attr.compare("whole"_u) == 0);
 }
 
 bool
-RTXProcessor::applyRule(const wstring& rule)
+RTXProcessor::applyRule(const UString& rule)
 {
   stackIdx = 0;
   vector<bool> editted = vector<bool>(currentInput.size(), false);
-  const wchar_t* rule_data = rule.data();
+  const UChar* rule_data = rule.data();
   for(unsigned int i = 0, rule_size = rule.size(); i < rule_size; i++)
   {
     switch(rule_data[i])
     {
       case DROP:
-        if(printingSteps) { wcerr << "drop" << endl; }
+        if(printingSteps) { cerr << "drop" << endl; }
         stackIdx--;
         break;
       case DUP:
-        if(printingSteps) { wcerr << "dup" << endl; }
+        if(printingSteps) { cerr << "dup" << endl; }
         stackCopy(stackIdx, stackIdx+1);
         stackIdx++;
         break;
       case OVER:
-        if(printingSteps) { wcerr << "over" << endl; }
+        if(printingSteps) { cerr << "over" << endl; }
         stackCopy(stackIdx-1, stackIdx+1);
         stackIdx++;
         break;
       case SWAP:
-        if(printingSteps) { wcerr << "swap" << endl; }
+        if(printingSteps) { cerr << "swap" << endl; }
       {
         stackCopy(stackIdx, stackIdx+1);
         stackCopy(stackIdx-1, stackIdx);
@@ -357,67 +360,67 @@ RTXProcessor::applyRule(const wstring& rule)
         break;
       case STRING:
       {
-        if(printingSteps) { wcerr << "string" << endl; }
+        if(printingSteps) { cerr << "string" << endl; }
         int ct = rule_data[++i];
         stackIdx++;
         theStack[stackIdx].mode = 2;
         theStack[stackIdx].s.assign(rule, i+1, ct);
         //pushStack(rule.substr(i+1, ct));
         i += ct;
-        if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
+        if(printingSteps) { cerr << " -> " << theStack[stackIdx].s << endl; }
       }
         break;
       case INT:
-        if(printingSteps) { wcerr << "int " << (int)rule[i+1] << endl; }
+        if(printingSteps) { cerr << "int " << (int)rule[i+1] << endl; }
         pushStack((int)rule_data[++i]);
         break;
       case PUSHFALSE:
-        if(printingSteps) { wcerr << "pushfalse" << endl; }
+        if(printingSteps) { cerr << "pushfalse" << endl; }
         pushStack(false);
         break;
       case PUSHTRUE:
-        if(printingSteps) { wcerr << "pushtrue" << endl; }
+        if(printingSteps) { cerr << "pushtrue" << endl; }
         pushStack(true);
         break;
       case PUSHNULL:
-        if(printingSteps) { wcerr << "pushnull" << endl; }
+        if(printingSteps) { cerr << "pushnull" << endl; }
         pushStack((Chunk*)NULL);
         break;
       case JUMP:
-        if(printingSteps) { wcerr << "jump" << endl; }
+        if(printingSteps) { cerr << "jump" << endl; }
         ++i;
         i += rule_data[i];
         break;
       case JUMPONTRUE:
-        if(printingSteps) { wcerr << "jumpontrue" << endl; }
+        if(printingSteps) { cerr << "jumpontrue" << endl; }
         if(!popBool())
         {
           i++;
-          if(printingSteps) { wcerr << " -> false" << endl; }
+          if(printingSteps) { cerr << " -> false" << endl; }
         }
         else
         {
           ++i;
           i += rule_data[i];
-          if(printingSteps) { wcerr << " -> true, jumping" << endl; }
+          if(printingSteps) { cerr << " -> true, jumping" << endl; }
         }
         break;
       case JUMPONFALSE:
-        if(printingSteps) { wcerr << "jumponfalse" << endl; }
+        if(printingSteps) { cerr << "jumponfalse" << endl; }
         if(popBool())
         {
           i++;
-          if(printingSteps) { wcerr << " -> true" << endl; }
+          if(printingSteps) { cerr << " -> true" << endl; }
         }
         else
         {
           ++i;
           i += rule_data[i];
-          if(printingSteps) { wcerr << " -> false, jumping" << endl; }
+          if(printingSteps) { cerr << " -> false, jumping" << endl; }
         }
         break;
       case AND:
-        if(printingSteps) { wcerr << "and" << endl; }
+        if(printingSteps) { cerr << "and" << endl; }
       {
         bool a = popBool();
         bool b = popBool();
@@ -425,7 +428,7 @@ RTXProcessor::applyRule(const wstring& rule)
       }
         break;
       case OR:
-        if(printingSteps) { wcerr << "or" << endl; }
+        if(printingSteps) { cerr << "or" << endl; }
       {
         bool a = popBool();
         bool b = popBool();
@@ -433,16 +436,16 @@ RTXProcessor::applyRule(const wstring& rule)
       }
         break;
       case NOT:
-        if(printingSteps) { wcerr << "not" << endl; }
+        if(printingSteps) { cerr << "not" << endl; }
         theStack[stackIdx].b = !theStack[stackIdx].b;
         break;
       case EQUAL:
       case EQUALCL:
-        if(printingSteps) { wcerr << "equal" << endl; }
+        if(printingSteps) { cerr << "equal" << endl; }
       {
-        wstring a;
+        UString a;
         popString(a);
-        wstring b;
+        UString b;
         popString(b);
         if(rule_data[i] == EQUALCL)
         {
@@ -450,15 +453,15 @@ RTXProcessor::applyRule(const wstring& rule)
           b = StringUtils::tolower(b);
         }
         pushStack(a == b);
-        if(printingSteps) { wcerr << " -> " << (a == b ? "true" : "false") << endl; }
+        if(printingSteps) { cerr << " -> " << (a == b ? "true" : "false") << endl; }
       }
         break;
       case ISPREFIX:
       case ISPREFIXCL:
-        if(printingSteps) { wcerr << "isprefix" << endl; }
+        if(printingSteps) { cerr << "isprefix" << endl; }
       {
-        wstring substr = popString();
-        wstring str = popString();
+        UString substr = popString();
+        UString str = popString();
         if(rule[i] == ISPREFIXCL)
         {
           pushStack(beginsWith(StringUtils::tolower(str), StringUtils::tolower(substr)));
@@ -471,10 +474,10 @@ RTXProcessor::applyRule(const wstring& rule)
         break;
       case ISSUFFIX:
       case ISSUFFIXCL:
-        if(printingSteps) { wcerr << "issuffix" << endl; }
+        if(printingSteps) { cerr << "issuffix" << endl; }
       {
-        wstring substr = popString();
-        wstring str = popString();
+        UString substr = popString();
+        UString str = popString();
         if(rule[i] == ISSUFFIXCL)
         {
           pushStack(endsWith(StringUtils::tolower(str), StringUtils::tolower(substr)));
@@ -487,11 +490,11 @@ RTXProcessor::applyRule(const wstring& rule)
         break;
       case HASPREFIX:
       case HASPREFIXCL:
-        if(printingSteps) { wcerr << "hasprefix" << endl; }
+        if(printingSteps) { cerr << "hasprefix" << endl; }
       {
-        wstring list = popString();
-        wstring needle = popString();
-        set<wstring, Ltstr>::iterator it, limit;
+        UString list = popString();
+        UString needle = popString();
+        set<UString>::iterator it, limit;
 
         if(rule[i] == HASPREFIX)
         {
@@ -519,11 +522,11 @@ RTXProcessor::applyRule(const wstring& rule)
         break;
       case HASSUFFIX:
       case HASSUFFIXCL:
-        if(printingSteps) { wcerr << "hassuffix" << endl; }
+        if(printingSteps) { cerr << "hassuffix" << endl; }
       {
-        wstring list = popString();
-        wstring needle = popString();
-        set<wstring, Ltstr>::iterator it, limit;
+        UString list = popString();
+        UString needle = popString();
+        set<UString>::iterator it, limit;
 
         if(rule[i] == HASSUFFIX)
         {
@@ -551,50 +554,50 @@ RTXProcessor::applyRule(const wstring& rule)
         break;
       case ISSUBSTRING:
       case ISSUBSTRINGCL:
-        if(printingSteps) { wcerr << "issubstring" << endl; }
+        if(printingSteps) { cerr << "issubstring" << endl; }
       {
-        wstring needle = popString();
-        wstring haystack = popString();
+        UString needle = popString();
+        UString haystack = popString();
         if(rule[i] == ISSUBSTRINGCL)
         {
           needle = StringUtils::tolower(needle);
           haystack = StringUtils::tolower(haystack);
         }
-        pushStack(haystack.find(needle) != wstring::npos);
+        pushStack(haystack.find(needle) != UString::npos);
       }
         break;
       case IN:
       case INCL:
-        if(printingSteps) { wcerr << "in" << endl; }
+        if(printingSteps) { cerr << "in" << endl; }
       {
-        wstring list = popString();
-        wstring str = popString();
+        UString list = popString();
+        UString str = popString();
         if(rule[i] == INCL)
         {
           str = StringUtils::tolower(str);
-          set<wstring, Ltstr> &myset = listslow[list];
+          set<UString> &myset = listslow[list];
           pushStack(myset.find(str) != myset.end());
         }
         else
         {
-          set<wstring, Ltstr> &myset = lists[list];
+          set<UString> &myset = lists[list];
           pushStack(myset.find(str) != myset.end());
         }
       }
         break;
       case SETVAR:
-        if(printingSteps) { wcerr << "setvar" << endl; }
+        if(printingSteps) { cerr << "setvar" << endl; }
       {
-        wstring var = popString();
-        wstring val = popString();
+        UString var = popString();
+        UString val = popString();
         currentBranch->stringVars[var] = val;
         currentBranch->wblankVars[var] = theWblankStack[stackIdx+1];
         theWblankStack[stackIdx+1].clear();
-        if(printingSteps) { wcerr << " -> " << var << " = '" << val << "'" << endl; }
+        if(printingSteps) { cerr << " -> " << var << " = '" << val << "'" << endl; }
       }
         break;
       case OUTPUT:
-        if(printingSteps) { wcerr << "output" << endl; }
+        if(printingSteps) { cerr << "output" << endl; }
       {
         Chunk* ch = popChunk();
         if(ch == NULL) break; // FETCHCHUNK
@@ -602,14 +605,14 @@ RTXProcessor::applyRule(const wstring& rule)
         {
           bool word = true;
           unsigned int last = 0;
-          const wchar_t* targ = ch->target.data();
+          const UChar* targ = ch->target.data();
           bool chunk = false;
           for(unsigned int c = 0, limit = ch->target.size(); c < limit; c++)
           {
-            if(targ[c] == L'\\') c++;
-            else if((targ[c] == L'{' || targ[c] == L'$') && word)
+            if(targ[c] == '\\') c++;
+            else if((targ[c] == '{' || targ[c] == '$') && word)
             {
-              if(targ[c] == L'{') chunk = true;
+              if(targ[c] == '{') chunk = true;
               Chunk* temp = chunkPool.next();
               temp->isBlank = false;
               temp->target = ch->target.substr(last, c-last);
@@ -620,7 +623,7 @@ RTXProcessor::applyRule(const wstring& rule)
               last = c+1;
               word = false;
             }
-            else if((targ[c] == L'^' || targ[c] == L'}') && !word)
+            else if((targ[c] == '^' || targ[c] == '}') && !word)
             {
               if(c > last)
               {
@@ -630,7 +633,7 @@ RTXProcessor::applyRule(const wstring& rule)
                 if(chunk) currentOutput.back()->contents.push_back(temp);
                 else currentOutput.push_back(temp);
               }
-              if(targ[c] == L'}') chunk = false;
+              if(targ[c] == '}') chunk = false;
               last = c+1;
               word = true;
             }
@@ -656,12 +659,12 @@ RTXProcessor::applyRule(const wstring& rule)
       }
         break;
       case OUTPUTALL:
-        if(printingSteps) { wcerr << "outputall" << endl; }
+        if(printingSteps) { cerr << "outputall" << endl; }
         currentOutput = currentInput;
         return true;
         break;
       case PUSHINPUT:
-        if(printingSteps) { wcerr << "pushinput" << endl; }
+        if(printingSteps) { cerr << "pushinput" << endl; }
       {
         int loc = popInt();
         int pos = 2*(loc-1);
@@ -682,7 +685,7 @@ RTXProcessor::applyRule(const wstring& rule)
           }
           if(ch == NULL)
           {
-            //wcerr << L"Clip index is out of bounds." << endl;
+            //cerr << "Clip index is out of bounds." << endl;
             //exit(EXIT_FAILURE);
             ch = currentInput.back();
           }
@@ -691,12 +694,12 @@ RTXProcessor::applyRule(const wstring& rule)
       }
         break;
       case SOURCECLIP:
-        if(printingSteps) { wcerr << "sourceclip" << endl; }
+        if(printingSteps) { cerr << "sourceclip" << endl; }
       {
-        wstring part;
+        UString part;
         popString(part);
         Chunk* ch = popChunk();
-        if(ch == NULL) pushStack(L"");
+        if(ch == NULL) pushStack("");
         else
         {
           if(gettingLemmaFromWord(part))
@@ -708,16 +711,16 @@ RTXProcessor::applyRule(const wstring& rule)
             pushStack(ch->chunkPart(attr_items[part], SourceClip));
           }
         }
-        if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
+        if(printingSteps) { cerr << " -> " << theStack[stackIdx].s << endl; }
       }
         break;
       case TARGETCLIP:
-        if(printingSteps) { wcerr << "targetclip" << endl; }
+        if(printingSteps) { cerr << "targetclip" << endl; }
       {
-        wstring part;
+        UString part;
         popString(part);
         Chunk* ch = popChunk();
-        if(ch == NULL) pushStack(L"");
+        if(ch == NULL) pushStack("");
         else
         {
           if(gettingLemmaFromWord(part))
@@ -729,25 +732,25 @@ RTXProcessor::applyRule(const wstring& rule)
              pushStack(ch->chunkPart(attr_items[part], TargetClip));
           }
         }
-        if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
+        if(printingSteps) { cerr << " -> " << theStack[stackIdx].s << endl; }
       }
         break;
       case REFERENCECLIP:
-        if(printingSteps) { wcerr << "referenceclip" << endl; }
+        if(printingSteps) { cerr << "referenceclip" << endl; }
       {
-        wstring part;
+        UString part;
         popString(part);
         Chunk* ch = popChunk();
-        if(ch == NULL) pushStack(L"");
+        if(ch == NULL) pushStack("");
         else pushStack(ch->chunkPart(attr_items[part], ReferenceClip));
-        if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
+        if(printingSteps) { cerr << " -> " << theStack[stackIdx].s << endl; }
       }
         break;
       case SETCLIP:
-        if(printingSteps) { wcerr << "setclip" << endl; }
+        if(printingSteps) { cerr << "setclip" << endl; }
       {
         int pos = 2*(popInt()-1);
-        wstring part = popString();
+        UString part = popString();
         if(pos >= 0)
         {
           if(!editted[pos])
@@ -756,7 +759,7 @@ RTXProcessor::applyRule(const wstring& rule)
             editted[pos] = true;
           }
           currentInput[pos]->setChunkPart(attr_items[part], popString());
-          if(printingSteps) { wcerr << " -> " << currentInput[pos]->target << endl; }
+          if(printingSteps) { cerr << " -> " << currentInput[pos]->target << endl; }
         }
         else
         {
@@ -765,46 +768,46 @@ RTXProcessor::applyRule(const wstring& rule)
       }
         break;
       case FETCHVAR:
-        if(printingSteps) { wcerr << "fetchvar" << endl; }
+        if(printingSteps) { cerr << "fetchvar" << endl; }
         {
-          wstring name = popString();
-          wstring val = currentBranch->stringVars[name];
-          wstring wblank_val = currentBranch->wblankVars[name];
+          UString name = popString();
+          UString val = currentBranch->stringVars[name];
+          UString wblank_val = currentBranch->wblankVars[name];
           pushStack(val, wblank_val);
-          if(printingSteps) { wcerr << " -> " << name << " = " << val << endl; }
+          if(printingSteps) { cerr << " -> " << name << " = " << val << endl; }
         }
         break;
       case FETCHCHUNK:
-        if(printingSteps) { wcerr << "fetchchunk" << endl; }
+        if(printingSteps) { cerr << "fetchchunk" << endl; }
         pushStack(currentBranch->chunkVars[popInt()]);
         break;
       case SETCHUNK:
-        if(printingSteps) { wcerr << "setchunk" << endl; }
+        if(printingSteps) { cerr << "setchunk" << endl; }
         {
           int pos = popInt();
           currentBranch->chunkVars[pos] = popChunk();
         }
         break;
       case GETCASE:
-        if(printingSteps) { wcerr << "getcase" << endl; }
+        if(printingSteps) { cerr << "getcase" << endl; }
         pushStack(caseOf(popString()));
-        if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
+        if(printingSteps) { cerr << " -> " << theStack[stackIdx].s << endl; }
         break;
       case SETCASE:
-        if(printingSteps) { wcerr << "setcase" << endl; }
+        if(printingSteps) { cerr << "setcase" << endl; }
       {
-        wstring src = popString();
-        wstring dest = popString();
+        UString src = popString();
+        UString dest = popString();
         pushStack(copycase(src, dest));
       }
-        if(printingSteps) { wcerr << " -> " << theStack[stackIdx].s << endl; }
+        if(printingSteps) { cerr << " -> " << theStack[stackIdx].s << endl; }
         break;
       case CONCAT:
-        if(printingSteps) { wcerr << "concat" << endl; }
+        if(printingSteps) { cerr << "concat" << endl; }
       {
         if(theStack[stackIdx].mode != 2 || theStack[stackIdx-1].mode != 2)
         {
-          wcerr << L"Cannot CONCAT non-strings." << endl;
+          cerr << "Cannot CONCAT non-strings." << endl;
           exit(EXIT_FAILURE);
         }
         stackIdx--;
@@ -812,7 +815,7 @@ RTXProcessor::applyRule(const wstring& rule)
       }
         break;
       case CHUNK:
-        if(printingSteps) { wcerr << "chunk" << endl; }
+        if(printingSteps) { cerr << "chunk" << endl; }
       {
         Chunk* ch = chunkPool.next();
         ch->isBlank = false;
@@ -820,15 +823,15 @@ RTXProcessor::applyRule(const wstring& rule)
       }
         break;
       case APPENDCHILD:
-        if(printingSteps) { wcerr << "appendchild" << endl; }
+        if(printingSteps) { cerr << "appendchild" << endl; }
       {
         Chunk* kid = popChunk();
-        if(isLinear && kid->target[0] == L'^')
+        if(isLinear && kid->target[0] == '^')
         {
           unsigned int j = 0;
           for(; j < kid->target.size(); j++)
           {
-            if(kid->target[j] == L'$') break;
+            if(kid->target[j] == '$') break;
           }
           Chunk* ch = chunkPool.next();
           ch->isBlank = false;
@@ -847,21 +850,21 @@ RTXProcessor::applyRule(const wstring& rule)
           out_wblank.clear();
           theStack[stackIdx].c->contents.push_back(kid);
         }
-        if(printingSteps) { wcerr << " -> child with surface '" << kid->target << L"' appended" << endl; }
+        if(printingSteps) { cerr << " -> child with surface '" << kid->target << "' appended" << endl; }
       }
         break;
       case APPENDSURFACE:
-        if(printingSteps) { wcerr << "appendsurface" << endl; }
+        if(printingSteps) { cerr << "appendsurface" << endl; }
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
-          wcerr << L"Cannot append non-string to chunk surface." << endl;
+          cerr << "Cannot append non-string to chunk surface." << endl;
           exit(EXIT_FAILURE);
         }
         stackIdx--;
         if(theStack[stackIdx].mode != 3)
         {
-          wcerr << L"Cannot APPENDSURFACE to non-chunk." << endl;
+          cerr << "Cannot APPENDSURFACE to non-chunk." << endl;
           exit(EXIT_FAILURE);
         }
         if(theStack[stackIdx+1].mode == 2)
@@ -875,21 +878,21 @@ RTXProcessor::applyRule(const wstring& rule)
           theStack[stackIdx].c->target += theStack[stackIdx+1].c->target;
           theStack[stackIdx].c->wblank += theStack[stackIdx+1].c->wblank;
         }
-        if(printingSteps) { wcerr << " -> " << theStack[stackIdx+1].s << endl; }
+        if(printingSteps) { cerr << " -> " << theStack[stackIdx+1].s << endl; }
       }
         break;
       case APPENDSURFACESL:
-        if(printingSteps) { wcerr << "appendsurfacesl" << endl; }
+        if(printingSteps) { cerr << "appendsurfacesl" << endl; }
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
-          wcerr << L"Cannot append non-string to chunk surface." << endl;
+          cerr << "Cannot append non-string to chunk surface." << endl;
           exit(EXIT_FAILURE);
         }
         stackIdx--;
         if(theStack[stackIdx].mode != 3)
         {
-          wcerr << L"Cannot APPENDSURFACESL to non-chunk." << endl;
+          cerr << "Cannot APPENDSURFACESL to non-chunk." << endl;
           exit(EXIT_FAILURE);
         }
         if(theStack[stackIdx+1].mode == 2)
@@ -903,21 +906,21 @@ RTXProcessor::applyRule(const wstring& rule)
           theStack[stackIdx].c->source += theStack[stackIdx+1].c->source;
           theStack[stackIdx].c->wblank += theStack[stackIdx+1].c->wblank;
         }
-        if(printingSteps) { wcerr << " -> " << theStack[stackIdx+1].s << endl; }
+        if(printingSteps) { cerr << " -> " << theStack[stackIdx+1].s << endl; }
       }
         break;
       case APPENDSURFACEREF:
-        if(printingSteps) { wcerr << "appendsurfaceref" << endl; }
+        if(printingSteps) { cerr << "appendsurfaceref" << endl; }
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
-          wcerr << L"Cannot append non-string to chunk surface." << endl;
+          cerr << "Cannot append non-string to chunk surface." << endl;
           exit(EXIT_FAILURE);
         }
         stackIdx--;
         if(theStack[stackIdx].mode != 3)
         {
-          wcerr << L"Cannot APPENDSURFACEREF to non-chunk." << endl;
+          cerr << "Cannot APPENDSURFACEREF to non-chunk." << endl;
           exit(EXIT_FAILURE);
         }
         if(theStack[stackIdx+1].mode == 2)
@@ -928,11 +931,11 @@ RTXProcessor::applyRule(const wstring& rule)
         {
           theStack[stackIdx].c->coref += theStack[stackIdx+1].c->coref;
         }
-        if(printingSteps) { wcerr << " -> " << theStack[stackIdx+1].s << endl; }
+        if(printingSteps) { cerr << " -> " << theStack[stackIdx+1].s << endl; }
       }
         break;
       case APPENDALLCHILDREN:
-        if(printingSteps) { wcerr << "appendallchildren" << endl; }
+        if(printingSteps) { cerr << "appendallchildren" << endl; }
       {
         Chunk* ch = popChunk();
         for(unsigned int k = 0; k < ch->contents.size(); k++)
@@ -942,20 +945,20 @@ RTXProcessor::applyRule(const wstring& rule)
       }
         break;
       case APPENDALLINPUT:
-        if(printingSteps) { wcerr << "appendallinput" << endl; }
+        if(printingSteps) { cerr << "appendallinput" << endl; }
       {
         vector<Chunk*>& vec = theStack[stackIdx].c->contents;
         vec.insert(vec.end(), currentInput.begin(), currentInput.end());
       }
         break;
       case BLANK:
-        if(printingSteps) { wcerr << "blank" << endl; }
+        if(printingSteps) { cerr << "blank" << endl; }
       {
         int loc = 2*(popInt()-1) + 1;
         if(loc == -1)
         {
           Chunk* ch = chunkPool.next();
-          ch->target = L" ";
+          ch->target = " "_u;
           ch->isBlank = true;
           pushStack(ch);
         }
@@ -966,43 +969,43 @@ RTXProcessor::applyRule(const wstring& rule)
       }
         break;
       case CONJOIN:
-        if(printingSteps) { wcerr << "conjoin" << endl; }
+        if(printingSteps) { cerr << "conjoin" << endl; }
       {
         Chunk* join = chunkPool.next();
         join->isBlank = true;
         join->isJoiner = true;
-        join->target = L"+";
+        join->target = "+"_u;
         pushStack(join);
       }
         break;
       case REJECTRULE:
-        if(printingSteps) { wcerr << "rejectrule" << endl; }
+        if(printingSteps) { cerr << "rejectrule" << endl; }
         return false;
         break;
       case DISTAG:
-        if(printingSteps) { wcerr << "distag" << endl; }
+        if(printingSteps) { cerr << "distag" << endl; }
       {
         if(theStack[stackIdx].mode != 2)
         {
-          wcerr << L"Cannot DISTAG non-string." << endl;
+          cerr << "Cannot DISTAG non-string." << endl;
           exit(EXIT_FAILURE);
         }
-        wstring& s = theStack[stackIdx].s;
-        if(s.size() > 0 && s[0] == L'<' && s[s.size()-1] == L'>')
+        UString& s = theStack[stackIdx].s;
+        if(s.size() > 0 && s[0] == '<' && s[s.size()-1] == '>')
         {
-          s = StringUtils::substitute(s.substr(1, s.size()-2), L"><", L".");
+          s = StringUtils::substitute(s.substr(1, s.size()-2), "><"_u, "."_u);
         }
       }
         break;
       case GETRULE:
-        if(printingSteps) { wcerr << "getrule" << endl; }
+        if(printingSteps) { cerr << "getrule" << endl; }
       {
         int pos = 2*(popInt()-1);
         pushStack(currentInput[pos]->rule);
       }
         break;
       case SETRULE:
-        if(printingSteps) { wcerr << "setrule" << endl; }
+        if(printingSteps) { cerr << "setrule" << endl; }
       {
         int pos = 2*(popInt()-1);
         int rl = popInt();
@@ -1010,9 +1013,9 @@ RTXProcessor::applyRule(const wstring& rule)
         {
           if(stackIdx == 0 || theStack[stackIdx].mode != 3)
           {
-            wcerr << "Empty stack or top item is not chunk." << endl;
-            wcerr << "Check for conditionals that might not generate output" << endl;
-            wcerr << "and ensure that lists of attributes are complete." << endl;
+            cerr << "Empty stack or top item is not chunk." << endl;
+            cerr << "Check for conditionals that might not generate output" << endl;
+            cerr << "and ensure that lists of attributes are complete." << endl;
             exit(1);
           }
           theStack[stackIdx].c->rule = rl;
@@ -1024,11 +1027,11 @@ RTXProcessor::applyRule(const wstring& rule)
       }
         break;
       case LUCOUNT:
-        if(printingSteps) { wcerr << "lucount" << endl; }
-        pushStack(to_wstring((currentInput.size() + 1) / 2));
+        if(printingSteps) { cerr << "lucount" << endl; }
+        pushStack(StringUtils::itoa((currentInput.size() + 1) / 2));
         break;
       default:
-        wcerr << "unknown instruction: " << rule[i] << endl;
+        cerr << "unknown instruction: " << rule[i] << endl;
         exit(1);
     }
   }
@@ -1039,11 +1042,11 @@ Chunk *
 RTXProcessor::readToken(FILE *in)
 {
   int pos = 0;
-  wstring cur;
-  wstring wbl;
-  wstring src;
-  wstring dest;
-  wstring coref;
+  UString cur;
+  UString wbl;
+  UString src;
+  UString dest;
+  UString coref;
   cur.reserve(256);
   bool inSquare = false;
   while(true)
@@ -1057,16 +1060,16 @@ RTXProcessor::readToken(FILE *in)
       ret->isBlank = true;
       return ret;
     }
-    else if(val == L'\\')
+    else if(val == '\\')
     {
-      cur += L'\\';
+      cur += '\\';
       cur += wchar_t(fgetwc_unlocked(in));
     }
-    else if(val == L'[' && !inword)
+    else if(val == '[' && !inword)
     {
       val = fgetwc_unlocked(in);
       
-      if(val == L'[')
+      if(val == '[')
       {
         inwblank = true;
         Chunk* ret = chunkPool.next();
@@ -1076,18 +1079,18 @@ RTXProcessor::readToken(FILE *in)
       }
       else
       {
-        cur += L'[';
+        cur += '[';
         inSquare = true;
         
-        if(val == L'\\')
+        if(val == '\\')
         {
-          cur += L'\\';
+          cur += '\\';
           cur += static_cast<wchar_t>(fgetwc_unlocked(in));
         }
         else
         {
           cur += val;
-          if(val == L']')
+          if(val == ']')
           {
             inSquare = false;
           }
@@ -1097,43 +1100,43 @@ RTXProcessor::readToken(FILE *in)
     else if(inSquare)
     {
       cur += val;
-      if(val == L']')
+      if(val == ']')
       {
         inSquare = false;
       }
     }
     else if(inwblank)
     {
-      if(val == L']')
+      if(val == ']')
       {
         cur += val;
         val = fgetwc_unlocked(in);
         
-        if(val == L'\\')
+        if(val == '\\')
         {
-          cur += L'\\';
+          cur += '\\';
           cur += static_cast<wchar_t>(fgetwc_unlocked(in));
         }
-        else if(val == L']')
+        else if(val == ']')
         {
           cur += val;
           val = fgetwc_unlocked(in);
           
-          if(val == L'\\')
+          if(val == '\\')
           {
-            cur += L'\\';
+            cur += '\\';
             cur += static_cast<wchar_t>(fgetwc_unlocked(in));
           }
-          else if(val == L'^')
+          else if(val == '^')
           {
             inwblank = false;
-            cur = L"[[" + cur;
+            cur = "[["_u + cur;
             wbl.swap(cur);
             inword = true;
           }
           else
           {
-            wcerr << L"Parse Error: Wordbound blank should be immediately followed by a Lexical Unit -> [[..]]^..$" << endl;
+            cerr << "Parse Error: Wordbound blank should be immediately followed by a Lexical Unit -> [[..]]^..$" << endl;
             exit(EXIT_FAILURE);
           }
         }
@@ -1147,7 +1150,7 @@ RTXProcessor::readToken(FILE *in)
         cur += val;
       }
     }
-    else if(inword && (val == L'$' || val == L'/'))
+    else if(inword && (val == '$' || val == '/'))
     {
       if(pos == 0)
       {
@@ -1157,7 +1160,7 @@ RTXProcessor::readToken(FILE *in)
       {
         dest.swap(cur);
       }
-      else if(pos >= 2 && !noCoref && val == L'$')
+      else if(pos >= 2 && !noCoref && val == '$')
       {
         coref.swap(cur);
       }
@@ -1166,7 +1169,7 @@ RTXProcessor::readToken(FILE *in)
         cur.clear();
       }
       pos++;
-      if(val == L'$')
+      if(val == '$')
       {
         inword = false;
         Chunk* ret = chunkPool.next();
@@ -1175,10 +1178,10 @@ RTXProcessor::readToken(FILE *in)
         ret->target = dest;
         ret->coref = coref;
         ret->isBlank = false;
-        if(src.size() > 0 && src[0] == L'*' && dest.size() > 0 && dest[0] == L'*')
+        if(src.size() > 0 && src[0] == '*' && dest.size() > 0 && dest[0] == '*')
         {
           Chunk* ret2 = chunkPool.next();
-          ret2->target = ret->target.substr(1) + L"<UNKNOWN:INTERNAL>";
+          ret2->target = ret->target.substr(1) + "<UNKNOWN:INTERNAL>"_u;
           ret2->contents.push_back(ret);
           ret2->rule = -1;
           ret2->isBlank = false;
@@ -1187,7 +1190,7 @@ RTXProcessor::readToken(FILE *in)
         return ret;
       }
     }
-    else if(!inword && val == L'^')
+    else if(!inword && val == '^')
     {
       inword = true;
       Chunk* ret = chunkPool.next();
@@ -1284,7 +1287,7 @@ RTXProcessor::lookahead(ParseNode* node)
 void
 RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
 {
-  if(printingAll) wcerr << "Checking for reductions for branch " << node->id << endl;
+  if(printingAll) cerr << "Checking for reductions for branch " << node->id << endl;
   mx->resetRejected();
   pair<int, double> rule_and_weight = node->getRule();
   int rule = rule_and_weight.first;
@@ -1299,28 +1302,28 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
     node->getChunks(currentInput, len-1);
     currentOutput.clear();
     if(printingRules || printingAll) {
-      if(printingAll && treePrintMode == TreeModeLatex) wcerr << "\\subsection{";
-      else wcerr << endl;
-      wcerr << "Applying rule " << rule;
+      if(printingAll && treePrintMode == TreeModeLatex) cerr << "\\subsection{";
+      else cerr << endl;
+      cerr << "Applying rule " << rule;
       if(rule <= (int)inRuleNames.size())
       {
-        wcerr << " (" << inRuleNames[rule-1] << ")";
+        cerr << " (" << inRuleNames[rule-1] << ")";
       }
-      if(printingAll) wcerr << " to branch " << node->id << " with weight " << rule_and_weight.second;
-      if(printingAll && treePrintMode == TreeModeLatex) wcerr << "}" << endl << endl;
-      else wcerr << ": ";
+      if(printingAll) cerr << " to branch " << node->id << " with weight " << rule_and_weight.second;
+      if(printingAll && treePrintMode == TreeModeLatex) cerr << "}" << endl << endl;
+      else cerr << ": ";
       for(unsigned int i = 0; i < currentInput.size(); i++)
       {
         currentInput[i]->writeTree((printingAll ? treePrintMode : TreeModeFlat), NULL);
       }
-      wcerr << endl;
+      cerr << endl;
     }
     if(applyRule(rule_map[rule-1]))
     {
       if(printingAll)
       {
         for(auto c : currentOutput) c->writeTree(treePrintMode, NULL);
-        wcerr << endl;
+        cerr << endl;
       }
       vector<Chunk*> temp;
       temp.reserve(currentOutput.size());
@@ -1383,8 +1386,8 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
     }
     else
     {
-      if(printingRules) { wcerr << " -> rule was rejected" << endl; }
-      if(printingAll) wcerr << "This rule was rejeced." << endl << endl;
+      if(printingRules) { cerr << " -> rule was rejected" << endl; }
+      if(printingAll) cerr << "This rule was rejeced." << endl << endl;
       mx->rejectRule(rule);
       rule_and_weight = node->getRule();
       rule = rule_and_weight.first;
@@ -1393,19 +1396,19 @@ RTXProcessor::checkForReduce(vector<ParseNode*>& result, ParseNode* node)
   }
   if(rule == -1)
   {
-    if(printingAll) wcerr << "No further reductions possible for branch " << node->id << "." << endl;
+    if(printingAll) cerr << "No further reductions possible for branch " << node->id << "." << endl;
     result.push_back(node);
   }
   else if(lookahead(node))
   {
     node->id = ++newBranchId;
-    if(printingAll) wcerr << endl << "Splitting stack and creating branch " << node->id << endl;
+    if(printingAll) cerr << endl << "Splitting stack and creating branch " << node->id << endl;
     result.push_back(node);
   }
 }
 
 void
-RTXProcessor::outputAll(FILE* out)
+RTXProcessor::outputAll(UFILE* out)
 {
   unsigned int queueSize = outputQueue.size() - 1;
   bool conjoining = false;
@@ -1416,31 +1419,31 @@ RTXProcessor::outputAll(FILE* out)
     outputQueue.pop_front();
     if(printingTrees && outputQueue.size() == queueSize)
     {
-      if(printingText) fputc_unlocked('\n', out);
+      if(printingText) u_fputc('\n', out);
       queueSize--;
       ch->writeTree(treePrintMode, out);
-      fflush(out);
+      u_fflush(out);
       if(!printingText) continue;
     }
     if(ch->rule == -1)
     {
       if(printingRules && !ch->isBlank)
       {
-        fflush(out);
-        wcerr << endl << "No rule specified: ";
+        u_fflush(out);
+        cerr << endl << "No rule specified: ";
         ch->writeTree(TreeModeFlat, NULL);
-        wcerr << endl;
+        cerr << endl;
       }
       if(printingAll && !ch->isBlank)
       {
-        if(treePrintMode == TreeModeLatex) wcerr << "\\subsubsection{Output Node}" << endl;
-        else wcerr << "Output Node:" << endl;
+        if(treePrintMode == TreeModeLatex) cerr << "\\subsubsection{Output Node}" << endl;
+        else cerr << "Output Node:" << endl;
         ch->writeTree(treePrintMode, NULL);
-        wcerr << endl;
+        cerr << endl;
       }
       if(ch->contents.size() > 0)
       {
-        vector<wstring> tags = ch->getTags(vector<wstring>());
+        vector<UString> tags = ch->getTags(vector<UString>());
         for(auto it = ch->contents.rbegin(); it != ch->contents.rend(); it++)
         {
           (*it)->updateTags(tags);
@@ -1473,7 +1476,7 @@ RTXProcessor::outputAll(FILE* out)
     else
     {
       parentChunk = ch;
-      vector<wstring> tags = ch->getTags(vector<wstring>());
+      vector<UString> tags = ch->getTags(vector<UString>());
       currentInput = ch->contents;
       for(unsigned int i = 0; i < currentInput.size(); i++)
       {
@@ -1481,40 +1484,40 @@ RTXProcessor::outputAll(FILE* out)
       }
       currentOutput.clear();
       if(printingRules) {
-        fflush(out);
-        wcerr << endl << "Applying output rule " << ch->rule;
+        u_fflush(out);
+        cerr << endl << "Applying output rule " << ch->rule;
         if(ch->rule < (int)outRuleNames.size())
         {
-          wcerr << " (" << outRuleNames[ch->rule] << ")";
+          cerr << " (" << outRuleNames[ch->rule] << ")";
         }
-        wcerr << ": " << parentChunk->target << " -> ";
+        cerr << ": " << parentChunk->target << " -> ";
         for(unsigned int i = 0; i < currentInput.size(); i++)
         {
           currentInput[i]->writeTree(TreeModeFlat, NULL);
         }
-        wcerr << endl;
+        cerr << endl;
       }
       if(printingAll)
       {
         if(treePrintMode == TreeModeLatex)
         {
-          wcerr << "\\subsubsection{Applying Output Rule " << ch->rule;
+          cerr << "\\subsubsection{Applying Output Rule " << ch->rule;
           if(ch->rule < (int)outRuleNames.size())
           {
-            wcerr << ": " << outRuleNames[ch->rule] << "}" << endl << endl;
+            cerr << ": " << outRuleNames[ch->rule] << "}" << endl << endl;
           }
         }
         else
         {
-          wcerr << "Applying Output Rule " << ch->rule;
+          cerr << "Applying Output Rule " << ch->rule;
           if(ch->rule < (int)outRuleNames.size())
           {
-            wcerr << ": " << outRuleNames[ch->rule] << endl << endl;
+            cerr << ": " << outRuleNames[ch->rule] << endl << endl;
           }
         }
         ch->writeTree(treePrintMode, NULL);
       }
-      fflush(out);
+      u_fflush(out);
       applyRule(output_rules[ch->rule]);
       for(vector<Chunk*>::reverse_iterator it = currentOutput.rbegin(),
               limit = currentOutput.rend(); it != limit; it++)
@@ -1526,7 +1529,7 @@ RTXProcessor::outputAll(FILE* out)
   if(tojoin != NULL) tojoin->output(out);
   while(!blankQueue.empty())
   {
-    if(blankQueue.front() == L" ")
+    if(blankQueue.front() == " "_u)
     {
       blankQueue.pop_front();
     }
@@ -1538,11 +1541,11 @@ RTXProcessor::outputAll(FILE* out)
 }
 
 void
-RTXProcessor::writeBlank(FILE* out)
+RTXProcessor::writeBlank(UFILE* out)
 {
   if(blankQueue.empty())
   {
-    blankQueue.push_back(L" ");
+    blankQueue.push_back(" "_u);
   }
   Chunk* blank = chunkPool.next();
   blank->target = blankQueue.front();
@@ -1558,9 +1561,9 @@ RTXProcessor::filterParseGraph()
   {
     if(treePrintMode == TreeModeLatex)
     {
-      wcerr << "\\subsection{Filtering Branches}\n\n\\begin{itemize}" << endl;
+      cerr << "\\subsection{Filtering Branches}\n\n\\begin{itemize}" << endl;
     }
-    else wcerr << endl << "Filtering Branches:" << endl;
+    else cerr << endl << "Filtering Branches:" << endl;
   }
   bool shouldOutput = !furtherInput && inputBuffer.size() == 1;
   int state[parseGraph.size()];
@@ -1584,9 +1587,9 @@ RTXProcessor::filterParseGraph()
       {
         if(treePrintMode == TreeModeLatex)
         {
-          wcerr << L"\\item No branch can accept further input." << endl;
+          cerr << "\\item No branch can accept further input." << endl;
         }
-        else wcerr << L"No branch can accept further input." << endl;
+        else cerr << "No branch can accept further input." << endl;
       }
       shouldOutput = true;
       memset(state, 1, N*sizeof(int));
@@ -1597,33 +1600,33 @@ RTXProcessor::filterParseGraph()
   {
     if(treePrintMode == TreeModeLatex)
     {
-      wcerr << "\\item Input buffer is empty." << endl;
+      cerr << "\\item Input buffer is empty." << endl;
     }
-    else wcerr << L"Input buffer is empty." << endl;
+    else cerr << "Input buffer is empty." << endl;
   }
   int min = -1;
   ParseNode* minNode = NULL;
   ParseNode* cur = NULL;
   map<int, vector<int>> filter;
-  if(printingBranches) { wcerr << L"shouldOutput: " << shouldOutput << L" branch count: " << N << endl; }
+  if(printingBranches) { cerr << "shouldOutput: " << shouldOutput << " branch count: " << N << endl; }
   for(int i = 0; i < N; i++)
   {
-    if(printingBranches) { wcerr << "examining node " << i << "(length: " << parseGraph[i]->length << ", weight: " << parseGraph[i]->weight << ") ... "; }
+    if(printingBranches) { cerr << "examining node " << i << "(length: " << parseGraph[i]->length << ", weight: " << parseGraph[i]->weight << ") ... "; }
     if(printingAll)
     {
-      if(treePrintMode == TreeModeLatex) wcerr << "\\item ";
-      wcerr << "Branch " << parseGraph[i]->id << " ";
+      if(treePrintMode == TreeModeLatex) cerr << "\\item ";
+      cerr << "Branch " << parseGraph[i]->id << " ";
     }
     if(state[i] == 0)
     {
-      if(printingAll) wcerr << " has no possible continuations." << endl;
+      if(printingAll) cerr << " has no possible continuations." << endl;
       continue;
     }
     else if(noFilter && !shouldOutput) continue;
     if(min == -1)
     {
-      if(printingAll) wcerr << " has no active branch to compare to." << endl;
-      if(printingBranches) { wcerr << "FIRST!" << endl; }
+      if(printingAll) cerr << " has no active branch to compare to." << endl;
+      if(printingBranches) { cerr << "FIRST!" << endl; }
       min = i;
       minNode = parseGraph[i];
       cur = minNode;
@@ -1637,8 +1640,8 @@ RTXProcessor::filterParseGraph()
         if(cur->length < minNode->length
             || (cur->length == minNode->length && cur->weight >= minNode->weight))
         {
-          if(printingBranches) { wcerr << i << L" beats " << min << " in length or weight" << endl; }
-          if(printingAll) wcerr << " has fewer partial parses or a higher weight than branch " << minNode->id << "." << endl;
+          if(printingBranches) { cerr << i << " beats " << min << " in length or weight" << endl; }
+          if(printingAll) cerr << " has fewer partial parses or a higher weight than branch " << minNode->id << "." << endl;
           state[min] = 0;
           min = i;
           minNode = cur;
@@ -1646,16 +1649,16 @@ RTXProcessor::filterParseGraph()
         else
         {
           state[i] = 0;
-          if(printingBranches) {wcerr << min << L" beats " << i << " in length or weight" << endl; }
-          if(printingAll) wcerr << " has more partial parses or a lower weight than branch " << minNode->id << "." << endl;
+          if(printingBranches) {cerr << min << " beats " << i << " in length or weight" << endl; }
+          if(printingAll) cerr << " has more partial parses or a lower weight than branch " << minNode->id << "." << endl;
         }
         count--;
       }
       else if(filter.find(cur->firstWord) == filter.end())
       {
         filter[cur->firstWord].push_back(i);
-        if(printingBranches) { wcerr << i << " has nothing to compare with" << endl; }
-        if(printingAll) wcerr << " has no prior branch covering the same final span." << endl;
+        if(printingBranches) { cerr << i << " has nothing to compare with" << endl; }
+        if(printingAll) cerr << " has no prior branch covering the same final span." << endl;
       }
       else
       {
@@ -1663,19 +1666,19 @@ RTXProcessor::filterParseGraph()
         double w = parseGraph[other[0]]->weight;
         if(w > cur->weight)
         {
-          if(printingBranches) { wcerr << i << L" has lower weight - discarding." << endl; }
-          if(printingAll) wcerr << " has a lower weight than branch " << parseGraph[other[0]]->id << " and will be discarded." << endl;
+          if(printingBranches) { cerr << i << " has lower weight - discarding." << endl; }
+          if(printingAll) cerr << " has a lower weight than branch " << parseGraph[other[0]]->id << " and will be discarded." << endl;
           state[i] = 0;
           count--;
         }
         else if(w < cur->weight)
         {
-          if(printingBranches) { wcerr << i << L" has higher weight - discarding others." << endl; }
+          if(printingBranches) { cerr << i << " has higher weight - discarding others." << endl; }
           if(printingAll)
           {
-            wcerr << " has a higher weight than ";
-            for(auto it : other) wcerr << "branch " << parseGraph[it]->id << ", ";
-            wcerr << "which will be discarded." << endl;
+            cerr << " has a higher weight than ";
+            for(auto it : other) cerr << "branch " << parseGraph[it]->id << ", ";
+            cerr << "which will be discarded." << endl;
           }
           for(vector<int>::iterator it = other.begin(), limit = other.end();
                 it != limit; it++)
@@ -1688,14 +1691,14 @@ RTXProcessor::filterParseGraph()
         }
         else
         {
-          if(printingBranches) { wcerr << i << " has same weight - keeping all." << endl; }
-          if(printingAll) wcerr << " has the same weight as branch " << parseGraph[other[0]]->id << "." << endl;
+          if(printingBranches) { cerr << i << " has same weight - keeping all." << endl; }
+          if(printingAll) cerr << " has the same weight as branch " << parseGraph[other[0]]->id << "." << endl;
           other.push_back(i);
         }
       }
     }
   }
-  if(printingAll && treePrintMode == TreeModeLatex) wcerr << "\\end{itemize}" << endl << endl;
+  if(printingAll && treePrintMode == TreeModeLatex) cerr << "\\end{itemize}" << endl << endl;
   if(count == N) return shouldOutput;
   if(count > 100 && filter.size() > 0)
   {
@@ -1718,30 +1721,30 @@ RTXProcessor::filterParseGraph()
       temp.push_back(parseGraph[i]);
       if(printingBranches)
       {
-        wcerr << L"keeping branch " << i << " first word: " << parseGraph[i]->firstWord << " ending with ";
+        cerr << "keeping branch " << i << " first word: " << parseGraph[i]->firstWord << " ending with ";
         parseGraph[i]->chunk->writeTree(TreeModeFlat, NULL);
-        wcerr << endl;
+        cerr << endl;
       }
     }
     else if(printingBranches)
     {
-      wcerr << L"discarding branch " << i << " first word: " << parseGraph[i]->firstWord << " ending with ";
+      cerr << "discarding branch " << i << " first word: " << parseGraph[i]->firstWord << " ending with ";
       parseGraph[i]->chunk->writeTree(TreeModeFlat, NULL);
-      wcerr << endl;
+      cerr << endl;
     }
   }
-  if(printingBranches) { wcerr << L"remaining branches: " << temp.size() << endl << endl; }
+  if(printingBranches) { cerr << "remaining branches: " << temp.size() << endl << endl; }
   parseGraph.swap(temp);
   return shouldOutput;
 }
 
 void
-RTXProcessor::processGLR(FILE *in, FILE *out)
+RTXProcessor::processGLR(FILE *in, UFILE *out)
 {
   int sentenceId = 1;
   if(printingAll && treePrintMode == TreeModeLatex)
   {
-    wcerr << "\\section{Sentence " << sentenceId << "}" << endl << endl;
+    cerr << "\\section{Sentence " << sentenceId << "}" << endl << endl;
   }
   while(furtherInput && inputBuffer.size() < 5)
   {
@@ -1766,11 +1769,11 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
     }
     if(printingAll)
     {
-      wcerr << endl;
-      if(treePrintMode == TreeModeLatex) wcerr << "\\subsection{Reading Input}" << endl << endl;
-      else wcerr << "Reading Input:" << endl;
+      cerr << endl;
+      if(treePrintMode == TreeModeLatex) cerr << "\\subsection{Reading Input}" << endl << endl;
+      else cerr << "Reading Input:" << endl;
       next->writeTree(treePrintMode, NULL);
-      wcerr << endl;
+      cerr << endl;
     }
     inputBuffer.pop_front();
     if(parseGraph.size() == 0)
@@ -1785,8 +1788,8 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
         }
         if(inputBuffer.empty())
         {
-          wcerr.flush();
-          fflush(out);
+          cerr.flush();
+          u_fflush(out);
           break;
         }
         continue;
@@ -1820,14 +1823,14 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
     {
       for(auto branch : parseGraph)
       {
-        wcerr << "Branch " << branch->id << ": " << branch->length << " nodes, weight = " << branch->weight << endl;
+        cerr << "Branch " << branch->id << ": " << branch->length << " nodes, weight = " << branch->weight << endl;
         vector<Chunk*> parts;
         parts.resize(branch->length);
         branch->getChunks(parts, branch->length-1);
         for(auto node : parts)
         {
-          if(node->isBlank) wcerr << "[Blank]: " << endl;
-          else wcerr << "[Chunk]: " << endl;
+          if(node->isBlank) cerr << "[Blank]: " << endl;
+          else cerr << "[Chunk]: " << endl;
           node->writeTree(treePrintMode, NULL);
         }
       }
@@ -1835,30 +1838,30 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
     if(furtherInput) inputBuffer.push_back(readToken(in));
     if(filterParseGraph())
     {
-      wcerr.flush();
+      cerr.flush();
       if(printingAll)
       {
-        if(treePrintMode == TreeModeLatex) wcerr << "\\subsection{Outputting Branch " << parseGraph[0]->id << "}" << endl << endl;
+        if(treePrintMode == TreeModeLatex) cerr << "\\subsection{Outputting Branch " << parseGraph[0]->id << "}" << endl << endl;
         else
         {
-          wcerr << endl;
-          wcerr << "************************************************************" << endl;
-          wcerr << "************************************************************" << endl;
-          wcerr << "************************************************************" << endl;
-          wcerr << "Outputting Branch " << parseGraph[0]->id << endl << endl;
+          cerr << endl;
+          cerr << "************************************************************" << endl;
+          cerr << "************************************************************" << endl;
+          cerr << "************************************************************" << endl;
+          cerr << "Outputting Branch " << parseGraph[0]->id << endl << endl;
           vector<Chunk*> parts;
           parts.resize(parseGraph[0]->length);
           parseGraph[0]->getChunks(parts, parseGraph[0]->length-1);
           for(auto node : parts)
           {
-            if(node->isBlank) wcerr << "[Blank]: " << endl;
-            else wcerr << "[Chunk]: " << endl;
+            if(node->isBlank) cerr << "[Blank]: " << endl;
+            else cerr << "[Chunk]: " << endl;
             node->writeTree(treePrintMode, NULL);
           }
-          wcerr << "************************************************************" << endl;
-          wcerr << "************************************************************" << endl;
-          wcerr << "************************************************************" << endl;
-          wcerr << endl;
+          cerr << "************************************************************" << endl;
+          cerr << "************************************************************" << endl;
+          cerr << "************************************************************" << endl;
+          cerr << endl;
         }
       }
       currentBranch = parseGraph[0];
@@ -1867,11 +1870,11 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
       outputAll(out);
       variables = currentBranch->stringVars;
       wblank_variables = currentBranch->wblankVars;
-      fflush(out);
-      vector<wstring> wblanks;
-      vector<wstring> sources;
-      vector<wstring> targets;
-      vector<wstring> corefs;
+      u_fflush(out);
+      vector<UString> wblanks;
+      vector<UString> sources;
+      vector<UString> targets;
+      vector<UString> corefs;
       vector<bool> blanks;
       vector<bool> unknowns;
       int N = inputBuffer.size();
@@ -1894,15 +1897,15 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
         blanks.push_back(temp->isBlank);
         inputBuffer.pop_front();
       }
-      //wcerr << "clearing chunkPool, size was " << chunkPool.size() << endl;
-      //wcerr << "clearing parsePool, size was " << parsePool.size() << endl;
+      //cerr << "clearing chunkPool, size was " << chunkPool.size() << endl;
+      //cerr << "clearing parsePool, size was " << parsePool.size() << endl;
       chunkPool.reset();
       parsePool.reset();
       newBranchId = 0;
       if(printingAll) sentenceId++;
       if((furtherInput || inputBuffer.size() > 1) && printingAll && treePrintMode == TreeModeLatex)
       {
-        wcerr << endl << endl << "\\section{Sentence " << sentenceId << "}" << endl << endl;
+        cerr << endl << endl << "\\section{Sentence " << sentenceId << "}" << endl << endl;
       }
       for(int i = 0; i < N; i++)
       {
@@ -1915,7 +1918,7 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
         if(unknowns[i])
         {
           Chunk* c2 = chunkPool.next();
-          c2->target = targets[i].substr(1) + L"<UNKNOWN:INTERNAL>";
+          c2->target = targets[i].substr(1) + "<UNKNOWN:INTERNAL>"_u;
           c2->contents.push_back(c);
           c = c2;
         }
@@ -1926,11 +1929,11 @@ RTXProcessor::processGLR(FILE *in, FILE *out)
     if(!furtherInput && inputBuffer.size() == 1)
     {
       // if stream is empty, the last token is definitely a blank
-      wcerr.flush();
+      cerr.flush();
       inputBuffer.front()->output(out);
       blankQueue.clear();
       inputBuffer.pop_front();
-      fflush(out);
+      u_fflush(out);
       break;
     }
     else if(!furtherInput && inputBuffer.size() == 0) break;
@@ -2003,17 +2006,17 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
       }
       currentOutput.clear();
       if(printingRules) {
-        wcerr << endl << "Applying rule " << rule;
+        cerr << endl << "Applying rule " << rule;
         if(rule <= (int)inRuleNames.size())
         {
-          wcerr << " (" << inRuleNames[rule-1] << ")";
+          cerr << " (" << inRuleNames[rule-1] << ")";
         }
-        wcerr << ": ";
+        cerr << ": ";
         for(unsigned int i = 0; i < currentInput.size(); i++)
         {
           currentInput[i]->writeTree(TreeModeFlat, NULL);
         }
-        wcerr << endl;
+        cerr << endl;
       }
       if(applyRule(rule_map[rule-1]))
       {
@@ -2035,7 +2038,7 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
 }
 
 void
-RTXProcessor::processTRX(FILE *in, FILE *out)
+RTXProcessor::processTRX(FILE *in, UFILE *out)
 {
   list<Chunk*> t1x;
   list<Chunk*> t2x;
@@ -2066,7 +2069,7 @@ RTXProcessor::processTRX(FILE *in, FILE *out)
     {
       Chunk* cur = t3x.front();
       t3x.pop_front();
-      vector<wstring> tags = cur->getTags(vector<wstring>());
+      vector<UString> tags = cur->getTags(vector<UString>());
       if(cur->rule == -1)
       {
         if(cur->contents.size() == 0) cur->output(out);
@@ -2083,14 +2086,14 @@ RTXProcessor::processTRX(FILE *in, FILE *out)
       else
       {
         if(printingRules) {
-          wcerr << endl << L"Applying output rule " << cur->rule;
+          cerr << endl << "Applying output rule " << cur->rule;
           if(cur->rule < (int)outRuleNames.size())
           {
-            wcerr << " (" << outRuleNames[cur->rule] << ")";
+            cerr << " (" << outRuleNames[cur->rule] << ")";
           }
-          wcerr << ": ";
+          cerr << ": ";
           cur->writeTree(TreeModeFlat, NULL);
-          wcerr << endl;
+          cerr << endl;
         }
         parentChunk = cur;
         currentInput = cur->contents;
@@ -2110,16 +2113,16 @@ RTXProcessor::processTRX(FILE *in, FILE *out)
 }
 
 void
-RTXProcessor::process(FILE* in, FILE* out)
+RTXProcessor::process(FILE* in, UFILE* out)
 {
   if(printingAll && treePrintMode == TreeModeLatex)
   {
-    wcerr << "\\documentclass{article}" << endl;
-    wcerr << "\\usepackage{fontspec}" << endl;
-    wcerr << "\\setmainfont{FreeSans}" << endl;
-    wcerr << "\\usepackage{forest}" << endl;
-    wcerr << "\\usepackage[cm]{fullpage}" << endl << endl;
-    wcerr << "\\begin{document}" << endl << endl;
+    cerr << "\\documentclass{article}" << endl;
+    cerr << "\\usepackage{fontspec}" << endl;
+    cerr << "\\setmainfont{FreeSans}" << endl;
+    cerr << "\\usepackage{forest}" << endl;
+    cerr << "\\usepackage[cm]{fullpage}" << endl << endl;
+    cerr << "\\begin{document}" << endl << endl;
   }
   if(null_flush)
   {
@@ -2134,8 +2137,8 @@ RTXProcessor::process(FILE* in, FILE* out)
       {
         processGLR(in, out);
       }
-      fputc_unlocked('\0', out);
-      fflush(out);
+      u_fputc('\0', out);
+      u_fflush(out);
       chunkPool.reset();
       parsePool.reset();
       inputBuffer.clear();
@@ -2156,6 +2159,6 @@ RTXProcessor::process(FILE* in, FILE* out)
   }
   if(printingAll && treePrintMode == TreeModeLatex)
   {
-    wcerr << endl << endl << "\\end{document}" << endl;
+    cerr << endl << endl << "\\end{document}" << endl;
   }
 }

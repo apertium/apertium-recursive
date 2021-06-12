@@ -4,8 +4,8 @@
 
 #include <lttoolbox/compression.h>
 #include <apertium/string_utils.h>
-#include <apertium_re.h>
 #include <apertium/utf_converter.h>
+#include <lttoolbox/input_file.h>
 
 #include <iostream>
 #include <fstream>
@@ -14,28 +14,28 @@ using namespace std;
 
 PatternBuilder::PatternBuilder()
 {
-  alphabet.includeSymbol(L"<ANY_TAG>");
-  alphabet.includeSymbol(L"<ANY_CHAR>");
-  alphabet.includeSymbol(L"<LOOK:AHEAD>");
-  attr_items[L"lem"] = L"^(([^<]|\"\\<\")+)";
-  attr_items[L"lemq"] = L"\\#[- _][^<]+";
-  attr_items[L"lemh"] = L"^(([^<#]|\"\\<\"|\"\\#\")+)";
-  attr_items[L"whole"] = L"(.+)";
-  attr_items[L"tags"] = L"((<[^>]+>)+)";
-  attr_items[L"chname"] = L"({([^/]+)\\/)"; // includes delimiters { and / !!!
-  attr_items[L"chcontent"] = L"(\\{.+)";
-  attr_items[L"content"] = L"(\\{.+)";
-  attr_items[L"pos_tag"] = L"(<[^>]+>)";
+  alphabet.includeSymbol("<ANY_TAG>"_u);
+  alphabet.includeSymbol("<ANY_CHAR>"_u);
+  alphabet.includeSymbol("<LOOK:AHEAD>"_u);
+  attr_items["lem"_u] = "^(([^<]|\"\\<\")+)"_u;
+  attr_items["lemq"_u] = "\\#[- _][^<]+"_u;
+  attr_items["lemh"_u] = "^(([^<#]|\"\\<\"|\"\\#\")+)"_u;
+  attr_items["whole"_u] = "(.+)"_u;
+  attr_items["tags"_u] = "((<[^>]+>)+)"_u;
+  attr_items["chname"_u] = "(\\{([^/]+)\\/)"_u; // includes delimiters { and / !!!
+  attr_items["chcontent"_u] = "(\\{.+)"_u;
+  attr_items["content"_u] = "(\\{.+)"_u;
+  attr_items["pos_tag"_u] = "(<[^>]+>)"_u;
   starCanBeEmpty = false;
   chunkVarCount = 0;
 }
 
 int
-PatternBuilder::insertLemma(int const base, wstring const &lemma)
+PatternBuilder::insertLemma(int const base, UString const &lemma)
 {
   int retval = base;
-  static int const any_char = alphabet(L"<ANY_CHAR>");
-  if(lemma == L"")
+  static int const any_char = alphabet("<ANY_CHAR>"_u);
+  if(lemma.empty())
   {
     retval = transducer.insertSingleTransduction(any_char, retval);
     transducer.linkStates(retval, retval, any_char);
@@ -44,14 +44,14 @@ PatternBuilder::insertLemma(int const base, wstring const &lemma)
   {
     for(unsigned int i = 0, limit = lemma.size();  i != limit; i++)
     {
-      if(lemma[i] == L'\\')
+      if(lemma[i] == '\\')
       {
-        //retval = transducer.insertSingleTransduction(L'\\', retval);
+        //retval = transducer.insertSingleTransduction('\\', retval);
         i++;
         retval = transducer.insertSingleTransduction(int(lemma[i]),
                                                              retval);
       }
-      else if(lemma[i] == L'*')
+      else if(lemma[i] == '*')
       {
         retval = transducer.insertSingleTransduction(any_char, retval);
         transducer.linkStates(retval, retval, any_char);
@@ -68,13 +68,13 @@ PatternBuilder::insertLemma(int const base, wstring const &lemma)
 }
 
 int
-PatternBuilder::insertTags(int const base, const vector<wstring>& tags)
+PatternBuilder::insertTags(int const base, const vector<UString>& tags)
 {
   int retval = base;
-  static int const any_tag = alphabet(L"<ANY_TAG>");
+  static int const any_tag = alphabet("<ANY_TAG>"_u);
   for(unsigned int i = 0; i < tags.size(); i++)
   {
-    if(tags[i] == L"*")
+    if(tags[i] == "*"_u)
     {
       if(!starCanBeEmpty)
       {
@@ -84,10 +84,10 @@ PatternBuilder::insertTags(int const base, const vector<wstring>& tags)
     }
     else
     {
-      vector<wstring> tgs = StringUtils::split_wstring(tags[i], L".");
+      vector<UString> tgs = StringUtils::split_UString(tags[i], "."_u);
       for(auto t : tgs)
       {
-        wstring tg = L"<" + t + L">";
+        UString tg = "<"_u + t + ">"_u;
         alphabet.includeSymbol(tg);
         retval = transducer.insertSingleTransduction(alphabet(tg), retval);
       }
@@ -99,7 +99,7 @@ PatternBuilder::insertTags(int const base, const vector<wstring>& tags)
 int
 PatternBuilder::countToFinalSymbol(const int count)
 {
-  const wstring count_sym = L"<RULE_NUMBER:" + to_wstring(count) + L">";
+  const UString count_sym = "<RULE_NUMBER:"_u + StringUtils::itoa(count) + ">"_u;
   alphabet.includeSymbol(count_sym);
   const int symbol = alphabet(count_sym);
   if(count != -1) final_symbols.insert(symbol);
@@ -107,10 +107,10 @@ PatternBuilder::countToFinalSymbol(const int count)
 }
 
 vector<PatternBuilder::TrieNode*>
-PatternBuilder::buildTrie(vector<wstring> parts)
+PatternBuilder::buildTrie(vector<UString> parts)
 {
   vector<TrieNode*> ret;
-  vector<vector<wstring>> p2;
+  vector<vector<UString>> p2;
   for(auto p : parts)
   {
     if(p.size() == 0) continue;
@@ -129,7 +129,7 @@ PatternBuilder::buildTrie(vector<wstring> parts)
       TrieNode* t = new TrieNode;
       t->self = p[0];
       ret.push_back(t);
-      p2.push_back(vector<wstring>(1, p.substr(1)));
+      p2.push_back(vector<UString>(1, p.substr(1)));
     }
   }
   for(unsigned int i = 0; i < ret.size(); i++)
@@ -139,17 +139,17 @@ PatternBuilder::buildTrie(vector<wstring> parts)
   return ret;
 }
 
-wstring
+UString
 PatternBuilder::unbuildTrie(PatternBuilder::TrieNode* t)
 {
-  if(t->self == L'\0') return L"";
-  wstring single;
+  if(t->self == '\0') return ""_u;
+  UString single;
   bool end = false;
-  vector<wstring> groups;
+  vector<UString> groups;
   int ct = t->next.size();
   for(auto it : t->next)
   {
-    wstring blob = unbuildTrie(it);
+    UString blob = unbuildTrie(it);
     if(blob.size() == 0)
     {
       end = true;
@@ -162,39 +162,39 @@ PatternBuilder::unbuildTrie(PatternBuilder::TrieNode* t)
     }
     else groups.push_back(blob);
   }
-  wstring ret;
-  if(t->self == L'#') ret += L'\\';
+  UString ret;
+  if(t->self == '#') ret += '\\';
   ret += t->self;
   if(single.size() == 0 && groups.size() == 0) return ret;
-  if(single.size() > 1) single = L"[" + single + L"]";
-  if(ct > 1 || (groups.size() == 1 && end)) ret += L"(?:";
+  if(single.size() > 1) single = "["_u + single + "]"_u;
+  if(ct > 1 || (groups.size() == 1 && end)) ret += "(?:"_u;
   for(unsigned int i = 0; i < groups.size(); i++)
   {
-    if(i > 0) ret += L"|";
+    if(i > 0) ret += '|';
     ret += groups[i];
   }
   if(single.size() > 0)
   {
-    if(groups.size() > 0) ret += L"|";
+    if(groups.size() > 0) ret += '|';
     ret += single;
   }
-  if(ct > 1 || (groups.size() == 1 && end)) ret += L")";
-  if(end) ret += L"?";
+  if(ct > 1 || (groups.size() == 1 && end)) ret += ')';
+  if(end) ret += '?';
   return ret;
 }
 
-wstring
-PatternBuilder::trie(vector<wstring> parts)
+UString
+PatternBuilder::trie(vector<UString> parts)
 {
-  if(parts.size() == 0) return L"";
+  if(parts.size() == 0) return ""_u;
   for(unsigned int i = 0; i < parts.size(); i++)
   {
-    parts[i] = L"<" + parts[i];
-    parts[i] += L'\0';
+    parts[i] = "<"_u + parts[i];
+    parts[i] += '\0';
   }
   vector<TrieNode*> l = buildTrie(parts);
-  // they all start with L'<', so there will only be 1.
-  return L"(" + unbuildTrie(l[0]) + L">)";
+  // they all start with '<', so there will only be 1.
+  return "("_u + unbuildTrie(l[0]) + ">)"_u;
 }
 
 void
@@ -214,17 +214,17 @@ PatternBuilder::addPattern(vector<vector<PatternElement*>> pat, int rule, double
           if(pe->tags.size() > 0) lookahead[state].push_back(pe->tags[0]);
         }
       }
-      state = transducer.insertSingleTransduction(L' ', state);
+      state = transducer.insertSingleTransduction(' ', state);
     }
-    state = transducer.insertNewSingleTransduction(L'^', state);
+    state = transducer.insertNewSingleTransduction('^', state);
     int end = insertLemma(state, pat[p][0]->lemma);
     end = insertTags(end, pat[p][0]->tags);
-    end = transducer.insertSingleTransduction(L'$', end);
+    end = transducer.insertSingleTransduction('$', end);
     for(unsigned int i = 1; i < pat[p].size(); i++)
     {
       int temp = insertLemma(state, pat[p][i]->lemma);
       temp = insertTags(temp, pat[p][i]->tags);
-      transducer.linkStates(temp, end, L'$');
+      transducer.linkStates(temp, end, '$');
     }
     state = end;
   }
@@ -234,7 +234,7 @@ PatternBuilder::addPattern(vector<vector<PatternElement*>> pat, int rule, double
 }
 
 void
-PatternBuilder::addRule(int rule, double weight, vector<vector<PatternElement*>> pattern, vector<wstring> firstChunk, wstring name)
+PatternBuilder::addRule(int rule, double weight, vector<vector<PatternElement*>> pattern, vector<UString> firstChunk, UString name)
 {
   rules[rule] = make_pair(firstChunk, pattern);
   addPattern(pattern, rule, weight, false);
@@ -255,82 +255,70 @@ PatternBuilder::addRule(int rule, double weight, vector<vector<PatternElement*>>
 }
 
 void
-PatternBuilder::addList(wstring name, set<wstring, Ltstr> vals)
+PatternBuilder::addList(UString name, set<UString> vals)
 {
   lists[name] = vals;
 }
 
 void
-PatternBuilder::addAttr(wstring name, set<wstring, Ltstr> vals)
+PatternBuilder::addAttr(UString name, set<UString> vals)
 {
-  /*wstring pat = L"(";
-  for(set<wstring, Ltstr>::iterator it = vals.begin(); it != vals.end(); it++)
-  {
-    if(pat.size() > 1)
-    {
-      pat += L"|";
-    }
-    pat += L"<" + StringUtils::substitute(*it, L".", L"><") + L">";
-  }
-  pat += L")";
-  attr_items[name] = pat;*/
-  vector<wstring> pat;
+  vector<UString> pat;
   for(auto it : vals)
   {
-    wstring p = StringUtils::substitute(it, L"\\.", L"<>");
-    p = StringUtils::substitute(p, L".", L"><");
-    pat.push_back(StringUtils::substitute(p, L"<>", L"\\."));
+    UString p = StringUtils::substitute(it, "\\."_u, "<>"_u);
+    p = StringUtils::substitute(p, "."_u, "><"_u);
+    pat.push_back(StringUtils::substitute(p, "<>"_u, "\\."_u));
   }
-  wstring pt = trie(pat);
-  //wcerr << name << "\t" << pt << endl;
+  UString pt = trie(pat);
   attr_items[name] = pt;
 }
 
 bool
-PatternBuilder::isAttrDefined(wstring name)
+PatternBuilder::isAttrDefined(UString name)
 {
   return attr_items.find(name) != attr_items.end();
 }
 
 void
-PatternBuilder::addVar(wstring name, wstring val)
+PatternBuilder::addVar(UString name, UString val)
 {
   variables[name] = val;
 }
 
-wstring
-PatternBuilder::BCstring(const wstring& s)
+UString
+PatternBuilder::BCstring(const UString& s)
 {
-  wstring ret;
+  UString ret;
   ret += STRING;
-  ret += (wchar_t)s.size();
+  ret += (UChar)s.size();
   ret += s;
   return ret;
 }
 
-wstring
-PatternBuilder::BCifthenelse(const wstring& cond, const wstring& yes, const wstring& no)
+UString
+PatternBuilder::BCifthenelse(const UString& cond, const UString& yes, const UString& no)
 {
-  wstring ret = cond;
+  UString ret = cond;
   if(yes.size() == 0)
   {
     ret += JUMPONTRUE;
-    ret += (wchar_t)no.size();
+    ret += (UChar)no.size();
     ret += no;
   }
   else if(no.size() == 0)
   {
     ret += JUMPONFALSE;
-    ret += (wchar_t)yes.size();
+    ret += (UChar)yes.size();
     ret += yes;
   }
   else
   {
     ret += JUMPONFALSE;
-    ret += (wchar_t)(yes.size() + 2);
+    ret += (UChar)(yes.size() + 2);
     ret += yes;
     ret += JUMP;
-    ret += (wchar_t)no.size();
+    ret += (UChar)no.size();
     ret += no;
   }
   return ret;
@@ -342,11 +330,11 @@ PatternBuilder::buildLookahead()
   for(auto it : firstSet)
   {
     firstSet[it.first].insert(it.first);
-    vector<wstring> todo;
+    vector<UString> todo;
     for(auto op : it.second) todo.push_back(op);
     while(todo.size() > 0)
     {
-      wstring cur = todo.back();
+      UString cur = todo.back();
       todo.pop_back();
       if(cur != it.first && firstSet.find(cur) != firstSet.end())
       {
@@ -363,9 +351,9 @@ PatternBuilder::buildLookahead()
   }
   for(auto it : lookahead)
   {
-    int state = transducer.insertSingleTransduction(alphabet(L"<LOOK:AHEAD>"), it.first);
-    state = transducer.insertSingleTransduction(L'^', state);
-    transducer.linkStates(state, state, alphabet(L"<ANY_CHAR>"));
+    int state = transducer.insertSingleTransduction(alphabet("<LOOK:AHEAD>"_u), it.first);
+    state = transducer.insertSingleTransduction('^', state);
+    transducer.linkStates(state, state, alphabet("<ANY_CHAR>"_u));
     int end = -1;
     for(auto next : it.second)
     {
@@ -373,19 +361,19 @@ PatternBuilder::buildLookahead()
       for(auto tag : firstSet[next])
       {
         int temp = state;
-        if(tag != L"*")
+        if(tag != "*"_u)
         {
-          temp = transducer.insertSingleTransduction(alphabet(L"<" + tag + L">"), temp);
+          temp = transducer.insertSingleTransduction(alphabet("<"_u + tag + ">"_u), temp);
         }
-        transducer.linkStates(temp, temp, alphabet(L"<ANY_TAG>"));
+        transducer.linkStates(temp, temp, alphabet("<ANY_TAG>"_u));
         if(end == -1)
         {
-          end = transducer.insertSingleTransduction(L'$', temp);
+          end = transducer.insertSingleTransduction('$', temp);
           transducer.setFinal(end);
         }
         else
         {
-          transducer.linkStates(temp, end, L'$');
+          transducer.linkStates(temp, end, '$');
         }
       }
     }
@@ -402,7 +390,7 @@ PatternBuilder::isPrefix(const vector<vector<PatternElement*>>& rule, const vect
     for(auto r : rule[i])
     {
       if(r->tags.size() == 0) continue;
-      else if(r->tags[0] == L"*")
+      else if(r->tags[0] == "*"_u)
       {
         found = true;
         break;
@@ -410,7 +398,7 @@ PatternBuilder::isPrefix(const vector<vector<PatternElement*>>& rule, const vect
       for(auto p : prefix[i])
       {
         if(p->tags.size() == 0) continue;
-        else if(p->tags[0] == L"*" || p->tags[0] == r->tags[0])
+        else if(p->tags[0] == "*"_u || p->tags[0] == r->tags[0])
         {
           found = true;
           break;
@@ -430,7 +418,7 @@ PatternBuilder::buildFallback()
   starCanBeEmpty = true;
   vector<PatternElement*> fallback;
   PatternElement* fall = new PatternElement;
-  fall->tags.push_back(L"FALL:BACK");
+  fall->tags.push_back("FALL:BACK"_u);
   fallback.push_back(fall);
   for(auto rule : rules)
   {
@@ -439,13 +427,13 @@ PatternBuilder::buildFallback()
     {
       PatternElement* pe = new PatternElement;
       pe->tags.push_back(tg);
-      pe->tags.push_back(L"*");
+      pe->tags.push_back("*"_u);
       result.push_back(pe);
     }
     vector<vector<PatternElement*>> resultPat;
     resultPat.push_back(result);
-    set<wstring> patPrefix;
-    set<wstring> resultPrefix;
+    set<UString> patPrefix;
+    set<UString> resultPrefix;
     for(auto rule2 : rules)
     {
       if(isPrefix(rule2.second.second, resultPat))
@@ -475,7 +463,7 @@ PatternBuilder::buildFallback()
       {
         PatternElement* pe = new PatternElement;
         pe->tags.push_back(it);
-        pe->tags.push_back(L"*");
+        pe->tags.push_back("*"_u);
         add.push_back(pe);
       }
       resultPat.push_back(add);
@@ -492,33 +480,24 @@ PatternBuilder::buildFallback()
 void
 PatternBuilder::loadLexFile(const string& fname)
 {
-  wifstream lex;
-  lex.open(fname);
-  if(!lex.is_open())
-  {
-    wcerr << "Unable to open file " << fname.c_str() << " for reading." << endl;
-    exit(EXIT_FAILURE);
-  }
-  while(!lex.eof())
-  {
-    wstring name;
-    while(!lex.eof() && lex.peek() != L'\t') name += lex.get();
+  InputFile lex;
+  lex.open_or_exit(fname.c_str());
+  while(!lex.eof()) {
+    UString name;
+    while(!lex.eof() && lex.peek() != '\t') name += lex.get();
     lex.get();
-    wstring weight;
-    while(!lex.eof() && lex.peek() != L'\t') weight += lex.get();
+    UString weight;
+    while(!lex.eof() && lex.peek() != '\t') weight += lex.get();
     lex.get();
     if(lex.eof()) break;
     vector<vector<PatternElement*>> pat;
-    while(!lex.eof() && lex.peek() != L'\n')
-    {
+    while(!lex.eof() && lex.peek() != '\n') {
       PatternElement* p = new PatternElement;
-      while(lex.peek() != L'@') p->lemma += towlower(lex.get());
+      while(lex.peek() != '@') p->lemma += u_tolower(lex.get());
       lex.get();
-      wstring tag;
-      while(lex.peek() != L' ' && lex.peek() != L'\n')
-      {
-        if(lex.peek() == L'.')
-        {
+      UString tag;
+      while(lex.peek() != ' ' && lex.peek() != '\n') {
+        if(lex.peek() == '.') {
           lex.get();
           p->tags.push_back(tag);
           tag.clear();
@@ -526,7 +505,7 @@ PatternBuilder::loadLexFile(const string& fname)
         else tag += lex.get();
       }
       p->tags.push_back(tag);
-      if(lex.peek() == L' ') lex.get();
+      if(lex.peek() == ' ') lex.get();
       pat.push_back(vector<PatternElement*>(1, p));
     }
     lex.get();
@@ -535,20 +514,20 @@ PatternBuilder::loadLexFile(const string& fname)
 }
 
 void
-PatternBuilder::write(FILE* output, int longest, vector<pair<int, wstring>> inputBytecode, vector<wstring> outputBytecode)
+PatternBuilder::write(FILE* output, int longest, vector<pair<int, UString>> inputBytecode, vector<UString> outputBytecode)
 {
   Compression::multibyte_write(longest, output);
   Compression::multibyte_write(inputBytecode.size(), output);
   for(unsigned int i = 0; i < inputBytecode.size(); i++)
   {
     Compression::multibyte_write(inputBytecode[i].first, output);
-    Compression::wstring_write(inputBytecode[i].second, output);
+    Compression::string_write(inputBytecode[i].second, output);
   }
 
   Compression::multibyte_write(outputBytecode.size(), output);
   for(unsigned int i = 0; i < outputBytecode.size(); i++)
   {
-    Compression::wstring_write(outputBytecode[i], output);
+    Compression::string_write(outputBytecode[i], output);
   }
 
   Compression::multibyte_write(chunkVarCount, output);
@@ -565,7 +544,7 @@ PatternBuilder::write(FILE* output, int longest, vector<pair<int, wstring>> inpu
   // Find all arcs with "final_symbols" in the transitions, let their source node instead be final,
   // and extract the rule number from the arc. Record relation between source node and rule number
   // in finals_rules. It is now no longer safe to minimize -- but we already did that.
-  const wstring rule_sym_pre = L"<RULE_NUMBER:"; // see countToFinalSymbol()
+  const UString rule_sym_pre = "<RULE_NUMBER:"_u; // see countToFinalSymbol()
   for(map<int, multimap<int, pair<int, double> > >::const_iterator it = transitions.begin(),
         limit = transitions.end(); it != limit; ++it)
   {
@@ -579,7 +558,7 @@ PatternBuilder::write(FILE* output, int longest, vector<pair<int, wstring>> inpu
         continue;
       }
       // Extract the rule number encoded by countToFinalSymbol():
-      wstring s;
+      UString s;
       alphabet.getSymbol(s, symbol);
       if(s.compare(0, rule_sym_pre.size(), rule_sym_pre) != 0) {
         continue;
@@ -610,54 +589,42 @@ PatternBuilder::write(FILE* output, int longest, vector<pair<int, wstring>> inpu
 
   // attr_items
 
-  // precompiled regexps
-  Compression::string_write(string(pcre_version()), output);
+  // empty version number since we're not on PCRE anymore
+  Compression::multibyte_write(0, output);
   Compression::multibyte_write(attr_items.size(), output);
 
-  map<wstring, wstring, Ltstr>::iterator it, limit;
-  for(it = attr_items.begin(), limit = attr_items.end(); it != limit; it++)
-  {
-    Compression::wstring_write(it->first, output);
-    ApertiumRE my_re;
-    my_re.compile(UtfConverter::toUtf8(it->second));
-    my_re.write(output);
-    Compression::wstring_write(it->second, output);
+  for (auto& it : attr_items) {
+    Compression::string_write(it.first, output);
+    Compression::multibyte_write(0, output); // empty binary form of regex
+    Compression::string_write(it.second, output);
   }
 
   // variables
   Compression::multibyte_write(variables.size(), output);
-  for(map<wstring, wstring, Ltstr>::const_iterator it = variables.begin(), limit = variables.end();
-      it != limit; it++)
-  {
-    Compression::wstring_write(it->first, output);
-    Compression::wstring_write(it->second, output);
+  for (auto& it : variables) {
+    Compression::string_write(it.first, output);
+    Compression::string_write(it.second, output);
   }
 
   // lists
   Compression::multibyte_write(lists.size(), output);
-  for(map<wstring, set<wstring, Ltstr>, Ltstr>::const_iterator it = lists.begin(), limit = lists.end();
-      it != limit; it++)
-  {
-    Compression::wstring_write(it->first, output);
-    Compression::multibyte_write(it->second.size(), output);
+  for (auto& it : lists) {
+    Compression::string_write(it.first, output);
+    Compression::multibyte_write(it.second.size(), output);
 
-    for(set<wstring, Ltstr>::const_iterator it2 = it->second.begin(), limit2 = it->second.end();
-  it2 != limit2; it2++)
-    {
-      Compression::wstring_write(*it2, output);
+    for (auto& it2 : it.second) {
+      Compression::string_write(it2, output);
     }
   }
 
   // rule names
   Compression::multibyte_write(inRuleNames.size(), output);
-  for(unsigned int i = 0; i < inRuleNames.size(); i++)
-  {
-    Compression::wstring_write(inRuleNames[i], output);
+  for (auto& name : inRuleNames) {
+    Compression::string_write(name, output);
   }
   Compression::multibyte_write(outRuleNames.size(), output);
-  for(unsigned int i = 0; i < outRuleNames.size(); i++)
-  {
-    Compression::wstring_write(outRuleNames[i], output);
+  for (auto& name : outRuleNames) {
+    Compression::string_write(name, output);
   }
 
 }

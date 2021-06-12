@@ -2,7 +2,7 @@
 #define __RTXCHUNK__
 
 #include <rtx_config.h>
-#include <apertium_re.h>
+#include <apertium/apertium_re.h>
 #include <apertium/string_utils.h>
 
 #include <vector>
@@ -28,10 +28,10 @@ enum TreeMode
 class Chunk
 {
 public:
-  wstring source;
-  wstring target;
-  wstring coref;
-  wstring wblank;
+  UString source;
+  UString target;
+  UString coref;
+  UString wblank;
   bool isBlank;
   bool isJoiner;
   vector<Chunk*> contents;
@@ -40,13 +40,13 @@ public:
   Chunk()
   : isBlank(false), isJoiner(false), rule(-1)
   {}
-  Chunk(wstring blankContent)
+  Chunk(UString blankContent)
   : target(blankContent), isBlank(true), isJoiner(false), rule(-1)
   {}
-  Chunk(wstring src, wstring dest, wstring cor, wstring wbl)
+  Chunk(UString src, UString dest, UString cor, UString wbl)
   : source(src), target(dest), coref(cor), wblank(wbl), isBlank(false), isJoiner(false), rule(-1)
   {}
-  Chunk(wstring dest, vector<Chunk*>& children, int r = -1)
+  Chunk(UString dest, vector<Chunk*>& children, int r = -1)
   : target(dest), isBlank(false), isJoiner(false), contents(children), rule(r)
   {}
   Chunk(Chunk& other) // copy constructor
@@ -100,29 +100,29 @@ public:
     return ret;
   }
   
-  wstring chunkPart(ApertiumRE const &part, const ClipType side);
-  void setChunkPart(ApertiumRE const &part, wstring const &value);
-  vector<wstring> getTags(const vector<wstring>& parentTags);
-  void updateTags(const vector<wstring>& parentTags);
-  void output(const vector<wstring>& parentTags, FILE* out);
-  void output(FILE* out);
-  wstring matchSurface();
+  UString chunkPart(ApertiumRE const &part, const ClipType side);
+  void setChunkPart(ApertiumRE const &part, UString const &value);
+  vector<UString> getTags(const vector<UString>& parentTags);
+  void updateTags(const vector<UString>& parentTags);
+  void output(const vector<UString>& parentTags, UFILE* out);
+  void output(UFILE* out);
+  UString matchSurface();
   void appendChild(Chunk* kid);
   void conjoin(Chunk* other);
-  void writeTree(TreeMode mode, FILE* out);
+  void writeTree(TreeMode mode, UFILE* out);
   
 private:
-  static pair<wstring, wstring> chopString(wstring s);
-  static void writeString(wstring s, FILE* out);
-  void writeTreePlain(FILE* out, int depth);
-  void writeTreeLatex(FILE* out);
-  wstring writeTreeDot(FILE* out);
-  vector<vector<wstring>> writeTreeBox();
+  static pair<UString, UString> chopString(UString s);
+  static void writeString(UString s, UFILE* out);
+  void writeTreePlain(UFILE* out, int depth);
+  void writeTreeLatex(UFILE* out);
+  UString writeTreeDot(UFILE* out);
+  vector<vector<UString>> writeTreeBox();
 };
 
 /**
  * Combines two wordbound blanks and returns it
 */
-wstring combineWblanks(wstring wblank_current, wstring wblank_to_add);
+UString combineWblanks(UString wblank_current, UString wblank_to_add);
 
 #endif

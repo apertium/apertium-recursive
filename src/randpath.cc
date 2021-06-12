@@ -3,18 +3,18 @@
 #include <lttoolbox/alphabet.h>
 #include <lttoolbox/compression.h>
 #include <lttoolbox/lt_locale.h>
-#include <apertium/utf_converter.h>
 #include <random>
 #include <vector>
 #include <string>
 #include <chrono>
+#include <cstring>
 
 using namespace std;
 
 Alphabet A;
 Transducer T;
-wstring prefix;
-vector<pair<int, wstring>> paths;
+UString prefix;
+vector<pair<int, UString>> paths;
 unsigned int donecount = 0;
 
 bool load(FILE* input)
@@ -53,13 +53,7 @@ bool load(FILE* input)
 
   while(len > 0)
   {
-    int len2 = Compression::multibyte_read(input);
-    wstring name = L"";
-    while(len2 > 0)
-    {
-      name += static_cast<wchar_t>(Compression::multibyte_read(input));
-      len2--;
-    }
+    UString name = Compression::string_read(input);
     T.read(input);
     len--;
     return true;
@@ -151,7 +145,7 @@ void generatePaths()
   }
   for(auto s : states)
   {
-    paths.push_back(make_pair(s, L""));
+    paths.push_back(make_pair(s, ""_u));
     followPath(paths.size() - 1);
   }
   while(donecount < paths.size())
@@ -186,7 +180,7 @@ int main(int argc, char *argv[])
     wcerr << "Unable to read transducer." << endl;
     return EXIT_FAILURE;
   }
-  prefix = UtfConverter::fromUtf8(argv[2]);
+  prefix = to_ustring(argv[2]);
   generatePaths();
   if(paths.size() == 0)
   {
@@ -196,6 +190,6 @@ int main(int argc, char *argv[])
   //seed_seq s (prefix.begin(), prefix.end());
   unsigned s = chrono::system_clock::now().time_since_epoch().count();
   minstd_rand0 g (s);
-  wcout << prefix << paths[g() % paths.size()].second << endl;
+  cout << prefix << paths[g() % paths.size()].second << endl;
   return EXIT_SUCCESS;
 }

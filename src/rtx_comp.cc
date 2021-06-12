@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <iostream>
 #include <apertium/string_utils.h>
-#include <apertium/utf_converter.h>
 #include <libgen.h>
 #include <getopt.h>
 #include <libxml/xmlreader.h>

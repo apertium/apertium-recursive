@@ -2,7 +2,6 @@
 #include <rtx_processor.h>
 #include <bytecode.h>
 #include <apertium/trx_reader.h>
-#include <apertium/utf_converter.h>
 #include <lttoolbox/compression.h>
 
 #include <iostream>

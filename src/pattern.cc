@@ -4,7 +4,6 @@
 
 #include <lttoolbox/compression.h>
 #include <apertium/string_utils.h>
-#include <apertium/utf_converter.h>
 #include <lttoolbox/input_file.h>
 
 #include <iostream>

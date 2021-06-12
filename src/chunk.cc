@@ -1,7 +1,6 @@
 #include <rtx_config.h>
 #include <chunk.h>
 #include <apertium/string_utils.h>
-#include <apertium/utf_converter.h>
 
 #include <iostream>
 

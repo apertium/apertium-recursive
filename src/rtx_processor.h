@@ -3,7 +3,6 @@
 
 #include <rtx_config.h>
 #include <apertium/apertium_re.h>
-#include <apertium/utf_converter.h>
 #include <lttoolbox/alphabet.h>
 #include <lttoolbox/buffer.h>
 #include <matcher.h>

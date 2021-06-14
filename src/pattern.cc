@@ -3,7 +3,7 @@
 #include <bytecode.h>
 
 #include <lttoolbox/compression.h>
-#include <apertium/string_utils.h>
+#include <lttoolbox/string_utils.h>
 #include <lttoolbox/input_file.h>
 
 #include <iostream>
@@ -83,7 +83,7 @@ PatternBuilder::insertTags(int const base, const vector<UString>& tags)
     }
     else
     {
-      vector<UString> tgs = StringUtils::split_UString(tags[i], "."_u);
+      vector<UString> tgs = StringUtils::split(tags[i], "."_u);
       for(auto t : tgs)
       {
         UString tg = "<"_u + t + ">"_u;
@@ -508,7 +508,7 @@ PatternBuilder::loadLexFile(const string& fname)
       pat.push_back(vector<PatternElement*>(1, p));
     }
     lex.get();
-    lexicalizations[name].push_back(make_pair(stod(weight), pat));
+    lexicalizations[name].push_back(make_pair(StringUtils::stod(weight), pat));
   }
 }
 
@@ -562,7 +562,7 @@ PatternBuilder::write(FILE* output, int longest, vector<pair<int, UString>> inpu
       if(s.compare(0, rule_sym_pre.size(), rule_sym_pre) != 0) {
         continue;
       }
-      const int rule_num = stoi(s.substr(rule_sym_pre.size()));
+      const int rule_num = StringUtils::stoi(s.substr(rule_sym_pre.size()));
       transducer.setFinal(src);
       finals_rules.insert(make_pair(src, make_pair(rule_num, wgt)));
     }

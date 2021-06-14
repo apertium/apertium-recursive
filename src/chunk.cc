@@ -1,6 +1,6 @@
 #include <rtx_config.h>
 #include <chunk.h>
-#include <apertium/string_utils.h>
+#include <lttoolbox/string_utils.h>
 
 #include <iostream>
 
@@ -109,7 +109,7 @@ Chunk::getTags(const vector<UString>& parentTags)
         {
           if(isNum)
           {
-            unsigned int n = stoi(target.substr(last+1, j-last-1));
+            unsigned int n = StringUtils::stoi(target.substr(last+1, j-last-1));
             if(n != 0 && n <= parentTags.size())
             {
               ret.push_back(parentTags[n-1]);
@@ -157,7 +157,7 @@ Chunk::updateTags(const vector<UString>& parentTags)
         {
           if(isNum)
           {
-            unsigned int n = stoi(target.substr(last+1, j-last-1));
+            unsigned int n = StringUtils::stoi(target.substr(last+1, j-last-1));
             if(n != 0 && n <= parentTags.size())
             {
               result += parentTags[n-1];

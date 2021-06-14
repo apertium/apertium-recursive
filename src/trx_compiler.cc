@@ -8,10 +8,9 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include <apertium/string_utils.h>
-#include <apertium/xml_walk_util.h>
+#include <lttoolbox/string_utils.h>
+#include <lttoolbox/xml_walk_util.h>
 
-using namespace Apertium;
 using namespace std;
 
 TRXCompiler::TRXCompiler()
@@ -143,7 +142,7 @@ TRXCompiler::getPos(xmlNode* node, bool isBlank = false)
       die(node, "Position must be an integer.");
     }
   }
-  int ret = stoi(v);
+  int ret = StringUtils::stoi(v);
   if(inOutput && ret == 0)
   {
     return ret;
@@ -188,7 +187,7 @@ TRXCompiler::processCats(xmlNode* node)
       cur->lemma = getattr(item, "lemma");
       UString tags = requireAttr(item, "tags");
       if(tags.empty()) tags = "UNKNOWN:INTERNAL"_u;
-      cur->tags = StringUtils::split_UString(tags, "."_u);
+      cur->tags = StringUtils::split(tags, "."_u);
       pat.push_back(cur);
     }
     if(patterns.find(pat_name) != patterns.end()) {
@@ -272,7 +271,7 @@ TRXCompiler::gatherMacros(xmlNode* node)
       continue;
     }
     UString name = requireAttr(mac, "n");
-    int npar = stoi(requireAttr(mac, "npar"));
+    int npar = StringUtils::stoi(requireAttr(mac, "npar"));
     if(macros.find(name) != macros.end())
     {
       warn(mac, "Redefinition of macro '%S' - using later definition", name.c_str());
@@ -348,7 +347,7 @@ TRXCompiler::processRules(xmlNode* node)
         }
         if(excludedRules.find(id) == excludedRules.end())
         {
-          PB.addRule(inputRules.size() + 1, (weight.size() > 0 ? stod(weight) : 0.0), pls, StringUtils::split_UString(firstChunk, " "_u), id);
+          PB.addRule(inputRules.size() + 1, (weight.size() > 0 ? StringUtils::stod(weight) : 0.0), pls, StringUtils::split(firstChunk, " "_u), id);
         }
         inputRuleSizes.push_back(pls.size());
       }

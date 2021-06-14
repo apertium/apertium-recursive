@@ -3,7 +3,6 @@
 
 #include <rtx_config.h>
 #include <apertium/apertium_re.h>
-#include <apertium/string_utils.h>
 
 #include <vector>
 #include <string>

@@ -3,6 +3,7 @@
 #include <lttoolbox/lt_locale.h>
 #include <getopt.h>
 #include <libgen.h>
+#include <iostream>
 
 void endProgram(char *name)
 {

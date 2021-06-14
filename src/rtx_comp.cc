@@ -3,13 +3,11 @@
 #include <lttoolbox/lt_locale.h>
 #include <cstdlib>
 #include <iostream>
-#include <apertium/string_utils.h>
 #include <libgen.h>
 #include <getopt.h>
 #include <libxml/xmlreader.h>
 #include <trx_compiler.h>
 
-using namespace Apertium;
 using namespace std;
 
 void endProgram(char *name)

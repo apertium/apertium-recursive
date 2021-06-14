@@ -1,6 +1,6 @@
 #include <rtx_config.h>
 #include <rtx_compiler.h>
-#include <apertium/string_utils.h>
+#include <lttoolbox/string_utils.h>
 
 using namespace std;
 
@@ -255,7 +255,7 @@ RTXCompiler::parseInt()
   {
     ret += getchar();
   }
-  return stoi(ret);
+  return StringUtils::stoi(ret);
 }
 
 float
@@ -269,7 +269,7 @@ RTXCompiler::parseWeight()
   float r;
   try
   {
-    r = stod(ret);
+    r = StringUtils::stod(ret);
   }
   catch(const invalid_argument& ia)
   {

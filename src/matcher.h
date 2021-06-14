@@ -6,6 +6,7 @@
 #include <lttoolbox/alphabet.h>
 #include <chunk.h>
 #include <list>
+#include <cstring>
 
 using namespace std;
 

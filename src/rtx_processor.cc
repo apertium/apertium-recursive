@@ -1,34 +1,17 @@
 #include <rtx_config.h>
 #include <rtx_processor.h>
 #include <bytecode.h>
-#include <apertium/trx_reader.h>
+//#include <apertium/trx_reader.h>
 #include <lttoolbox/compression.h>
 
 #include <iostream>
-#include <apertium/string_utils.h>
+#include <lttoolbox/string_utils.h>
 //#include <apertium/unlocked_cstdio.h>
 
-using namespace Apertium;
 using namespace std;
 
 RTXProcessor::RTXProcessor()
 {
-  furtherInput = true;
-  inword = false;
-  inwblank = false;
-  printingSteps = false;
-  printingRules = false;
-  printingBranches = false;
-  printingAll = false;
-  noCoref = true;
-  isLinear = false;
-  null_flush = false;
-  printingTrees = false;
-  printingText = true;
-  treePrintMode = TreeModeNest;
-  newBranchId = 0;
-  noFilter = true;
-  currentBranch = NULL;
 }
 
 RTXProcessor::~RTXProcessor()
@@ -173,43 +156,6 @@ RTXProcessor::endsWith(UString const &s1, UString const &s2) const
   }
 
   return true;
-}
-
-UString
-RTXProcessor::copycase(UString const &source_word, UString const &target_word)
-{
-  UString result;
-
-  bool firstupper = iswupper(source_word[0]);
-  bool uppercase = firstupper && iswupper(source_word[source_word.size()-1]);
-  bool sizeone = source_word.size() == 1;
-
-  if(!uppercase || (sizeone && uppercase))
-  {
-    if(isLinear)
-    {
-      result = target_word;
-      result[0] = towlower(result[0]);
-    }
-    else result = StringUtils::tolower(target_word);
-  }
-  else
-  {
-    result = StringUtils::toupper(target_word);
-  }
-
-  if(firstupper)
-  {
-    result[0] = towupper(result[0]);
-  }
-
-  return result;
-}
-
-UString
-RTXProcessor::caseOf(UString const &s)
-{
-  return copycase(s, "aa"_u);
 }
 
 inline bool
@@ -789,7 +735,7 @@ RTXProcessor::applyRule(const UString& rule)
         break;
       case GETCASE:
         if(printingSteps) { cerr << "getcase" << endl; }
-        pushStack(caseOf(popString()));
+        pushStack(StringUtils::getcase(popString()));
         if(printingSteps) { cerr << " -> " << theStack[stackIdx].s << endl; }
         break;
       case SETCASE:
@@ -797,7 +743,7 @@ RTXProcessor::applyRule(const UString& rule)
       {
         UString src = popString();
         UString dest = popString();
-        pushStack(copycase(src, dest));
+        pushStack(StringUtils::copycase(src, dest));
       }
         if(printingSteps) { cerr << " -> " << theStack[stackIdx].s << endl; }
         break;
@@ -1038,7 +984,7 @@ RTXProcessor::applyRule(const UString& rule)
 }
 
 Chunk *
-RTXProcessor::readToken(FILE *in)
+RTXProcessor::readToken()
 {
   int pos = 0;
   UString cur;
@@ -1047,12 +993,10 @@ RTXProcessor::readToken(FILE *in)
   UString dest;
   UString coref;
   cur.reserve(256);
-  bool inSquare = false;
   while(true)
   {
-    int val = fgetwc_unlocked(in);
-    if(feof(in) || (null_flush && val == 0))
-    {
+    UChar32 val = infile.get();
+    if (infile.eof() || (null_flush && val == '\0')) {
       furtherInput = false;
       Chunk* ret = chunkPool.next();
       ret->target = cur;
@@ -1062,11 +1006,11 @@ RTXProcessor::readToken(FILE *in)
     else if(val == '\\')
     {
       cur += '\\';
-      cur += wchar_t(fgetwc_unlocked(in));
+      cur += infile.get();
     }
     else if(val == '[' && !inword)
     {
-      val = fgetwc_unlocked(in);
+      val = infile.get();
       
       if(val == '[')
       {
@@ -1078,30 +1022,8 @@ RTXProcessor::readToken(FILE *in)
       }
       else
       {
-        cur += '[';
-        inSquare = true;
-        
-        if(val == '\\')
-        {
-          cur += '\\';
-          cur += static_cast<wchar_t>(fgetwc_unlocked(in));
-        }
-        else
-        {
-          cur += val;
-          if(val == ']')
-          {
-            inSquare = false;
-          }
-        }
-      }
-    }
-    else if(inSquare)
-    {
-      cur += val;
-      if(val == ']')
-      {
-        inSquare = false;
+        infile.unget(val);
+        cur += infile.readBlock('[', ']');
       }
     }
     else if(inwblank)
@@ -1109,22 +1031,22 @@ RTXProcessor::readToken(FILE *in)
       if(val == ']')
       {
         cur += val;
-        val = fgetwc_unlocked(in);
+        val = infile.get();
         
         if(val == '\\')
         {
           cur += '\\';
-          cur += static_cast<wchar_t>(fgetwc_unlocked(in));
+          cur += infile.get();
         }
         else if(val == ']')
         {
           cur += val;
-          val = fgetwc_unlocked(in);
+          val = infile.get();
           
           if(val == '\\')
           {
             cur += '\\';
-            cur += static_cast<wchar_t>(fgetwc_unlocked(in));
+            cur += infile.get();
           }
           else if(val == '^')
           {
@@ -1199,7 +1121,7 @@ RTXProcessor::readToken(FILE *in)
     }
     else
     {
-      cur += wchar_t(val);
+      cur += val;
     }
   }
 }
@@ -1738,7 +1660,7 @@ RTXProcessor::filterParseGraph()
 }
 
 void
-RTXProcessor::processGLR(FILE *in, UFILE *out)
+RTXProcessor::processGLR(UFILE *out)
 {
   int sentenceId = 1;
   if(printingAll && treePrintMode == TreeModeLatex)
@@ -1747,7 +1669,7 @@ RTXProcessor::processGLR(FILE *in, UFILE *out)
   }
   while(furtherInput && inputBuffer.size() < 5)
   {
-    inputBuffer.push_back(readToken(in));
+    inputBuffer.push_back(readToken());
   }
   bool real_printingAll = printingAll;
   while(true)
@@ -1783,7 +1705,7 @@ RTXProcessor::processGLR(FILE *in, UFILE *out)
         next->output(out);
         if(furtherInput)
         {
-          inputBuffer.push_back(readToken(in));
+          inputBuffer.push_back(readToken());
         }
         if(inputBuffer.empty())
         {
@@ -1834,7 +1756,7 @@ RTXProcessor::processGLR(FILE *in, UFILE *out)
         }
       }
     }
-    if(furtherInput) inputBuffer.push_back(readToken(in));
+    if(furtherInput) inputBuffer.push_back(readToken());
     if(filterParseGraph())
     {
       cerr.flush();
@@ -2037,7 +1959,7 @@ RTXProcessor::processTRXLayer(list<Chunk*>& t1x, list<Chunk*>& t2x)
 }
 
 void
-RTXProcessor::processTRX(FILE *in, UFILE *out)
+RTXProcessor::processTRX(UFILE *out)
 {
   list<Chunk*> t1x;
   list<Chunk*> t2x;
@@ -2046,7 +1968,7 @@ RTXProcessor::processTRX(FILE *in, UFILE *out)
   {
     while(furtherInput && t1x.size() < 2*longestPattern)
     {
-      t1x.push_back(readToken(in));
+      t1x.push_back(readToken());
     }
     if(furtherInput)
     {
@@ -2123,18 +2045,19 @@ RTXProcessor::process(FILE* in, UFILE* out)
     cerr << "\\usepackage[cm]{fullpage}" << endl << endl;
     cerr << "\\begin{document}" << endl << endl;
   }
+  infile.wrap(in);
   if(null_flush)
   {
-    while(!feof(in))
+    while(!infile.eof())
     {
       furtherInput = true;
       if(isLinear)
       {
-        processTRX(in, out);
+        processTRX(out);
       }
       else
       {
-        processGLR(in, out);
+        processGLR(out);
       }
       u_fputc('\0', out);
       u_fflush(out);
@@ -2150,11 +2073,11 @@ RTXProcessor::process(FILE* in, UFILE* out)
   }
   else if(isLinear)
   {
-    processTRX(in, out);
+    processTRX(out);
   }
   else
   {
-    processGLR(in, out);
+    processGLR(out);
   }
   if(printingAll && treePrintMode == TreeModeLatex)
   {

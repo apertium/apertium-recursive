@@ -4,12 +4,11 @@
 #include <rtx_config.h>
 #include <apertium/apertium_re.h>
 #include <lttoolbox/alphabet.h>
-#include <lttoolbox/buffer.h>
 #include <matcher.h>
 #include <chunk.h>
 #include <pool.h>
+#include <lttoolbox/input_file.h>
 
-#include <cstring>
 #include <cstdio>
 #include <map>
 #include <set>
@@ -112,7 +111,7 @@ private:
   /**
    * false if EOF or \0 has been reached in the input stream, true otherwise
    */
-  bool furtherInput;
+  bool furtherInput = true;
 
   /**
    * The stack used by the virtual machine
@@ -209,7 +208,7 @@ private:
    * Branch of parseGraph currently being operated on
    * Needed by applyRule() for FETCHCHUNK and SETCHUNK
    */
-  ParseNode* currentBranch;
+  ParseNode* currentBranch = nullptr;
 
   //////////
   // SETTINGS
@@ -217,112 +216,85 @@ private:
 
   /**
    * true if the next input token should be parsed as an LU, false otherwise
-   * Initial value: false
    */
-  bool inword;
+  bool inword = false;
   
   /**
    * true if the next input token should be parsed as a wordbound blank, false otherwise
-   * Initial value: false
    */
-  bool inwblank;
+  bool inwblank = false;
 
   /**
    * Whether output should flush on \0
-   * Default: false
    */
-  bool null_flush;
+  bool null_flush = false;
 
   /**
    * If true, each instruction of virtual machine will be printed to wcerr
-   * Default: false
    */
-  bool printingSteps;
+  bool printingSteps = false;
 
   /**
    * If true, each rule that is applied will be printed to wcerr
-   * Default: false
    */
-  bool printingRules;
+  bool printingRules = false;
 
   /**
    * If true, each action of filterParseGraph() will be logged to wcerr
-   * Default: false
    */
-  bool printingBranches;
+  bool printingBranches = false;
 
   /**
    * If true, produce a full report, similar to (printingRules && printingBranches)
    * Affected by treePrintMode
-   * Default: false
    */
-  bool printingAll;
+  bool printingAll = false;
 
   /**
    * false if input comes from apertium-anaphora, true otherwise
-   * Default: true
    */
-  bool noCoref;
+  bool noCoref = true;
 
   /**
    * true if rule application should mimic the chunker-interchunk-postchunk
    * pipeline, false otherwise
-   * Default: false
    */
-  bool isLinear;
+  bool isLinear = false;
 
   /**
    * If true, parse tree will be printed according to treePrintMode
    * before output-time rules are applied
-   * Default: false
    */
-  bool printingTrees;
+  bool printingTrees = false;
 
   /**
    * If false, output-time rules will not be applied and linear output
    * will not be produced
-   * Default: true
    */
-  bool printingText;
+  bool printingText = true;
 
   /**
    * Manner in which to print trees
    * Set by setOutputMode()
    * Enum defined in chunk.h
-   * Default: TreeModeNest
    */
-  TreeMode treePrintMode;
+  TreeMode treePrintMode = TreeModeNest;
 
   /**
    * Counter used to give distinct, consistent identifiers to ParseNodes
    * for tracing purposes
    */
-  int newBranchId;
+  int newBranchId = 0;
 
   /**
    * If this is set to true, filterParseGraph() will only discard branches
    * on parse error
    */
-  bool noFilter;
+  bool noFilter = true;
 
   //////////
   // VIRTUAL MACHINE
   //////////
-
-  /**
-   * Determine capitalization of a string
-   * @param str - input string
-   * @return L"AA", L"Aa", or L"aa"
-   */
-  UString caseOf(UString const &str);
-
-  /**
-   * Produce a version of target_word with the case of source_word
-   * @param source_word - source of case
-   * @param target_word - source of content
-   * @return generated string
-   */
-  UString copycase(UString const &source_word, UString const &target_word);
 
   /**
    * Return whether str1 begins with str2
@@ -411,13 +383,15 @@ private:
   // RULE SELECTION AND I/O
   //////////
 
+  InputFile infile;
+
   /**
    * Read an LU or a blank
    * Modifies: furtherInput
    * @param in - input stream
    * @return pointer to token read
    */
-  Chunk* readToken(FILE *in);
+  Chunk* readToken();
 
   bool lookahead(ParseNode* node);
 
@@ -451,7 +425,7 @@ private:
    * Process input as a GLR parser
    * Read input, call checkForReduce(), call filterParseGraph(), call outputAll()
    */
-  void processGLR(FILE* in, UFILE* out);
+  void processGLR(UFILE* out);
 
   /**
    * Apply longest rule matching the beginning of t1x and append the result to t2x
@@ -462,7 +436,7 @@ private:
    * Mimic apertium-transfer | apertium-interchunk | apertium-postchunk
    * Read input, call processTRXLayer twice, apply output-time rules, output
    */
-  void processTRX(FILE* in, UFILE* out);
+  void processTRX(UFILE* out);
   
   /**
    * True if clipping lem/lemh/whole

@@ -324,13 +324,14 @@ Chunk::writeTree(TreeMode mode, UFILE* out)
         if(rt > 16) writeString(UString(rt - 16, ' '), out);
       }
       writeString("\n"_u, out);
-      writeString(UString(tr, (UChar)L'─') + " "_u, out);
-      writeString(UString(sl, (UChar)L'─') + " "_u, out);
-      writeString(UString(st, (UChar)L'─') + " "_u, out);
-      writeString(UString(tl, (UChar)L'─') + " "_u, out);
-      writeString(UString(tt, (UChar)L'─'), out);
-      if(doCoref) writeString(" "_u + UString(rl, (UChar)L'─'), out);
-      if(doCoref) writeString(" "_u + UString(rt, (UChar)L'─'), out);
+      UChar dash = u'\u2500'; // '─'
+      writeString(UString(tr, dash) + " "_u, out);
+      writeString(UString(sl, dash) + " "_u, out);
+      writeString(UString(st, dash) + " "_u, out);
+      writeString(UString(tl, dash) + " "_u, out);
+      writeString(UString(tt, dash), out);
+      if(doCoref) writeString(" "_u + UString(rl, dash), out);
+      if(doCoref) writeString(" "_u + UString(rt, dash), out);
       writeString("\n"_u, out);
       for(unsigned int i = 0; i < tree.size(); i++)
       {
@@ -546,7 +547,7 @@ Chunk::writeTreeBox()
     }
     if(tree.size() == 1)
     {
-      tree[0][0] = (UChar)L'─' + tree[0][0];
+      tree[0][0] = u'\u2500' + tree[0][0]; // '─'
       return tree;
     }
     unsigned int center = tree.size() / 2;
@@ -577,25 +578,36 @@ Chunk::writeTreeBox()
         {
           switch(tree[i][0][0])
           {
-          case (UChar)L'│': tree[i][0][0] = (UChar)L'┤'; break;
-          case (UChar)L'├': tree[i][0][0] = (UChar)L'┼'; break;
-          case (UChar)L'┌': tree[i][0][0] = (UChar)L'┬'; break;
-          case (UChar)L'└': tree[i][0][0] = (UChar)L'┴'; break;
-            default: break;
+          case u'\u2502': // '│'
+            tree[i][0][0] = u'\u2524'; break; // '┤'
+          case u'\u251c': // '├'
+            tree[i][0][0] = u'\u253c'; break; // '┼'
+          case u'\u250c': // '┌'
+            tree[i][0][0] = u'\u252c'; break; // '┬'
+          case u'\u2514': // '└'
+            tree[i][0][0] = u'\u2534'; break; // '┴'
+          default: break;
           }
         }
-        tree[i][0] = UString(len - sz, (UChar)L'─') + tree[i][0];
+        tree[i][0] = UString(len - sz, u'\u2500') + tree[i][0]; // '─'
       }
-      if(i < firstLine || i > lastLine) tree[i][0] = (UChar)L' ' + tree[i][0];
-      else if(i == firstLine && i == lastLine) {
-        tree[i][0] = (UChar)L'─' + tree[i][0];
-      } else if(i == firstLine) tree[i][0] = (UChar)L'┌' + tree[i][0];
-      else if(i > firstLine && i < lastLine)
-      {
-        if(lines.count(i) == 0) tree[i][0] = (UChar)L'│' + tree[i][0];
-        else tree[i][0] = (UChar)L'├' + tree[i][0];
+      UChar prefix = ' ';
+      if (i > firstLine && i < lastLine) {
+        if (lines.count(i) == 0) {
+          prefix = u'\u2502'; // '│'
+        } else {
+          prefix = u'\u251c'; // '├'
+        }
+      } else if (i == firstLine) {
+        if (i == lastLine) {
+          prefix = u'\u2500'; // '─'
+        } else {
+          prefix = u'\u250c'; // '┌'
+        }
+      } else if (i == lastLine) {
+        prefix = u'\u2514'; // '└'
       }
-      else if(i == lastLine) tree[i][0] = (UChar)L'└' + tree[i][0];
+      tree[i][0] = prefix + tree[i][0];
     }
     return tree;
   }

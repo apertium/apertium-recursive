@@ -657,9 +657,9 @@ TRXCompiler::processValue(xmlNode* node)
       ret += DROP;
       ret += STRING;
       ret += (UChar)(link.size() + 2);
-      ret += L'<';
+      ret += '<';
       ret += link;
-      ret += L'>';
+      ret += '>';
     }
     // TODO: what does attribute "queue" do?
   }

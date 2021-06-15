@@ -392,7 +392,7 @@ private:
   /**
    * Convert a string to an operator
    * @param op - the string from the rule
-   * @return bytecode for corresponding operation or L'\0' if not found
+   * @return bytecode for corresponding operation or '\0' if not found
    */
   UChar lookupOperator(UString op);
 

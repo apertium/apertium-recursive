@@ -91,14 +91,14 @@ void followPath(int idx)
     {
       paths.push_back(make_pair(ops[i].second, paths[idx].second));
       A.getSymbol(paths.back().second, ops[i].first);
-      if(paths.back().second.size() > 0 && paths.back().second.back() == L'+')
+      if(paths.back().second.size() > 0 && paths.back().second.back() == '+')
       {
         paths.pop_back();
       }
     }
     state = ops[0].second;
     A.getSymbol(paths[idx].second, ops[0].first);
-    if(paths[idx].second.size() > 0 && paths[idx].second.back() == L'+')
+    if(paths[idx].second.size() > 0 && paths[idx].second.back() == '+')
     {
       paths.erase(paths.begin() + idx);
       return;
@@ -114,12 +114,12 @@ void generatePaths()
   for(unsigned int i = 0; i < prefix.size(); i++)
   {
     int sym = prefix[i];
-    int sym2 = towlower(prefix[i]);
-    if(prefix[i] == L'<')
+    int sym2 = u_tolower(prefix[i]);
+    if(prefix[i] == '<')
     {
       for(unsigned int j = i+1; j < prefix.size(); j++)
       {
-        if(prefix[j] == L'>')
+        if(prefix[j] == '>')
         {
           sym = A(prefix.substr(i, j-i+1));
           i = j;
@@ -166,25 +166,25 @@ int main(int argc, char *argv[])
   LtLocale::tryToSetLocale();
   if(argc != 3)
   {
-    wcerr << "Usage: " << argv[0] << " transducer prefix" << endl;
+    cerr << "Usage: " << argv[0] << " transducer prefix" << endl;
     return EXIT_FAILURE;
   }
   FILE* tf = fopen(argv[1], "rb");
   if(tf == NULL)
   {
-    wcerr << "Unable to open " << argv[1] << " for reading." << endl;
+    cerr << "Unable to open " << argv[1] << " for reading." << endl;
     return EXIT_FAILURE;
   }
   if(!load(tf))
   {
-    wcerr << "Unable to read transducer." << endl;
+    cerr << "Unable to read transducer." << endl;
     return EXIT_FAILURE;
   }
   prefix = to_ustring(argv[2]);
   generatePaths();
   if(paths.size() == 0)
   {
-    wcerr << "No paths begin with that prefix." << endl;
+    cerr << "No paths begin with that prefix." << endl;
     return EXIT_FAILURE;
   }
   //seed_seq s (prefix.begin(), prefix.end());

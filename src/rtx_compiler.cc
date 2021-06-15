@@ -136,8 +136,7 @@ RTXCompiler::nextTokenNoSpace()
   UChar c = getchar();
   UChar next = peekchar();
   UString ret;
-  if(c == (UChar)L'→')
-  {
+  if (c == u'\u2192') { // '→'
     ret = "->"_u;
   }
   else if(SPECIAL_CHARS.find(c) != string::npos)

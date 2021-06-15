@@ -1472,7 +1472,12 @@ RTXProcessor::writeBlank(UFILE* out)
   blank->target = blankQueue.front();
   blankQueue.pop_front();
   blank->isBlank = true;
-  blank->output(out);
+  if (printingText) {
+    blank->output(out);
+  }
+  if (printingTrees) {
+    blank->writeTree(treePrintMode, out);
+  }
 }
 
 bool
@@ -1702,7 +1707,12 @@ RTXProcessor::processGLR(UFILE *out)
       // skip parseGraph stuff if a blank is the only thing being processed
       if(next->isBlank)
       {
-        next->output(out);
+        if (printingText) {
+          next->output(out);
+        }
+        if (printingTrees) {
+          next->writeTree(treePrintMode, out);
+        }
         if(furtherInput)
         {
           inputBuffer.push_back(readToken());

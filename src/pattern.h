@@ -95,38 +95,13 @@ private:
   /**
    * Build complete path
    */
-  void addPattern(vector<vector<PatternElement*>> pat, int rule, double weight, bool isLex);
+  void addPattern(const vector<vector<PatternElement*>>& pat, int rule, double weight, bool isLex);
 
   void buildLookahead();
 
   bool isPrefix(const vector<vector<PatternElement*>>& rule, const vector<vector<PatternElement*>>& prefix);
 
   void buildFallback();
-
-  //////////
-  // ATTRIBUTE COMPRESSION
-  //////////
-
-  struct TrieNode
-  {
-    wchar_t self;
-    vector<TrieNode*> next;
-  };
-
-  /**
-   * Construct tries for a set of inputs, return one for each initial character
-   */
-  vector<TrieNode*> buildTrie(vector<UString> parts);
-
-  /**
-   * Convert trie to regex
-   */
-  UString unbuildTrie(TrieNode* t);
-
-  /**
-   * Wrapper around buildTrie() and unbuildTrie()
-   */
-  UString trie(vector<UString> parts);
 
 public:
 
@@ -137,14 +112,13 @@ public:
   // false: * = 1 or more tags, true: * = 0 or more tags
   /**
    * If false, L"*" must match at least one tag, otherwise it can match 0
-   * Default: false
    */
-  bool starCanBeEmpty;
+  bool starCanBeEmpty = false;
 
   /**
    * Number of global Chunk* variables to allocate space for
    */
-  unsigned int chunkVarCount;
+  unsigned int chunkVarCount = 0;
 
   /**
    * Debug names for input-time rules
@@ -158,11 +132,11 @@ public:
 
   PatternBuilder();
 
-  void addRule(int rule, double weight, vector<vector<PatternElement*>> pattern, vector<UString> firstChunk, UString name);
-  void addList(UString name, set<UString> vals);
-  void addAttr(UString name, set<UString> vals);
-  bool isAttrDefined(UString name);
-  void addVar(UString name, UString val);
+  void addRule(int rule, double weight, const vector<vector<PatternElement*>>& pattern, const vector<UString>& firstChunk, const UString& name);
+  void addList(const UString& name, const set<UString>& vals);
+  void addAttr(const UString& name, const set<UString>& vals);
+  bool isAttrDefined(const UString& name);
+  void addVar(const UString& name, const UString& val);
   void loadLexFile(const string& fname);
   void write(FILE* output, int longest, vector<pair<int, UString>> inputBytecode, vector<UString> outputBytecode);
 

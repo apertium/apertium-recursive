@@ -78,7 +78,7 @@ RTXProcessor::read(string const &filename)
     UString fallback = Compression::string_read(in);
     if (recompile_attrs && cad_k == "chname"_u) {
       // chname was previously "({([^/]+)\\/)"
-      // which is fine for PCRE, but ICU chokes on the unmatched bracket
+      // which was fine for PCRE, but ICU chokes on the unmatched bracket
       fallback = "(\\{([^/]+)\\/)"_u;
     }
     attr_items[cad_k].compile(fallback);

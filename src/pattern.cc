@@ -5,6 +5,7 @@
 #include <lttoolbox/compression.h>
 #include <lttoolbox/string_utils.h>
 #include <lttoolbox/input_file.h>
+#include <apertium/transfer_regex.h>
 
 #include <iostream>
 #include <fstream>
@@ -25,8 +26,6 @@ PatternBuilder::PatternBuilder()
   attr_items["chcontent"_u] = "(\\{.+)"_u;
   attr_items["content"_u] = "(\\{.+)"_u;
   attr_items["pos_tag"_u] = "(<[^>]+>)"_u;
-  starCanBeEmpty = false;
-  chunkVarCount = 0;
 }
 
 int
@@ -105,99 +104,8 @@ PatternBuilder::countToFinalSymbol(const int count)
   return symbol;
 }
 
-vector<PatternBuilder::TrieNode*>
-PatternBuilder::buildTrie(vector<UString> parts)
-{
-  vector<TrieNode*> ret;
-  vector<vector<UString>> p2;
-  for(auto p : parts)
-  {
-    if(p.size() == 0) continue;
-    bool found = false;
-    for(unsigned int t = 0; t < p2.size(); t++)
-    {
-      if(ret[t]->self == p[0])
-      {
-        p2[t].push_back(p.substr(1));
-        found = true;
-        break;
-      }
-    }
-    if(!found)
-    {
-      TrieNode* t = new TrieNode;
-      t->self = p[0];
-      ret.push_back(t);
-      p2.push_back(vector<UString>(1, p.substr(1)));
-    }
-  }
-  for(unsigned int i = 0; i < ret.size(); i++)
-  {
-    ret[i]->next = buildTrie(p2[i]);
-  }
-  return ret;
-}
-
-UString
-PatternBuilder::unbuildTrie(PatternBuilder::TrieNode* t)
-{
-  if(t->self == '\0') return ""_u;
-  UString single;
-  bool end = false;
-  vector<UString> groups;
-  int ct = t->next.size();
-  for(auto it : t->next)
-  {
-    UString blob = unbuildTrie(it);
-    if(blob.size() == 0)
-    {
-      end = true;
-      ct--;
-    }
-    else if(blob.size() == 1)
-    {
-      if(single.size() > 0) ct--;
-      single += blob;
-    }
-    else groups.push_back(blob);
-  }
-  UString ret;
-  if(t->self == '#') ret += '\\';
-  ret += t->self;
-  if(single.size() == 0 && groups.size() == 0) return ret;
-  if(single.size() > 1) single = "["_u + single + "]"_u;
-  if(ct > 1 || (groups.size() == 1 && end)) ret += "(?:"_u;
-  for(unsigned int i = 0; i < groups.size(); i++)
-  {
-    if(i > 0) ret += '|';
-    ret += groups[i];
-  }
-  if(single.size() > 0)
-  {
-    if(groups.size() > 0) ret += '|';
-    ret += single;
-  }
-  if(ct > 1 || (groups.size() == 1 && end)) ret += ')';
-  if(end) ret += '?';
-  return ret;
-}
-
-UString
-PatternBuilder::trie(vector<UString> parts)
-{
-  if(parts.size() == 0) return ""_u;
-  for(unsigned int i = 0; i < parts.size(); i++)
-  {
-    parts[i] = "<"_u + parts[i];
-    parts[i] += '\0';
-  }
-  vector<TrieNode*> l = buildTrie(parts);
-  // they all start with '<', so there will only be 1.
-  return "("_u + unbuildTrie(l[0]) + ">)"_u;
-}
-
 void
-PatternBuilder::addPattern(vector<vector<PatternElement*>> pat, int rule, double weight, bool isLex)
+PatternBuilder::addPattern(const vector<vector<PatternElement*>>& pat, int rule, double weight, bool isLex)
 {
   int state = transducer.getInitial();
   for(unsigned int p = 0; p < pat.size(); p++)
@@ -233,7 +141,7 @@ PatternBuilder::addPattern(vector<vector<PatternElement*>> pat, int rule, double
 }
 
 void
-PatternBuilder::addRule(int rule, double weight, vector<vector<PatternElement*>> pattern, vector<UString> firstChunk, UString name)
+PatternBuilder::addRule(int rule, double weight, const vector<vector<PatternElement*>>& pattern, const vector<UString>& firstChunk, const UString& name)
 {
   rules[rule] = make_pair(firstChunk, pattern);
   addPattern(pattern, rule, weight, false);
@@ -254,33 +162,27 @@ PatternBuilder::addRule(int rule, double weight, vector<vector<PatternElement*>>
 }
 
 void
-PatternBuilder::addList(UString name, set<UString> vals)
+PatternBuilder::addList(const UString& name, const set<UString>& vals)
 {
   lists[name] = vals;
 }
 
 void
-PatternBuilder::addAttr(UString name, set<UString> vals)
+PatternBuilder::addAttr(const UString& name, const set<UString>& vals)
 {
   vector<UString> pat;
-  for(auto it : vals)
-  {
-    UString p = StringUtils::substitute(it, "\\."_u, "<>"_u);
-    p = StringUtils::substitute(p, "."_u, "><"_u);
-    pat.push_back(StringUtils::substitute(p, "<>"_u, "\\."_u));
-  }
-  UString pt = trie(pat);
-  attr_items[name] = pt;
+  pat.assign(vals.begin(), vals.end());
+  attr_items[name] = optimize_regex(pat);
 }
 
 bool
-PatternBuilder::isAttrDefined(UString name)
+PatternBuilder::isAttrDefined(const UString& name)
 {
   return attr_items.find(name) != attr_items.end();
 }
 
 void
-PatternBuilder::addVar(UString name, UString val)
+PatternBuilder::addVar(const UString& name, const UString& val)
 {
   variables[name] = val;
 }

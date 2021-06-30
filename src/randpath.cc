@@ -3,18 +3,18 @@
 #include <lttoolbox/alphabet.h>
 #include <lttoolbox/compression.h>
 #include <lttoolbox/lt_locale.h>
-#include <apertium/utf_converter.h>
 #include <random>
 #include <vector>
 #include <string>
 #include <chrono>
+#include <cstring>
 
 using namespace std;
 
 Alphabet A;
 Transducer T;
-wstring prefix;
-vector<pair<int, wstring>> paths;
+UString prefix;
+vector<pair<int, UString>> paths;
 unsigned int donecount = 0;
 
 bool load(FILE* input)
@@ -53,13 +53,7 @@ bool load(FILE* input)
 
   while(len > 0)
   {
-    int len2 = Compression::multibyte_read(input);
-    wstring name = L"";
-    while(len2 > 0)
-    {
-      name += static_cast<wchar_t>(Compression::multibyte_read(input));
-      len2--;
-    }
+    UString name = Compression::string_read(input);
     T.read(input);
     len--;
     return true;
@@ -97,14 +91,14 @@ void followPath(int idx)
     {
       paths.push_back(make_pair(ops[i].second, paths[idx].second));
       A.getSymbol(paths.back().second, ops[i].first);
-      if(paths.back().second.size() > 0 && paths.back().second.back() == L'+')
+      if(paths.back().second.size() > 0 && paths.back().second.back() == '+')
       {
         paths.pop_back();
       }
     }
     state = ops[0].second;
     A.getSymbol(paths[idx].second, ops[0].first);
-    if(paths[idx].second.size() > 0 && paths[idx].second.back() == L'+')
+    if(paths[idx].second.size() > 0 && paths[idx].second.back() == '+')
     {
       paths.erase(paths.begin() + idx);
       return;
@@ -120,12 +114,12 @@ void generatePaths()
   for(unsigned int i = 0; i < prefix.size(); i++)
   {
     int sym = prefix[i];
-    int sym2 = towlower(prefix[i]);
-    if(prefix[i] == L'<')
+    int sym2 = u_tolower(prefix[i]);
+    if(prefix[i] == '<')
     {
       for(unsigned int j = i+1; j < prefix.size(); j++)
       {
-        if(prefix[j] == L'>')
+        if(prefix[j] == '>')
         {
           sym = A(prefix.substr(i, j-i+1));
           i = j;
@@ -151,7 +145,7 @@ void generatePaths()
   }
   for(auto s : states)
   {
-    paths.push_back(make_pair(s, L""));
+    paths.push_back(make_pair(s, ""_u));
     followPath(paths.size() - 1);
   }
   while(donecount < paths.size())
@@ -172,30 +166,30 @@ int main(int argc, char *argv[])
   LtLocale::tryToSetLocale();
   if(argc != 3)
   {
-    wcerr << "Usage: " << argv[0] << " transducer prefix" << endl;
+    cerr << "Usage: " << argv[0] << " transducer prefix" << endl;
     return EXIT_FAILURE;
   }
   FILE* tf = fopen(argv[1], "rb");
   if(tf == NULL)
   {
-    wcerr << "Unable to open " << argv[1] << " for reading." << endl;
+    cerr << "Unable to open " << argv[1] << " for reading." << endl;
     return EXIT_FAILURE;
   }
   if(!load(tf))
   {
-    wcerr << "Unable to read transducer." << endl;
+    cerr << "Unable to read transducer." << endl;
     return EXIT_FAILURE;
   }
-  prefix = UtfConverter::fromUtf8(argv[2]);
+  prefix = to_ustring(argv[2]);
   generatePaths();
   if(paths.size() == 0)
   {
-    wcerr << "No paths begin with that prefix." << endl;
+    cerr << "No paths begin with that prefix." << endl;
     return EXIT_FAILURE;
   }
   //seed_seq s (prefix.begin(), prefix.end());
   unsigned s = chrono::system_clock::now().time_since_epoch().count();
   minstd_rand0 g (s);
-  wcout << prefix << paths[g() % paths.size()].second << endl;
+  cout << prefix << paths[g() % paths.size()].second << endl;
   return EXIT_SUCCESS;
 }

@@ -3,6 +3,7 @@
 #include <lttoolbox/lt_locale.h>
 #include <getopt.h>
 #include <libgen.h>
+#include <iostream>
 
 void endProgram(char *name)
 {
@@ -147,23 +148,24 @@ int main(int argc, char *argv[])
 
   p.read(argv[optind]);
 
-  FILE *input = stdin, *output = stdout;
+  FILE *input = stdin;
+  UFILE* output = u_finit(stdout, NULL, NULL);
 
   if(optind <= (argc - 2))
   {
     input = fopen(argv[optind+1], "rb");
     if(input == NULL)
     {
-      wcerr << "Unable to open " << argv[optind+1] << " for reading." << endl;
+      cerr << "Unable to open " << argv[optind+1] << " for reading." << endl;
       exit(EXIT_FAILURE);
     }
   }
   if(optind <= (argc - 3))
   {
-    output = fopen(argv[optind+2], "wb");
+    output = u_fopen(argv[optind+2], "w", NULL, NULL);
     if(input == NULL)
     {
-      wcerr << "Unable to open " << argv[optind+2] << " for writing." << endl;
+      cerr << "Unable to open " << argv[optind+2] << " for writing." << endl;
       exit(EXIT_FAILURE);
     }
   }
@@ -171,6 +173,6 @@ int main(int argc, char *argv[])
   p.process(input, output);
 
   fclose(input);
-  fclose(output);
+  u_fclose(output);
   return EXIT_SUCCESS;
 }

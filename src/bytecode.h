@@ -2,104 +2,105 @@
 #define __RTXBYTECODE__
 
 #include <rtx_config.h>
+#include <unicode/uchar.h>
 
 // Stack Operations
 
-static const wchar_t DROP = L'd';
-static const wchar_t DUP  = L'*';
-static const wchar_t OVER = L'o';
-static const wchar_t SWAP = L'w';
+static const UChar DROP = 'd';
+static const UChar DUP  = '*';
+static const UChar OVER = 'o';
+static const UChar SWAP = 'w';
 
 // Literals
 
-static const wchar_t STRING    = L's';
-static const wchar_t INT       = L'i';
-static const wchar_t PUSHFALSE = L'f';
-static const wchar_t PUSHTRUE  = L't';
-static const wchar_t PUSHNULL  = L'0';
+static const UChar STRING    = 's';
+static const UChar INT       = 'i';
+static const UChar PUSHFALSE = 'f';
+static const UChar PUSHTRUE  = 't';
+static const UChar PUSHNULL  = '0';
 
 // Jumps
 
-static const wchar_t JUMP        = L'j';
-static const wchar_t JUMPONTRUE  = L'J';
-static const wchar_t JUMPONFALSE = L'?';
+static const UChar JUMP        = 'j';
+static const UChar JUMPONTRUE  = 'J';
+static const UChar JUMPONFALSE = '?';
 
 // Logical Operators
 
-static const wchar_t AND = L'&';
-static const wchar_t OR  = L'|';
-static const wchar_t NOT = L'!';
+static const UChar AND = '&';
+static const UChar OR  = '|';
+static const UChar NOT = '!';
 
 // String Comparisons
 
-static const wchar_t EQUAL       = L'=';
-static const wchar_t ISPREFIX    = L'(';
-static const wchar_t ISSUFFIX    = L')';
-static const wchar_t ISSUBSTRING = L'c';
+static const UChar EQUAL       = '=';
+static const UChar ISPREFIX    = '(';
+static const UChar ISSUFFIX    = ')';
+static const UChar ISSUBSTRING = 'c';
 
 // Caseless String Comparisons
 
-static const wchar_t EQUALCL       = L'q';
-static const wchar_t ISPREFIXCL    = L'p';
-static const wchar_t ISSUFFIXCL    = L'u';
-static const wchar_t ISSUBSTRINGCL = L'r';
+static const UChar EQUALCL       = 'q';
+static const UChar ISPREFIXCL    = 'p';
+static const UChar ISSUFFIXCL    = 'u';
+static const UChar ISSUBSTRINGCL = 'r';
 
 // List Comparisons
 
-static const wchar_t HASPREFIX = L'[';
-static const wchar_t HASSUFFIX = L']';
-static const wchar_t IN        = L'n';
+static const UChar HASPREFIX = '[';
+static const UChar HASSUFFIX = ']';
+static const UChar IN        = 'n';
 
 // Caseless List Comparisons
 
-static const wchar_t HASPREFIXCL = L'{';
-static const wchar_t HASSUFFIXCL = L'}';
-static const wchar_t INCL        = L'N';
+static const UChar HASPREFIXCL = '{';
+static const UChar HASSUFFIXCL = '}';
+static const UChar INCL        = 'N';
 
 // Case Operations
 
-static const wchar_t GETCASE = L'a';
-static const wchar_t SETCASE = L'A';
+static const UChar GETCASE = 'a';
+static const UChar SETCASE = 'A';
 
 // Variables
 
-static const wchar_t FETCHVAR   = L'v';
-static const wchar_t SETVAR     = L'$';
-static const wchar_t FETCHCHUNK = L'5';
-static const wchar_t SETCHUNK   = L'6';
+static const UChar FETCHVAR   = 'v';
+static const UChar SETVAR     = '$';
+static const UChar FETCHCHUNK = '5';
+static const UChar SETCHUNK   = '6';
 
 // Clips
 
-static const wchar_t SOURCECLIP    = L'S';
-static const wchar_t TARGETCLIP    = L'T';
-static const wchar_t REFERENCECLIP = L'R';
-static const wchar_t SETCLIP       = L'>';
+static const UChar SOURCECLIP    = 'S';
+static const UChar TARGETCLIP    = 'T';
+static const UChar REFERENCECLIP = 'R';
+static const UChar SETCLIP       = '>';
 
 // Chunks
 
-static const wchar_t CHUNK             = L'C';
-static const wchar_t APPENDCHILD       = L'1';
-static const wchar_t APPENDSURFACE     = L'2';
-static const wchar_t APPENDALLCHILDREN = L'3';
-static const wchar_t APPENDALLINPUT    = L'4';
-static const wchar_t PUSHINPUT         = L'7';
-static const wchar_t APPENDSURFACESL   = L'8';
-static const wchar_t APPENDSURFACEREF  = L'9';
+static const UChar CHUNK             = 'C';
+static const UChar APPENDCHILD       = '1';
+static const UChar APPENDSURFACE     = '2';
+static const UChar APPENDALLCHILDREN = '3';
+static const UChar APPENDALLINPUT    = '4';
+static const UChar PUSHINPUT         = '7';
+static const UChar APPENDSURFACESL   = '8';
+static const UChar APPENDSURFACEREF  = '9';
 
 // Output
 
-static const wchar_t OUTPUT    = L'<';
-static const wchar_t BLANK     = L'b';
-static const wchar_t OUTPUTALL = L'@';
-static const wchar_t CONJOIN   = L'+';
+static const UChar OUTPUT    = '<';
+static const UChar BLANK     = 'b';
+static const UChar OUTPUTALL = '@';
+static const UChar CONJOIN   = '+';
 
 // Other
 
-static const wchar_t CONCAT     = L'-';
-static const wchar_t REJECTRULE = L'X';
-static const wchar_t DISTAG     = L'D';
-static const wchar_t GETRULE    = L'^';
-static const wchar_t SETRULE    = L'%';
-static const wchar_t LUCOUNT    = L'#';
+static const UChar CONCAT     = '-';
+static const UChar REJECTRULE = 'X';
+static const UChar DISTAG     = 'D';
+static const UChar GETRULE    = '^';
+static const UChar SETRULE    = '%';
+static const UChar LUCOUNT    = '#';
 
 #endif

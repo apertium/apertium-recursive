@@ -3,14 +3,11 @@
 #include <lttoolbox/lt_locale.h>
 #include <cstdlib>
 #include <iostream>
-#include <apertium/string_utils.h>
-#include <apertium/utf_converter.h>
 #include <libgen.h>
 #include <getopt.h>
 #include <libxml/xmlreader.h>
 #include <trx_compiler.h>
 
-using namespace Apertium;
 using namespace std;
 
 void endProgram(char *name)
@@ -51,7 +48,7 @@ int main(int argc, char *argv[])
 
   bool stats = false;
   bool summary = false;
-  vector<wstring> exclude;
+  vector<UString> exclude;
   vector<string> lexFiles;
 
   while(true)
@@ -71,7 +68,7 @@ int main(int argc, char *argv[])
     switch(c)
     {
     case 'e':
-      exclude.push_back(UtfConverter::fromUtf8(optarg));
+      exclude.push_back(to_ustring(optarg));
       break;
 
     case 'l':

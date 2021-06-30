@@ -351,7 +351,7 @@ Chunk::writeTree(TreeMode mode, UFILE* out)
     }
       break;
     default:
-      wcerr << "That tree mode has not yet been implemented." << endl;
+      cerr << "That tree mode has not yet been implemented." << endl;
   }
 }
 

@@ -19,7 +19,7 @@ combineWblanks(UString wblank_current, UString wblank_to_add)
   {
     return wblank_current;
   }
-  
+
   UString new_out_wblank;
   for(UString::const_iterator it = wblank_current.begin(); it != wblank_current.end(); it++)
   {
@@ -42,7 +42,7 @@ combineWblanks(UString wblank_current, UString wblank_to_add)
       new_out_wblank += *it;
     }
   }
-  
+
   for(UString::const_iterator it = wblank_to_add.begin(); it != wblank_to_add.end(); it++)
   {
     if(*it == '\\')
@@ -64,7 +64,7 @@ combineWblanks(UString wblank_current, UString wblank_to_add)
       new_out_wblank += *it;
     }
   }
-  
+
   return new_out_wblank;
 }
 
@@ -547,7 +547,7 @@ Chunk::writeTreeBox()
     }
     if(tree.size() == 1)
     {
-      tree[0][0] = u'\u2500' + tree[0][0]; // '─'
+      tree[0][0].insert(tree[0][0].begin(), u'\u2500'); // '─'
       return tree;
     }
     unsigned int center = tree.size() / 2;

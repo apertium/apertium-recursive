@@ -88,7 +88,7 @@ private:
   int insertTags(int const base, const vector<UString>& tags);
 
   /**
-   * Generate symbol of the form L"<RULE_NUMBER:count>" to mark rule end
+   * Generate symbol of the form "<RULE_NUMBER:count>" to mark rule end
    */
   int countToFinalSymbol(const int count);
 
@@ -111,7 +111,7 @@ public:
 
   // false: * = 1 or more tags, true: * = 0 or more tags
   /**
-   * If false, L"*" must match at least one tag, otherwise it can match 0
+   * If false, "*" must match at least one tag, otherwise it can match 0
    */
   bool starCanBeEmpty = false;
 

@@ -230,17 +230,17 @@ private:
   bool null_flush = false;
 
   /**
-   * If true, each instruction of virtual machine will be printed to wcerr
+   * If true, each instruction of virtual machine will be printed to cerr
    */
   bool printingSteps = false;
 
   /**
-   * If true, each rule that is applied will be printed to wcerr
+   * If true, each rule that is applied will be printed to cerr
    */
   bool printingRules = false;
 
   /**
-   * If true, each action of filterParseGraph() will be logged to wcerr
+   * If true, each action of filterParseGraph() will be logged to cerr
    */
   bool printingBranches = false;
 

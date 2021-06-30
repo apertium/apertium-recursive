@@ -21,3 +21,6 @@ stamp-h1
 *.bin
 *.decomp
 tests/run_tests.py
+rtx_config.h
+*~
+src/__pycache__/*

@@ -2540,7 +2540,7 @@ RTXCompiler::write(const string &fname)
 void
 RTXCompiler::printStats()
 {
-  wcout << "Rules: " << reductionRules.size() << endl;
-  wcout << "Macros: " << macros.size() << endl;
-  wcout << "Global variables: " << globalVarNames.size() << endl;
+  cout << "Rules: " << reductionRules.size() << endl;
+  cout << "Macros: " << macros.size() << endl;
+  cout << "Global variables: " << globalVarNames.size() << endl;
 }

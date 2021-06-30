@@ -8,6 +8,7 @@
 #include <fstream>
 #include <cstring>
 #include <cstdio>
+#include <unicode/ustdio.h>
 
 void endProgram(char *name)
 {
@@ -22,195 +23,197 @@ void endProgram(char *name)
   exit(EXIT_FAILURE);
 }
 
-void writeRule(UString rule, FILE* out)
+void writeRule(UString rule, UFILE* out)
 {
   UString line;
   for(unsigned int i = 0; i < rule.size(); i++)
   {
     line.clear();
-    fwprintf(out, L"[%d]\t", i);
+    u_fprintf(out, "[%d]\t", i);
     switch(rule[i])
     {
       case DROP:
-        fwprintf(out, L"DROP\n");
+        u_fprintf(out, "DROP\n");
         break;
       case DUP:
-        fwprintf(out, L"DUP\n");
+        u_fprintf(out, "DUP\n");
         break;
       case OVER:
-        fwprintf(out, L"OVER\n");
+        u_fprintf(out, "OVER\n");
         break;
       case SWAP:
-        fwprintf(out, L"SWAP\n");
+        u_fprintf(out, "SWAP\n");
         break;
       case STRING:
       {
         int len = rule[++i];
-        fwprintf(out, L"STRING \"");
+        u_fprintf(out, "STRING \"");
+        UString s;
         for(int c = 0; c < len; c++)
         {
-          fputwc(rule[++i], out);
+          s += rule[++i];
         }
+        write(s, out);
         //UString s = rule.substr(i+1, len);
-        fwprintf(out, L"\"\n");
+        u_fprintf(out, "\"\n");
       }
         break;
       case INT:
-        fwprintf(out, L"INT %d\n", (int)rule[++i]);
+        u_fprintf(out, "INT %d\n", (int)rule[++i]);
         break;
       case PUSHFALSE:
-        fwprintf(out, L"PUSHFALSE\n");
+        u_fprintf(out, "PUSHFALSE\n");
         break;
       case PUSHTRUE:
-        fwprintf(out, L"PUSHTRUE\n");
+        u_fprintf(out, "PUSHTRUE\n");
         break;
       case JUMP:
-        fwprintf(out, L"JUMP %d\n", (int)rule[++i]);
+        u_fprintf(out, "JUMP %d\n", (int)rule[++i]);
         break;
       case JUMPONTRUE:
-        fwprintf(out, L"JUMPONTRUE %d\n", (int)rule[++i]);
+        u_fprintf(out, "JUMPONTRUE %d\n", (int)rule[++i]);
         break;
       case JUMPONFALSE:
-        fwprintf(out, L"JUMPONFALSE %d\n", (int)rule[++i]);
+        u_fprintf(out, "JUMPONFALSE %d\n", (int)rule[++i]);
         break;
       case AND:
-        fwprintf(out, L"AND\n");
+        u_fprintf(out, "AND\n");
         break;
       case OR:
-        fwprintf(out, L"OR\n");
+        u_fprintf(out, "OR\n");
         break;
       case NOT:
-        fwprintf(out, L"NOT\n");
+        u_fprintf(out, "NOT\n");
         break;
       case EQUAL:
-        fwprintf(out, L"EQUAL\n");
+        u_fprintf(out, "EQUAL\n");
         break;
       case ISPREFIX:
-        fwprintf(out, L"ISPREFIX\n");
+        u_fprintf(out, "ISPREFIX\n");
         break;
       case ISSUFFIX:
-        fwprintf(out, L"ISSUFFIX\n");
+        u_fprintf(out, "ISSUFFIX\n");
         break;
       case ISSUBSTRING:
-        fwprintf(out, L"ISSUBSTRING\n");
+        u_fprintf(out, "ISSUBSTRING\n");
         break;
       case EQUALCL:
-        fwprintf(out, L"EQUALCL\n");
+        u_fprintf(out, "EQUALCL\n");
         break;
       case ISPREFIXCL:
-        fwprintf(out, L"ISPREFIXCL\n");
+        u_fprintf(out, "ISPREFIXCL\n");
         break;
       case ISSUFFIXCL:
-        fwprintf(out, L"ISSUFFIXCL\n");
+        u_fprintf(out, "ISSUFFIXCL\n");
         break;
       case ISSUBSTRINGCL:
-        fwprintf(out, L"ISSUBSTRINGCL\n");
+        u_fprintf(out, "ISSUBSTRINGCL\n");
         break;
       case HASPREFIX:
-        fwprintf(out, L"HASPREFIX\n");
+        u_fprintf(out, "HASPREFIX\n");
         break;
       case HASSUFFIX:
-        fwprintf(out, L"HASSUFFIX\n");
+        u_fprintf(out, "HASSUFFIX\n");
         break;
       case IN:
-        fwprintf(out, L"IN\n");
+        u_fprintf(out, "IN\n");
         break;
       case HASPREFIXCL:
-        fwprintf(out, L"HASPREFIXCL\n");
+        u_fprintf(out, "HASPREFIXCL\n");
         break;
       case HASSUFFIXCL:
-        fwprintf(out, L"HASSUFFIXCL\n");
+        u_fprintf(out, "HASSUFFIXCL\n");
         break;
       case INCL:
-        fwprintf(out, L"INCL\n");
+        u_fprintf(out, "INCL\n");
         break;
       case GETCASE:
-        fwprintf(out, L"GETCASE\n");
+        u_fprintf(out, "GETCASE\n");
         break;
       case SETCASE:
-        fwprintf(out, L"SETCASE\n");
+        u_fprintf(out, "SETCASE\n");
         break;
       case FETCHVAR:
-        fwprintf(out, L"FETCHVAR\n");
+        u_fprintf(out, "FETCHVAR\n");
         break;
       case SETVAR:
-        fwprintf(out, L"SETVAR\n");
+        u_fprintf(out, "SETVAR\n");
         break;
       case FETCHCHUNK:
-        fwprintf(out, L"FETCHCHUNK\n");
+        u_fprintf(out, "FETCHCHUNK\n");
         break;
       case SETCHUNK:
-        fwprintf(out, L"SETCHUNK\n");
+        u_fprintf(out, "SETCHUNK\n");
         break;
       case SOURCECLIP:
-        fwprintf(out, L"SOURCECLIP\n");
+        u_fprintf(out, "SOURCECLIP\n");
         break;
       case TARGETCLIP:
-        fwprintf(out, L"TARGETCLIP\n");
+        u_fprintf(out, "TARGETCLIP\n");
         break;
       case REFERENCECLIP:
-        fwprintf(out, L"REFERENCECLIP\n");
+        u_fprintf(out, "REFERENCECLIP\n");
         break;
       case SETCLIP:
-        fwprintf(out, L"SETCLIP\n");
+        u_fprintf(out, "SETCLIP\n");
         break;
       case CHUNK:
-        fwprintf(out, L"CHUNK\n");
+        u_fprintf(out, "CHUNK\n");
         break;
       case APPENDCHILD:
-        fwprintf(out, L"APPENDCHILD\n");
+        u_fprintf(out, "APPENDCHILD\n");
         break;
       case APPENDSURFACE:
-        fwprintf(out, L"APPENDSURFACE\n");
+        u_fprintf(out, "APPENDSURFACE\n");
         break;
       case APPENDALLCHILDREN:
-        fwprintf(out, L"APPENDALLCHILDREN\n");
+        u_fprintf(out, "APPENDALLCHILDREN\n");
         break;
       case APPENDALLINPUT:
-        fwprintf(out, L"APPENDALLINPUT\n");
+        u_fprintf(out, "APPENDALLINPUT\n");
         break;
       case PUSHINPUT:
-        fwprintf(out, L"PUSHINPUT\n");
+        u_fprintf(out, "PUSHINPUT\n");
         break;
       case APPENDSURFACESL:
-        fwprintf(out, L"APPENDSURFACESL\n");
+        u_fprintf(out, "APPENDSURFACESL\n");
         break;
       case APPENDSURFACEREF:
-        fwprintf(out, L"APPENDSURFACEREF\n");
+        u_fprintf(out, "APPENDSURFACEREF\n");
         break;
       case OUTPUT:
-        fwprintf(out, L"OUTPUT\n");
+        u_fprintf(out, "OUTPUT\n");
         break;
       case BLANK:
-        fwprintf(out, L"BLANK\n");
+        u_fprintf(out, "BLANK\n");
         break;
       case OUTPUTALL:
-        fwprintf(out, L"OUTPUTALL\n");
+        u_fprintf(out, "OUTPUTALL\n");
         break;
       case CONCAT:
-        fwprintf(out, L"CONCAT\n");
+        u_fprintf(out, "CONCAT\n");
         break;
       case REJECTRULE:
-        fwprintf(out, L"REJECTRULE\n");
+        u_fprintf(out, "REJECTRULE\n");
         break;
       case DISTAG:
-        fwprintf(out, L"DISTAG\n");
+        u_fprintf(out, "DISTAG\n");
         break;
       case GETRULE:
-        fwprintf(out, L"GETRULE\n");
+        u_fprintf(out, "GETRULE\n");
         break;
       case SETRULE:
-        fwprintf(out, L"SETRULE\n");
+        u_fprintf(out, "SETRULE\n");
         break;
       case CONJOIN:
-        fwprintf(out, L"CONJOIN\n");
+        u_fprintf(out, "CONJOIN\n");
         break;
       default:
         auto tmp = rule.substr(i, 1);
-        fwprintf(out, L"Unknown instruction: %s\n", tmp.c_str());
+        u_fprintf(out, "Unknown instruction: %s\n", tmp.c_str());
     }
   }
-  fwprintf(out, L"\n");
+  u_fprintf(out, "\n");
 }
 
 int main(int argc, char *argv[])
@@ -252,51 +255,52 @@ int main(int argc, char *argv[])
     endProgram(argv[0]);
   }
 
-  FILE *in = stdin, *out = stdout;
+  FILE* in = stdin;
+  UFILE* out = u_finit(stdout, NULL, NULL);
 
   if(optind <= (argc - 1))
   {
     in = fopen(argv[optind], "rb");
     if(in == NULL)
     {
-      wcerr << L"Error: could not open file " << argv[optind] << " for reading." << endl;
+      cerr << "Error: could not open file " << argv[optind] << " for reading." << endl;
       exit(EXIT_FAILURE);
     }
   }
   if(optind <= (argc - 2))
   {
-    out = fopen(argv[optind+1], "wb");
+    out = u_fopen(argv[optind+1], "wb", NULL, NULL);
     if(out == NULL)
     {
-      wcerr << L"Error: could not open file " << argv[optind+1] << " for writing." << endl;
+      cerr << "Error: could not open file " << argv[optind+1] << " for writing." << endl;
       exit(EXIT_FAILURE);
     }
   }
 
   int longestPattern = Compression::multibyte_read(in);
   int count = Compression::multibyte_read(in);
-  fwprintf(out, L"Input rules:\n");
-  fwprintf(out, L"Longest pattern: %d chunks\nNumber of rules: %d\n\n", longestPattern, count);
+  u_fprintf(out, "Input rules:\n");
+  u_fprintf(out, "Longest pattern: %d chunks\nNumber of rules: %d\n\n", longestPattern, count);
   int patlen;
   UString cur;
   for(int i = 0; i < count; i++)
   {
     patlen = Compression::multibyte_read(in);
     cur = Compression::string_read(in);
-    fwprintf(out, L"Rule %d (%d bytes, pattern %d chunks)\n", i+1, cur.size(), patlen);
+    u_fprintf(out, "Rule %d (%d bytes, pattern %d chunks)\n", i+1, cur.size(), patlen);
     writeRule(cur, out);
   }
 
   count = Compression::multibyte_read(in);
-  fwprintf(out, L"Output rules:\nNumber of rules: %d\n\n", count);
+  u_fprintf(out, "Output rules:\nNumber of rules: %d\n\n", count);
   for(int i = 0; i < count; i++)
   {
     cur = Compression::string_read(in);
-    fwprintf(out, L"Rule %d (%d bytes)\n", i, cur.size());
+    u_fprintf(out, "Rule %d (%d bytes)\n", i, cur.size());
     writeRule(cur, out);
   }
 
   fclose(in);
-  fclose(out);
+  u_fclose(out);
   return EXIT_SUCCESS;
 }

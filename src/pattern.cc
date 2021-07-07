@@ -6,6 +6,7 @@
 #include <lttoolbox/string_utils.h>
 #include <lttoolbox/input_file.h>
 #include <apertium/transfer_regex.h>
+#include <apertium/apertium_re.h>
 
 #include <iostream>
 #include <fstream>
@@ -173,6 +174,9 @@ PatternBuilder::addAttr(const UString& name, const set<UString>& vals)
   vector<UString> pat;
   pat.assign(vals.begin(), vals.end());
   attr_items[name] = optimize_regex(pat);
+  // compile now so we can catch errors at build time
+  ApertiumRE r;
+  r.compile(attr_items[name]);
 }
 
 bool

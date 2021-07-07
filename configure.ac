@@ -48,8 +48,6 @@ AC_CHECK_LIB(xml2, xmlReaderForFile)
 
 AC_CHECK_FUNCS([setlocale strdup getopt_long])
 
-AC_CHECK_HEADER([utf8.h], [], [AC_MSG_ERROR([You don't have utfcpp installed.])])
-
 AC_CHECK_DECLS([fread_unlocked, fwrite_unlocked, fgetc_unlocked, fputc_unlocked, fputs_unlocked, getopt_long])
 
 CPPFLAGS="$CPPFLAGS $CFLAGS $LTTOOLBOX_CFLAGS $APERTIUM_CFLAGS $LIBXML_CFLAGS $ICU_CFLAGS"

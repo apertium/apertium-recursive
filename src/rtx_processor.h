@@ -1,7 +1,6 @@
 #ifndef __RTXPROCESSOR__
 #define __RTXPROCESSOR__
 
-#include <rtx_config.h>
 #include <apertium/apertium_re.h>
 #include <lttoolbox/alphabet.h>
 #include <matcher.h>

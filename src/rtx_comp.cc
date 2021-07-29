@@ -1,4 +1,3 @@
-#include <rtx_config.h>
 #include <rtx_compiler.h>
 #include <lttoolbox/lt_locale.h>
 #include <cstdlib>

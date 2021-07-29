@@ -1,7 +1,6 @@
 #ifndef __RTXBYTECODE__
 #define __RTXBYTECODE__
 
-#include <rtx_config.h>
 #include <unicode/uchar.h>
 
 // Stack Operations

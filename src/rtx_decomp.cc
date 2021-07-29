@@ -1,4 +1,3 @@
-#include <rtx_config.h>
 #include <bytecode.h>
 #include <lttoolbox/lt_locale.h>
 #include <lttoolbox/compression.h>

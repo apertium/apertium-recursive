@@ -1,4 +1,3 @@
-#include <rtx_config.h>
 #include <chunk.h>
 #include <lttoolbox/string_utils.h>
 

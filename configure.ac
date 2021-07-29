@@ -6,7 +6,6 @@ m4_define([required_lttoolbox_version], [3.6.0])
 
 AC_INIT([apertium-recursive], [1.1.0], [awesomeevildudes@gmail.com])
 AM_INIT_AUTOMAKE
-AC_CONFIG_HEADER([src/auto_config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_PROG_CXX
@@ -49,6 +48,7 @@ AC_CHECK_LIB(xml2, xmlReaderForFile)
 AC_CHECK_FUNCS([setlocale strdup getopt_long])
 
 AC_CHECK_DECLS([fread_unlocked, fwrite_unlocked, fgetc_unlocked, fputc_unlocked, fputs_unlocked, getopt_long])
+AC_CHECK_HEADERS([string_view])
 
 CPPFLAGS="$CPPFLAGS $CFLAGS $LTTOOLBOX_CFLAGS $APERTIUM_CFLAGS $LIBXML_CFLAGS $ICU_CFLAGS"
 LIBS="$LIBS $LTTOOLBOX_LIBS $APERTIUM_LIBS $LIBXML_LIBS $ICU_LIBS"

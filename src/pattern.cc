@@ -1,4 +1,3 @@
-#include <rtx_config.h>
 #include <pattern.h>
 #include <bytecode.h>
 

@@ -1,7 +1,6 @@
 #ifndef __RTXPATTERNBUILDER__
 #define __RTXPATTERNBUILDER__
 
-#include <rtx_config.h>
 #include <iostream>
 #include <lttoolbox/alphabet.h>
 #include <lttoolbox/ustring.h>

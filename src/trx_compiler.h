@@ -1,7 +1,6 @@
 #ifndef __TRXCOMPILER__
 #define __TRXCOMPILER__
 
-#include <rtx_config.h>
 #include <apertium/transfer_data.h>
 #include <apertium/xml_reader.h>
 #include <pattern.h>

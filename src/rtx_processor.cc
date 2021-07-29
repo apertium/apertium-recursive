@@ -1,4 +1,3 @@
-#include <rtx_config.h>
 #include <rtx_processor.h>
 #include <bytecode.h>
 //#include <apertium/trx_reader.h>

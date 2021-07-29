@@ -1,4 +1,3 @@
-#include <rtx_config.h>
 #include <rtx_compiler.h>
 #include <lttoolbox/string_utils.h>
 
@@ -60,10 +59,10 @@ RTXCompiler::die(UString message)
   exit(EXIT_FAILURE);
 }
 
-UChar
+UChar32
 RTXCompiler::getchar()
 {
-  UChar c;
+  UChar32 c;
   if(unreadbuf.size() > 0)
   {
     c = unreadbuf[0];
@@ -74,7 +73,7 @@ RTXCompiler::getchar()
   return c;
 }
 
-UChar
+UChar32
 RTXCompiler::peekchar()
 {
   if(unreadbuf.size() > 0) return unreadbuf[0];
@@ -192,7 +191,7 @@ RTXCompiler::nextTokenNoSpace()
 }
 
 bool
-RTXCompiler::isNextToken(UChar c)
+RTXCompiler::isNextToken(UChar32 c)
 {
   if(peekchar() == c)
   {
@@ -2476,12 +2475,7 @@ RTXCompiler::read(const string &fname)
 {
   currentLine = 1;
   sourceFile = fname;
-  source.open(fname);
-  if(!source.is_open())
-  {
-    cerr << "Unable to open file " << fname.c_str() << " for reading." << endl;
-    exit(EXIT_FAILURE);
-  }
+  source.open_or_exit(fname.c_str());
   while(true)
   {
     eatSpaces();

@@ -1,7 +1,6 @@
 #ifndef __RTXALLOCATORPOOL__
 #define __RTXALLOCATORPOOL__
 
-#include <rtx_config.h>
 #include <vector>
 
 template<class ElementType, int BucketSize = 64>//1024>

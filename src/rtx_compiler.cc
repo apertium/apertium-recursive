@@ -60,25 +60,31 @@ RTXCompiler::die(UString message)
   exit(EXIT_FAILURE);
 }
 
-UChar
+UChar32
 RTXCompiler::getchar()
 {
-  UChar c;
+  UChar32 c;
   if(unreadbuf.size() > 0)
   {
-    c = unreadbuf[0];
-    unreadbuf = unreadbuf.substr(1);
+    int i = 0;
+    U16_NEXT(unreadbuf, i, unreadbuf.size(), c);
+    unreadbuf = unreadbuf.substr(i);
   }
   else c = source.get();
   recentlyRead += c;
   return c;
 }
 
-UChar
+UChar32
 RTXCompiler::peekchar()
 {
-  if(unreadbuf.size() > 0) return unreadbuf[0];
-  else return source.peek();
+  if (unreadbuf.empty()) {
+    return source.peek();
+  } else {
+    UChar32 c;
+    U16_GET(unreadbuf, 0, 0, unreadbuf.size(), c);
+    return c;
+  }
 }
 
 void
@@ -97,7 +103,7 @@ RTXCompiler::unread()
 void
 RTXCompiler::eatSpaces()
 {
-  UChar c;
+  UChar32 c;
   bool inComment = false;
   while(!source.eof())
   {
@@ -110,7 +116,7 @@ RTXCompiler::eatSpaces()
       recentlyRead.clear();
       unreadmark = 0;
     }
-    else if(inComment || isspace(c))
+    else if(inComment || u_isspace(c))
     {
       getchar();
     }
@@ -133,22 +139,23 @@ RTXCompiler::nextTokenNoSpace()
   {
     die("Unexpected end of file"_u);
   }
-  UChar c = getchar();
-  UChar next = peekchar();
+  UChar32 c = getchar();
+  UChar32 next = peekchar();
   UString ret;
   if (c == u'\u2192') { // '→'
     ret = "->"_u;
   }
   else if(SPECIAL_CHARS.find(c) != string::npos)
   {
-    ret = UString(1, c);
+    ret += c;
   }
   else if(c == '-' && next == '>')
   {
     getchar();
-    ret = UString(1, c) + UString(1, next);
+    ret += c;
+    ret += next;
   }
-  else if(isspace(c))
+  else if(u_isspace(c))
   {
     die("unexpected space"_u);
   }
@@ -169,7 +176,7 @@ RTXCompiler::nextTokenNoSpace()
   }
   else
   {
-    ret = UString(1, c);
+    ret += c;
     while(!source.eof())
     {
       c = peekchar();
@@ -178,9 +185,9 @@ RTXCompiler::nextTokenNoSpace()
         getchar();
         ret += getchar();
       }
-      else if(SPECIAL_CHARS.find(c) == string::npos && !isspace(c))
+      else if(SPECIAL_CHARS.find(c) == string::npos && !u_isspace(c))
       {
-        ret += UString(1, getchar());
+        ret += getchar();
       }
       else
       {
@@ -192,7 +199,7 @@ RTXCompiler::nextTokenNoSpace()
 }
 
 bool
-RTXCompiler::isNextToken(UChar c)
+RTXCompiler::isNextToken(UChar32 c)
 {
   if(peekchar() == c)
   {
@@ -232,7 +239,7 @@ RTXCompiler::parseIdent(bool prespace = false)
   {
     eatSpaces();
   }
-  UChar next = peekchar();
+  UChar32 next = peekchar();
   UString ret = nextTokenNoSpace();
   if(next == '"')
   {
@@ -1227,9 +1234,9 @@ RTXCompiler::parseReduceRule(UString output, UString next)
       {
         setUnreadMark();
         getchar();
-        UChar next = peekchar();
+        UChar32 next = peekchar();
         unread();
-        if(next == '$' || isspace(next)) break;
+        if(next == '$' || u_isspace(next)) break;
       }
       parsePatternElement(rule);
     }
@@ -2476,12 +2483,7 @@ RTXCompiler::read(const string &fname)
 {
   currentLine = 1;
   sourceFile = fname;
-  source.open(fname);
-  if(!source.is_open())
-  {
-    cerr << "Unable to open file " << fname.c_str() << " for reading." << endl;
-    exit(EXIT_FAILURE);
-  }
+  source.open_or_exit(fname.c_str());
   while(true)
   {
     eatSpaces();

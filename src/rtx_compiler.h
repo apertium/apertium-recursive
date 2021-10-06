@@ -4,6 +4,7 @@
 #include <rtx_config.h>
 #include <pattern.h>
 #include <bytecode.h>
+#include <lttoolbox/input_file.h>
 
 #include <map>
 #include <string>
@@ -266,7 +267,7 @@ private:
   /**
    * Input stream
    */
-  ifstream source;
+  InputFile source;
 
   //////////
   // ERROR REPORTING
@@ -298,7 +299,7 @@ private:
    * to ensure that recentlyRead gets updated properly
    * @return character
    */
-  UChar getchar();
+  UChar32 getchar();
 
   /**
    * Return the next character in the input stream without reading
@@ -306,7 +307,7 @@ private:
    * in order to properly manage unreadbuf
    * @ return character
    */
-  UChar peekchar();
+  UChar32 peekchar();
 
   /**
    * Mark the current location so that it can be jumped back to with unread()
@@ -362,7 +363,7 @@ private:
    * If the next character in the input stream is c, consume it and return true
    * Otherwise return false
    */
-  bool isNextToken(UChar c);
+  bool isNextToken(UChar32 c);
 
   //////////
   // COMPONENT PARSING

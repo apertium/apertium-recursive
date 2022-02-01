@@ -1691,6 +1691,11 @@ RTXCompiler::compileClip(Clip* c, UString _dest = ""_u)
   {
     rewrite.push_back(_dest);
   }
+  else if(!_dest.empty() && ((!rewrite.empty() && _dest != rewrite.back()) ||
+                             c->part != _dest))
+  {
+    rewrite.push_back(_dest);
+  }
   for(auto dest : rewrite)
   {
     bool found = false;

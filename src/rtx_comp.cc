@@ -101,11 +101,7 @@ int main(int argc, char *argv[])
   char c;
   while((c = fgetc(check)) != '<')
   {
-    if(c == EOF)
-    {
-      cout << "Unable to compile " << argv[optind] << ", file is empty." << endl;
-      exit(EXIT_FAILURE);
-    }
+    if(c == EOF) break;
     else if(isspace(c)) continue;
     else break;
   }

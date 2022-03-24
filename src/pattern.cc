@@ -421,7 +421,7 @@ PatternBuilder::loadLexFile(const string& fname)
 void
 PatternBuilder::write(FILE* output, int longest, vector<pair<int, UString>> inputBytecode, vector<UString> outputBytecode)
 {
-  Compression::multibyte_write(longest, output);
+  Compression::multibyte_write((longest > 0 ? longest : 0), output);
   Compression::multibyte_write(inputBytecode.size(), output);
   for(unsigned int i = 0; i < inputBytecode.size(); i++)
   {

@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
     cout << "Unable to open " << argv[optind] << " for reading." << endl;
     exit(EXIT_FAILURE);
   }
-  char c;
+  int c;
   while((c = fgetc(check)) != '<')
   {
     if(c == EOF) break;

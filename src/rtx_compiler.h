@@ -115,14 +115,21 @@ private:
 
   /**
    * If true, write the output and pattern of each rule to stderr
-   * Default: false
    */
-  bool summarizing;
+  bool summarizing = false;
 
   /**
    * Names of rules that should be excluded from the pattern transducer
    */
   set<UString> excluded;
+
+  /**
+   * The fallback order for unspecified clips
+   * Default: tl, ref, sl
+   * Vector is reversed for ease of compilation
+   * Set in rule file by SIDE_SOURCES
+   */
+  vector<UChar> clip_order;
 
   //////////
   // COLLECTIONS AND DATA STRUCTURES
@@ -132,9 +139,6 @@ private:
    * All characters not allowed in identifiers
    */
   static UString const SPECIAL_CHARS;
-
-  static UString const ANY_TAG;
-  static UString const ANY_CHAR;
 
   /**
    * Pattern-file generator
@@ -215,22 +219,22 @@ private:
   /**
    * Either the current rule being parsed or the current rule being compiled
    */
-  Rule* currentRule;
+  Rule* currentRule = nullptr;
 
   /**
    * Either the current chunk being parsed or the current chunk being compiled
    */
-  OutputChunk* currentChunk;
+  OutputChunk* currentChunk = nullptr;
 
   /**
    * Either the current if statement being parsed or the current if statement being compiled
    */
-  OutputChoice* currentChoice;
+  OutputChoice* currentChoice = nullptr;
 
   /**
    * The Clip currently being parsed
    */
-  Clip* currentClip;
+  Clip* currentClip = nullptr;
 
   /**
    * Global variable currently being assigned to
@@ -252,17 +256,17 @@ private:
   /**
    * Current construct being parsed or compiled
    */
-  Location currentLoc;
+  Location currentLoc = LocTopLevel;
 
   /**
    * Current top-level construct
    */
-  LocationType currentLocType;
+  LocationType currentLocType = LocTypeNone;
 
   /**
    * The length of the longest left side of a rule
    */
-  unsigned int longestPattern;
+  unsigned int longestPattern = 0;
 
   /**
    * Input stream
@@ -278,7 +282,7 @@ private:
   UString recentlyRead;
   UString unreadbuf;
   int unreadmark;
-  bool errorsAreSyntax;
+  bool errorsAreSyntax = true;
   string sourceFile;
   vector<UString> macroNameStack;
 

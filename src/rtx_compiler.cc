@@ -4,25 +4,13 @@
 
 using namespace std;
 
-UString const
-RTXCompiler::ANY_TAG = "<ANY_TAG>"_u;
-
-UString const
-RTXCompiler::ANY_CHAR = "<ANY_CHAR>"_u;
-
 RTXCompiler::RTXCompiler()
 {
-  longestPattern = 0;
-  currentRule = NULL;
-  currentChunk = NULL;
-  currentChoice = NULL;
-  currentClip = NULL;
-  errorsAreSyntax = true;
-  currentLoc = LocTopLevel;
-  currentLocType = LocTypeNone;
   PB.starCanBeEmpty = true;
-  summarizing = false;
   outputRules["UNKNOWN:INTERNAL"_u] = vector<UString>(1, "_"_u);
+  clip_order.push_back(SOURCECLIP);
+  clip_order.push_back(REFERENCECLIP);
+  clip_order.push_back(TARGETCLIP);
 }
 
 UString const
@@ -299,7 +287,29 @@ RTXCompiler::parseRule()
   }
   else if(next == "="_u)
   {
-    parseAttrRule(firstLabel);
+    if (firstLabel == "SIDE_SOURCES"_u) {
+      clip_order.clear();
+      eatSpaces();
+      while (!isNextToken(';')) {
+        UString side = parseIdent();
+        if (side == "sl"_u) {
+          clip_order.push_back(SOURCECLIP);
+        } else if (side == "tl"_u) {
+          clip_order.push_back(TARGETCLIP);
+        } else if (side == "ref"_u) {
+          clip_order.push_back(REFERENCECLIP);
+        } else {
+          die("Unexpected side name "_u+side);
+        }
+        eatSpaces();
+      }
+      if (clip_order.empty()) {
+        die("SIDE_SOURCES list is empty"_u);
+      }
+      reverse(clip_order.begin(), clip_order.end());
+    } else {
+      parseAttrRule(firstLabel);
+    }
   }
   else
   {
@@ -1666,20 +1676,21 @@ RTXCompiler::compileClip(Clip* c, UString _dest = ""_u)
   }
   else
   {
-    ret += TARGETCLIP;
-    ret += blank;
-    ret += (UChar)(6 + 2*cl.size() + 2*blank.size() + thedefault.size());
-    ret += DROP;
-    ret += cl;
-    ret += REFERENCECLIP;
-    ret += blank;
-    ret += (UChar)(3 + cl.size() + blank.size() + thedefault.size());
-    ret += DROP;
-    ret += cl;
-    ret += SOURCECLIP;
-    ret += blank;
-    ret += (UChar)thedefault.size();
-    ret += thedefault;
+    UString fallback = thedefault;
+    for (size_t i = 0; i < clip_order.size(); i++) {
+      UString temp;
+      temp += clip_order[i];
+      temp += blank;
+      if (i != 0) {
+        temp += (UChar)(1 + cl.size() + fallback.size());
+        temp += DROP;
+        temp += cl;
+      } else {
+        temp += (UChar)(fallback.size());
+      }
+      fallback = temp + fallback;
+    }
+    ret += fallback;
   }
   if(c->part == "lemcase"_u)
   {

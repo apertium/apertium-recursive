@@ -1,6 +1,7 @@
 #include <rtx_config.h>
 #include <rtx_compiler.h>
 #include <lttoolbox/string_utils.h>
+#include <algorithm>
 
 using namespace std;
 

@@ -721,6 +721,9 @@ RTXCompiler::parsePatternElement(Rule* rule)
   vector<UString> pat;
   if(isNextToken('%'))
   {
+    if(rule->grab_all != -1) {
+      die("Cannot set the analysis clip source multiple times. (You have multiple % in your rule pattern.)"_u);
+    }
     rule->grab_all = rule->pattern.size()+1;
   }
   UString t1 = nextToken();
@@ -732,6 +735,10 @@ RTXCompiler::parsePatternElement(Rule* rule)
   {
     t1 = "$"_u + parseIdent();
     if(!isNextToken(']')) die("expected closing bracket after lemma category"_u);
+  }
+  else if(t1 == "|"_u)
+  {
+    die("Rule is missing output (use quotes if you were trying to use | as a lemma)"_u);
   }
   if(isNextToken('@'))
   {

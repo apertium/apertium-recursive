@@ -386,7 +386,7 @@ Chunk::writeString(UString s, UFILE* out)
 void
 Chunk::writeTreePlain(UFILE* out, int depth)
 {
-  if(depth >= 0 && isBlank) return;
+  if(depth > 0 && isBlank) return;
   UString base;
   for(int i = 0; i < depth; i++)
   {

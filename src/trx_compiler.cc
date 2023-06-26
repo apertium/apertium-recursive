@@ -1,5 +1,4 @@
 #include <rtx_config.h>
-#include <apertium/trx_reader.h>
 #include <lttoolbox/xml_parse_util.h>
 #include <lttoolbox/compression.h>
 #include <bytecode.h>

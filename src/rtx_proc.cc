@@ -9,7 +9,7 @@
 void endProgram(char *name)
 {
   I18n i18n {APRC_I18N_DATA, "aprc"};
-  cout << i18n.format("rtx_proc_desc");
+  cout << i18n.format("rtx_proc_desc", {"program"}, {basename(name)});
 #if HAVE_GETOPT_LONG
   cout << "  -a, --anaphora:   " << i18n.format("anaphora_desc") << endl;
   cout << "  -b, --both:       " << i18n.format("both_desc") << endl;

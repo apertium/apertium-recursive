@@ -10,17 +10,17 @@ root{
     help_desc{"show this help"}
 
     rtx_decomp_desc{"{program}: decompile a transfer bytecode file\n"
-               "USAGE: {program} [ -h ] [input_file [output_file]]\n"
-               "Options:\n"}
+                    "USAGE: {program} [ -h ] [input_file [output_file]]\n"
+                    "Options:\n"}
     rtx_proc_desc{"{program}: perform structural transfer\n"
-               "USAGE: {program} [-a] [-t] [-z] [ -T | -b ] [ -m mode ] [ -e | -f | -r | -s ] bytecode_file [input_file [output_file]]\n"
-               "Options:\n"}
+                  "USAGE: {program} [-a] [-t] [-z] [ -T | -b ] [ -m mode ] [ -e | -f | -r | -s ] bytecode_file [input_file [output_file]]\n"
+                  "Options:\n"}
     anaphora_desc{"expect coreference LUs from apertium-anaphora"}
     both_desc{"print text (use with -T)"}
     everything_desc{"print a complete trace of execution"}
     filter_desc{"trace filterParseGraph()"}
     filter2_desc{"filter branches more often"}
-    mode_desc{"set the mode of tree output, options are \'flat\', \'nest\', \'latex\', \'dot\', \'box\'"}
+    mode_desc{"set the mode of tree output, options are \"flat\", \"nest\", \"latex\", \"dot\", \"box\""}
     rules_desc{"print the rules that are being applied"}
     steps_desc{"print the instructions executed by the stack machine"}
     trx_desc{"mimic the behavior of apertium-transfer and apertium-interchunk"}
@@ -52,7 +52,7 @@ root{
     APRC1013{"ERROR APRC1013: Unexpected side name {side}."}
     APRC1014{"ERROR APRC1014: SIDE_SOURCES list is empty."}
     APRC1015{"ERROR APRC1015: empty tag order rule."}
-    APRC1016{"WARNING APRC1016: Tag-rewrite rule 
+    APRC1016{"WARNING APRC1016: Tag-rewrite rule."}
     APRC1017{"ERROR APRC1017: Redefinition of attribute category \"{category}\"."}
     APRC1018{"ERROR APRC1018: Use of category \"{category}\" in set arithmetic before definition."}
     APRC1019{"ERROR APRC1019: empty attribute list."}

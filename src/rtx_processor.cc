@@ -7,6 +7,7 @@
 #include <iostream>
 #include <lttoolbox/string_utils.h>
 //#include <apertium/unlocked_cstdio.h>
+#include <i18n.h>
 
 using namespace std;
 
@@ -25,8 +26,7 @@ RTXProcessor::read(string const &filename)
   FILE *in = fopen(filename.c_str(), "rb");
   if(in == NULL)
   {
-    cerr << "Unable to open file " << filename.c_str() << endl;
-    exit(EXIT_FAILURE);
+    I18n(APRC_I18N_DATA, "aprc").error("APRC1002", {"file"}, {filename.c_str()}, true);
   }
 
   longestPattern = 2*Compression::multibyte_read(in) - 1;
@@ -167,8 +167,7 @@ RTXProcessor::popBool()
   }
   else
   {
-    cerr << "tried to pop bool but mode is " << theStack[stackIdx].mode << endl;
-    exit(1);
+    I18n(APRC_I18N_DATA, "aprc").error("APRC1093", {"type", "mode"}, {"bool", theStack[stackIdx].mode}, true);
   }
 }
 
@@ -181,8 +180,7 @@ RTXProcessor::popInt()
   }
   else
   {
-    cerr << "tried to pop int but mode is " << theStack[stackIdx].mode << endl;
-    exit(1);
+    I18n(APRC_I18N_DATA, "aprc").error("APRC1093", {"type", "mode"}, {"int", theStack[stackIdx].mode}, true);
   }
 }
 
@@ -199,8 +197,7 @@ RTXProcessor::popString()
   }
   else
   {
-    cerr << "tried to pop UString but mode is " << theStack[stackIdx].mode << endl;
-    exit(1);
+    I18n(APRC_I18N_DATA, "aprc").error("APRC1093", {"type", "mode"}, {"UString", theStack[stackIdx].mode}, true);
   }
 }
 
@@ -217,8 +214,7 @@ RTXProcessor::popString(UString& dest)
   }
   else
   {
-    cerr << "tried to pop UString but mode is " << theStack[stackIdx].mode << endl;
-    exit(1);
+    I18n(APRC_I18N_DATA, "aprc").error("APRC1093", {"type", "mode"}, {"UString", theStack[stackIdx].mode}, true);
   }
 }
 
@@ -231,9 +227,8 @@ RTXProcessor::popChunk()
   }
   else
   {
-    cerr << "tried to pop Chunk but mode is " << theStack[stackIdx].mode << endl;
-    cerr << "The most common reason for getting this error is a macro that is missing an else clause." << endl;
-    exit(1);
+    cerr << I18n(APRC_I18N_DATA, "aprc").format("APRC1093_chunk_note") << endl;
+    I18n(APRC_I18N_DATA, "aprc").error("APRC1093", {"type", "mode"}, {"Chunk", theStack[stackIdx].mode}, true);
   }
 }
 
@@ -260,7 +255,7 @@ RTXProcessor::stackCopy(int src, int dest)
       theWblankStack[dest] = theWblankStack[src];
       break;
     default:
-      cerr << "Unknown StackElement mode " << theStack[src].mode;
+      I18n(APRC_I18N_DATA, "aprc").error("APRC1094", {"mode"}, {theStack[src].mode}, false);
       break;
   }
 }
@@ -752,8 +747,7 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2 || theStack[stackIdx-1].mode != 2)
         {
-          cerr << "Cannot CONCAT non-strings." << endl;
-          exit(EXIT_FAILURE);
+          I18n(APRC_I18N_DATA, "aprc").error("APRC1095", {}, {}, true);
         }
         stackIdx--;
         theStack[stackIdx].s.append(theStack[stackIdx+1].s);
@@ -803,14 +797,12 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
-          cerr << "Cannot append non-string to chunk surface." << endl;
-          exit(EXIT_FAILURE);
+          I18n(APRC_I18N_DATA, "aprc").error("APRC1096", {}, {}, true);
         }
         stackIdx--;
         if(theStack[stackIdx].mode != 3)
         {
-          cerr << "Cannot APPENDSURFACE to non-chunk." << endl;
-          exit(EXIT_FAILURE);
+          I18n(APRC_I18N_DATA, "aprc").error("APRC1097", {"action"}, {"APPENDSURFACE"}, true);
         }
         if(theStack[stackIdx+1].mode == 2)
         {
@@ -831,14 +823,12 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
-          cerr << "Cannot append non-string to chunk surface." << endl;
-          exit(EXIT_FAILURE);
+          I18n(APRC_I18N_DATA, "aprc").error("APRC1096", {}, {}, true);
         }
         stackIdx--;
         if(theStack[stackIdx].mode != 3)
         {
-          cerr << "Cannot APPENDSURFACESL to non-chunk." << endl;
-          exit(EXIT_FAILURE);
+          I18n(APRC_I18N_DATA, "aprc").error("APRC1097", {"action"}, {"APPENDSURFACESL"}, true);
         }
         if(theStack[stackIdx+1].mode == 2)
         {
@@ -859,14 +849,12 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
-          cerr << "Cannot append non-string to chunk surface." << endl;
-          exit(EXIT_FAILURE);
+          I18n(APRC_I18N_DATA, "aprc").error("APRC1096", {}, {}, true);
         }
         stackIdx--;
         if(theStack[stackIdx].mode != 3)
         {
-          cerr << "Cannot APPENDSURFACEREF to non-chunk." << endl;
-          exit(EXIT_FAILURE);
+          I18n(APRC_I18N_DATA, "aprc").error("APRC1097", {"action"}, {"APPENDSURFACESL"}, true);
         }
         if(theStack[stackIdx+1].mode == 2)
         {
@@ -932,8 +920,7 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2)
         {
-          cerr << "Cannot DISTAG non-string." << endl;
-          exit(EXIT_FAILURE);
+          I18n(APRC_I18N_DATA, "aprc").error("APRC1099", {}, {}, true);
         }
         UString& s = theStack[stackIdx].s;
         if(s.size() > 0 && s[0] == '<' && s[s.size()-1] == '>')
@@ -958,10 +945,7 @@ RTXProcessor::applyRule(const UString& rule)
         {
           if(stackIdx == 0 || theStack[stackIdx].mode != 3)
           {
-            cerr << "Empty stack or top item is not chunk." << endl;
-            cerr << "Check for conditionals that might not generate output" << endl;
-            cerr << "and ensure that lists of attributes are complete." << endl;
-            exit(1);
+            I18n(APRC_I18N_DATA, "aprc").error("APRC1100", {}, {}, true);
           }
           theStack[stackIdx].c->rule = rl;
         }
@@ -976,8 +960,7 @@ RTXProcessor::applyRule(const UString& rule)
         pushStack(StringUtils::itoa((currentInput.size() + 1) / 2));
         break;
       default:
-        cerr << "unknown instruction: " << rule[i] << endl;
-        exit(1);
+        I18n(APRC_I18N_DATA, "aprc").error("APRC1101", {"rule"}, {icu::UnicodeString(rule[i])}, true);
     }
   }
   return true;
@@ -1057,8 +1040,7 @@ RTXProcessor::readToken()
           }
           else
           {
-            cerr << "Parse Error: Wordbound blank should be immediately followed by a Lexical Unit -> [[..]]^..$" << endl;
-            exit(EXIT_FAILURE);
+            I18n(APRC_I18N_DATA, "aprc").error("APRC1102", {}, {}, true);
           }
         }
         else

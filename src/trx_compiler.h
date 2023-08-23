@@ -110,12 +110,14 @@ private:
    * @param node - xml element closest to the error
    */
   void die(xmlNode* node, const char* fmt, ...);
+  void die(xmlNode* node, icu::UnicodeString message);
 
   /**
    * Report a non-fatal error
    * @param node - xml element closest to the error
    */
   void warn(xmlNode* node, const char* fmt, ...);
+  void warn(xmlNode* node, icu::UnicodeString message);
 
   //////////
   // PARSING UTILITIES

@@ -1,4 +1,6 @@
 AM_LDFLAGS=$(LIBS)
+AM_CPPFLAGS = -DAPRC_I18N_DATA='"$(APRC_I18N_DATA)"' -DLTTB_I18N_DATA='"$(LTTB_I18N_DATA)"'
+
 
 bin_PROGRAMS = rtx-comp rtx-proc rtx-decomp random-path
 

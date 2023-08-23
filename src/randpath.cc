@@ -8,6 +8,7 @@
 #include <string>
 #include <chrono>
 #include <cstring>
+#include <i18n.h>
 
 using namespace std;
 
@@ -27,7 +28,7 @@ bool load(FILE* input)
       if (count == 4 && strncmp(header, HEADER_LTTOOLBOX, 4) == 0) {
           auto features = read_le<uint64_t>(input);
           if (features >= LTF_UNKNOWN) {
-              throw std::runtime_error("FST has features that are unknown to this version of lttoolbox - upgrade!");
+              I18n(APRC_I18N_DATA, "aprc").error("APRC1001", {}, {}, true);
           }
       }
       else {
@@ -166,25 +167,25 @@ int main(int argc, char *argv[])
   LtLocale::tryToSetLocale();
   if(argc != 3)
   {
-    cerr << "Usage: " << argv[0] << " transducer prefix" << endl;
+    cerr << I18n(APRC_I18N_DATA, "aprc").format("randpath_desc", {"program"}, {argv[0]});
     return EXIT_FAILURE;
   }
   FILE* tf = fopen(argv[1], "rb");
   if(tf == NULL)
   {
-    cerr << "Unable to open " << argv[1] << " for reading." << endl;
+    I18n(APRC_I18N_DATA, "aprc").error("APRC1002", {"file"}, {argv[1]}, false);
     return EXIT_FAILURE;
   }
   if(!load(tf))
   {
-    cerr << "Unable to read transducer." << endl;
+    I18n(APRC_I18N_DATA, "aprc").error("APRC1003", {}, {}, false);
     return EXIT_FAILURE;
   }
   prefix = to_ustring(argv[2]);
   generatePaths();
   if(paths.size() == 0)
   {
-    cerr << "No paths begin with that prefix." << endl;
+    I18n(APRC_I18N_DATA, "aprc").error("APRC1004", {}, {}, false);
     return EXIT_FAILURE;
   }
   //seed_seq s (prefix.begin(), prefix.end());

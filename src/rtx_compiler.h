@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <i18n.h>
 
 using namespace std;
 
@@ -292,6 +293,7 @@ private:
    * with a marker of the approximate location of the error
    */
   void die(UString message);
+  void die(icu::UnicodeString message);
 
   //////////
   // TOKENIZATION

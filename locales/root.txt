@@ -1,0 +1,198 @@
+root{
+    randpath_desc{"Usage: {program} transducer prefix\n"}
+    rtx_comp_desc{"{program}: compile .rtx files\n"
+                  "USAGE: {program} [-e name] [-f] [-l file] [-s] [-S] [-h] rule_file bytecode_file\n"
+                  "Options:\n"}
+    exclude_desc{"exclude a rule by name"}
+    lexical_desc{"load a file of lexicalized weights"}
+    summarize_desc{"print rules to stderr as \"output -> pattern\""}
+    stats_desc{"print statistics about rule file to stdout"}
+    help_desc{"show this help"}
+
+    rtx_decomp_desc{"{program}: decompile a transfer bytecode file\n"
+               "USAGE: {program} [ -h ] [input_file [output_file]]\n"
+               "Options:\n"}
+    rtx_proc_desc{"{program}: perform structural transfer\n"
+               "USAGE: {program} [-a] [-t] [-z] [ -T | -b ] [ -m mode ] [ -e | -f | -r | -s ] bytecode_file [input_file [output_file]]\n"
+               "Options:\n"}
+    anaphora_desc{"expect coreference LUs from apertium-anaphora"}
+    both_desc{"print text (use with -T)"}
+    everything_desc{"print a complete trace of execution"}
+    filter_desc{"trace filterParseGraph()"}
+    filter2_desc{"filter branches more often"}
+    mode_desc{"set the mode of tree output, options are \'flat\', \'nest\', \'latex\', \'dot\', \'box\'"}
+    rules_desc{"print the rules that are being applied"}
+    steps_desc{"print the instructions executed by the stack machine"}
+    trx_desc{"mimic the behavior of apertium-transfer and apertium-interchunk"}
+    tree_desc{"print parse trees rather than apply output rules"}
+    null_flush_desc{"flush output on \\0"}
+
+    in_file_on_line{"In file \"{file}\" on line {line}:"}
+    syntax_error{"Syntax error: {error}"}
+    usage{"USAGE: {usage}"}
+
+    macro_invoked_by{"macro \"{macro}\", invoked by "}
+    error_in_rule{"Error in {macros} rule beginning on line {line} of {file}: {error}"}
+
+    defaulting_to{"{vals}, defaulting to \"{def}\""}
+
+    APRC1000{"ERROR APRC1000: That tree mode has not yet been implemented."}
+    APRC1001{"ERROR APRC1001: FST has features that are unknown to this version of lttoolbox - upgrade!"}
+    APRC1002{"ERROR APRC1002: Unable to access \"{file}\"."}
+    APRC1003{"ERROR APRC1003: Unable to read transducer."}
+    APRC1004{"ERROR APRC1004: No paths begin with that prefix."}
+    APRC1005{"WARNING APRC1005: Summary mode not available for XML."}
+    APRC1006{"ERROR APRC1006: Unexpected end of file."}
+    APRC1007{"ERROR APRC1007: unexpected space."}
+    APRC1008{"ERROR APRC1008: unexpected comment."}
+    APRC1009{"ERROR APRC1009: expected \"{check1}\" or \"{check2}\", found \"{token}\"."}
+    APRC1010{"ERROR APRC1010: expected \"{check}\", found \"{token}\"."}
+    APRC1011{"ERROR APRC1011: expected identifier, found \"{token}\"."}
+    APRC1012{"ERROR APRC1012: unable to parse weight: \"{token}\"."}
+    APRC1013{"ERROR APRC1013: Unexpected side name {side}."}
+    APRC1014{"ERROR APRC1014: SIDE_SOURCES list is empty."}
+    APRC1015{"ERROR APRC1015: empty tag order rule."}
+    APRC1016{"WARNING APRC1016: Tag-rewrite rule 
+    APRC1017{"ERROR APRC1017: Redefinition of attribute category \"{category}\"."}
+    APRC1018{"ERROR APRC1018: Use of category \"{category}\" in set arithmetic before definition."}
+    APRC1019{"ERROR APRC1019: empty attribute list."}
+    APRC1020{"ERROR APRC1020: Chunk tags can only be accessed from output sections of reduction rules."}
+    APRC1021{"ERROR APRC1021: Macros can only access their single argument."}
+    APRC1022{"ERROR APRC1022: Clip source is out of bounds (position {position} requested, but rule has only {elements} elements in its pattern)."}
+    APRC1023{"ERROR APRC1023: literal value cannot have a side."}
+    APRC1024{"ERROR APRC1024: variable cannot have a side."}
+    APRC1025{"ERROR APRC1025: literal value cannot be rewritten."}
+    APRC1026{"ERROR APRC1026: variable cannot be rewritten."}
+    APRC1027{"ERROR APRC1027: Empty conditional."}
+    APRC1028{"ERROR APRC1028: Cannot negate string (I can't parse 'not a = b', use 'not (a = b)' or 'a not = b' instead)."}
+    APRC1029{"ERROR APRC1029: ANDs, ORs, and conditions don't come out evenly."}
+    APRC1030{"ERROR APRC1030: Expected operator, found condition."}
+    APRC1031{"ERROR APRC1031: Expected operator, found clip."}
+    APRC1032{"ERROR APRC1032: Unknown operator \"{operator}\"."}
+    APRC1033{"ERROR APRC1033: Cannot set the analysis clip source multiple times. (You have multiple % in your rule pattern)."}
+    APRC1034{"ERROR APRC1034: expected closing bracket after lemma category."}
+    APRC1035{"ERROR APRC1035: Rule is missing output (use quotes if you were trying to use | as a lemma)."}
+    APRC1036{"ERROR APRC1036: first tag in pattern element must be literal."}
+    APRC1037{"ERROR APRC1037: rule has multiple sources for attribute {attr}."}
+    APRC1038{"ERROR APRC1038: Cannot {verb} from within if statement."}
+    APRC1039{"ERROR APRC1039: Cannot {verb} first element."}
+    APRC1040{"ERROR APRC1040: Cannot {verb} to something in an if statement."}
+    APRC1041{"ERROR APRC1041: Cannot {verb} inside and outside of if statement and cannot {verb} first element."}
+    APRC1042{"ERROR APRC1042: Cannot {verb} to a blank."}
+    APRC1043{"ERROR APRC1043: % cannot be used on blanks."}
+    APRC1044{"ERROR APRC1044: Cannot output indexed blank because pattern is one element long and thus does not include blanks."}
+    APRC1045{"ERROR APRC1045: Position index of blank out of bounds, expected an integer from 1 to {num}."}
+    APRC1046{"WARNING APRC1046: Use of indexed blank on line {line} is deprecated."}
+    APRC1047{"ERROR APRC1047: There is no position 0."}
+    APRC1048{"ERROR APRC1048: There are only {elements} elements in the pattern."}
+    APRC1049{"ERROR APRC1049: Outputs in a macro must specify a pattern."}
+    APRC1050{"ERROR APRC1050: No macro name specified."}
+    APRC1051{"ERROR APRC1051: Interpolating a global variable does not make sense."}
+    APRC1052{"ERROR APRC1052: Using % with a global variable does not make sense."}
+    APRC1053{"ERROR APRC1053: % not supported on output literals with @. Use %lemma(pos)."}
+    APRC1054{"ERROR APRC1054: If statement must begin with \"if\"."}
+    APRC1055{"ERROR APRC1055: Always clause must be only clause."}
+    APRC1056{"ERROR APRC1056: Unknown statement: \"{statement}\"."}
+    APRC1057{"ERROR APRC1057: Nested chunks are currently not allowed."}
+    APRC1058{"ERROR APRC1058: Macros cannot generate entire chunks."}
+    APRC1059{"ERROR APRC1059: Global variables cannot be set to chunks."}
+    APRC1060{"ERROR APRC1060: Global variables must be set to single nodes."}
+    APRC1061{"ERROR APRC1061: Conditional non-chunk output current not possible."}
+    APRC1062{"ERROR APRC1062: If statement cannot be empty."}
+    APRC1063{"WARNING APRC1063: if statement without else in macro on line {line}.\n"
+             "  This may fail to produce output and cause crashes at runtime."}
+    APRC1064{"ERROR APRC1064: Output grouping with [] only valid inside chunks."}
+    APRC1065{"ERROR APRC1065: Chunk names must be identifiers. (I think I'm parsing a reduction rule.)\n"
+             "If this error doesn't make sense to you, a common reason is that on the line before this you have ; instead of |"}
+    APRC1066{"ERROR APRC1066: empty pattern."}
+    APRC1067{"ERROR APRC1067: Chunk index for setting source or reference is out of range."}
+    APRC1068{"ERROR APRC1068: Rule sets chunk source multiple times."}
+    APRC1069{"ERROR APRC1069: Rule sets chunk reference multiple times."}
+    APRC1070{"ERROR APRC1070: Rule sets global variable $${var} multiple times."}
+    APRC1071{"ERROR APRC1071: Rule sets global variable $%{var} multiple times."}
+    APRC1072{"ERROR APRC1072: rule has multiple sources for attribute {attr}."}
+    APRC1073{"ERROR APRC1073: Unexpected } in output pattern."}
+    APRC1074{"ERROR APRC1074: Output pattern does not have enough chunks."}
+    APRC1075{"WARNING APRC1075: Source category for tag-rewrite rule \"{src}\" > \"{dest}\" is undefined."}
+    APRC1076{"WARNING APRC1076: Destination category for tag-rewrite rule \"{src}\" > \"{dest}\" is undefined."}
+    APRC1077{"WARNING APRC1077: Tag-rewrite rule \"{src}\" > \"{dest}\" contains mapping from undefined category \"{cat}\"."}
+    APRC1078{"WARNING APRC1078: Tag-rewrite rule \"{src}\" > \"{dest}\" does not convert \"{a}\"."}
+    APRC1079{"WARNING APRC1079: Tag-rewrite rule \"{src}\" > \"{dest}\" converts \"{a}\" to multiple values:"}
+    APRC1080{"ERROR APRC1080: unknown attribute category \"{cat}\"."}
+    APRC1081{"ERROR APRC1081: Attempt to clip undefined attribute \"{attr}\"."}
+    APRC1082{"ERROR APRC1082: There is no tag-rewrite rule from \"{src}\" to \"{dest}\"."}
+    APRC1083{"ERROR APRC1083: Macro not given value for attribute \"{attr}\"."}
+    APRC1084{"ERROR APRC1084: could not find tag order for element {element}."}
+    APRC1085{"ERROR APRC1085: Could not find output pattern \"{pattern}\"."}
+    APRC1086{"ERROR APRC1086: Cannot find source for tag \"{pattern}\"."}
+    APRC1087{"ERROR APRC1087: Cannot evaluate AND with string as operand (try adding parentheses)."}
+    APRC1088{"ERROR APRC1088: Cannot evaluate OR with string as operand (try adding parentheses)."}
+    APRC1089{"ERROR APRC1089: Attempt to negate string value."}
+    APRC1090{"ERROR APRC1090: String operator cannot take condition as operand."}
+    APRC1091{"ERROR APRC1091: \"{element}\" is not an element of list \"{attr}\", so this check will always fail."}
+    APRC1092{"ERROR APRC1092: \"{optarg}\" is not a recognized tree mode. Valid options are \"flat\", \"nest\", \"latex\", \"dot\", and \"box\"."}
+    APRC1093{"ERROR APRC1093: tried to pop {type} but mode is {mode}."}
+    APRC1093_chunk_note{"The most common reason for getting below error is a macro that is missing an else clause."}
+    APRC1094{"ERROR APRC1094: Unknown StackElement mode {mode}."}
+    APRC1095{"ERROR APRC1095: Cannot CONCAT non-strings."}
+    APRC1096{"ERROR APRC1096: Cannot append non-string to chunk surface."}
+    APRC1097{"ERROR APRC1097: Cannot {action} to non-chunk."}
+    APRC1098{"ERROR APRC1098: Cannot APPENDSURFACESL to non-chunk."}
+    APRC1099{"ERROR APRC1099: Cannot DISTAG non-string."}
+    APRC1100{"ERROR APRC1100: Empty stack or top item is not chunk.\n"
+             "Check for conditionals that might not generate output\n"
+             "and ensure that lists of attributes are complete."}
+    APRC1101{"ERROR APRC1101: unknown instruction: {rule}"}
+    APRC1102{"ERROR APRC1102: Parse Error: Wordbound blank should be immediately followed by a Lexical Unit -> [[..]]^..$"}
+    APRC1103{"ERROR APRC1103: Expected attribute \"{attr}\"."}
+    APRC1104{"ERROR APRC1104: Cannot interpret empty pos attribute."}
+    APRC1105{"ERROR APRC1105: Position must be an integer."}
+    APRC1106{"ERROR APRC1106: Position {pos} is out of bounds."}
+    APRC1107{"ERROR APRC1107: Rule cannot have multiple <pattern>s."}
+    APRC1108{"ERROR APRC1108: Unknown pattern \"{pattern}\"."}
+    APRC1109{"ERROR APRC1109: Rule cannot have empty pattern."}
+    APRC1110{"ERROR APRC1110: Rule cannot have multiple <action>s."}
+    APRC1111{"ERROR APRC1111: Rule cannot have multiple <output-action>s."}
+    APRC1112{"ERROR APRC1112: Rule must have <pattern>."}
+    APRC1113{"ERROR APRC1113: Rule must have <action>."}
+    APRC1114{"ERROR APRC1114: <{node}> cannot have more than two children."}
+    APRC1115{"ERROR APRC1115: <{node}> must have exactly two children."}
+    APRC1116{"ERROR APRC1116: Undefined variable \"{var}\"."}
+    APRC1117{"ERROR APRC1117: Unknown attribute \"{attr}\"."}
+    APRC1118{"ERROR APRC1118: Cannot set value of <{node}>."}
+    APRC1119{"ERROR APRC1119: Unknown macro \"{macro}\"."}
+    APRC1120{"ERROR APRC1120: Too many parameters, macro \"{macro}\" expects {expected}, got {given}."}
+    APRC1121{"ERROR APRC1121: Not enough parameters, macro \"{macro}\" expects {expected}, got {given}."}
+    APRC1122{"ERROR APRC1122: Unknown variable \"{var}\"."}
+    APRC1123{"ERROR APRC1123: Unrecognized statement \"{statement}\"."}
+    APRC1124{"ERROR APRC1124: <get-case-from> cannot have multiple children."}
+    APRC1125{"ERROR APRC1125: <get-case-from> cannot be empty."}
+    APRC1126{"ERROR APRC1126: <mlu> can only contain <lu>s."}
+    APRC1127{"ERROR APRC1127: Unrecognized expression \"{exp}\"."}
+    APRC1128{"ERROR APRC1128: <not> cannot have multiple children."}
+    APRC1130{"ERROR APRC1130: {node} cannot have more than two children."}
+    APRC1131{"ERROR APRC1131: Expected <list>, found <{node}> instead."}
+    APRC1132{"ERROR APRC1132: Unknown list \"{list}\"."}
+    APRC1133{"ERROR APRC1133: Unrecognized condition \"{condition}\"."}
+    APRC1134{"ERROR APRC1134: Cannot have multiple <test>s in a <when> clause."}
+    APRC1135{"ERROR APRC1135: <test> must have exactly one child."}
+    APRC1136{"ERROR APRC1136: <test> cannot be empty."}
+    APRC1137{"ERROR APRC1137: <when> clause must begin with <test>."}
+    APRC1138{"WARNING APRC1138: Disregarding non-integer position."}
+    APRC1139{"WARNING APRC1139: Disregarding out-of-bounds position."}
+    APRC1140{"WARNING APRC1140: Unexpected tag in {node} - ignoring"}
+    APRC1141{"WARNING APRC1141: Unexpected tag <{node}> in def-cat - ignoring"}
+    APRC1142{"WARNING APRC1142: Redefinition of pattern \"{pattern}\", using later value"}
+    APRC1143{"WARNING APRC1143: Redefinition of attribute \"{attr}\" - using later definition"}
+    APRC1144{"WARNING APRC1144: Redefinition of list \"{list}\" - using later definition"}
+    APRC1145{"WARNING APRC1145: Redefinition of macro \"{macro}\" - using later definition"}
+    APRC1146{"WARNING APRC1146: Ignoring elements except {element} in {node}."}
+    APRC1147{"WARNING APRC1147: Unknown element <{node}> in <rule>, ignoring."}
+    APRC1148{"WARNING APRC1148: Cannot set side \"{side}\", setting \"tl\" instead."}
+    APRC1149{"WARNING APRC1149: Unknown clip side \"{side}\", defaulting to \"tl\"."}
+    APRC1150{"WARNING APRC1150: Unknown side \"{side}\", defaulting to target."}
+    APRC1151{"WARNING APRC1151: Clauses after <otherwise> will not be executed."}
+    APRC1152{"WARNING APRC1152: Multiple <otherwise> clauses will not be executed."}
+    APRC1153{"WARNING APRC1153: Empty <otherwise> clause."}
+    APRC1154{"WARNING APRC1154: Ignoring unexpected clause in <choose>."}
+}

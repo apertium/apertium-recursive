@@ -10,6 +10,7 @@
 #include <iostream>
 #include <lttoolbox/string_utils.h>
 #include <lttoolbox/xml_walk_util.h>
+#include <i18n.h>
 
 using namespace std;
 
@@ -48,6 +49,14 @@ TRXCompiler::die(xmlNode* node, const char* fmt, ...)
   u_fputc('\n', out);
   exit(EXIT_FAILURE);
 }
+void
+TRXCompiler::die(xmlNode* node, icu::UnicodeString message)
+{
+  cerr << I18n(APRC_I18N_DATA, "aprc").format("in_file_on_line", {"file", "line"},
+    {(char*)curDoc->URL, node->line}) << endl;
+  cerr << message << endl;
+  exit(EXIT_FAILURE);
+}
 
 void
 TRXCompiler::warn(xmlNode* node, const char* fmt, ...)
@@ -63,13 +72,20 @@ TRXCompiler::warn(xmlNode* node, const char* fmt, ...)
 }
 
 void
+TRXCompiler::warn(xmlNode* node, icu::UnicodeString message)
+{
+  cerr << I18n(APRC_I18N_DATA, "aprc").format("in_file_on_line",
+    {"file", "line"}, {(char*)curDoc->URL, node->line}) << endl;
+  cerr << message << endl;
+}
+
+void
 TRXCompiler::compile(string file)
 {
   curDoc = xmlReadFile(file.c_str(), NULL, 0);
   if(curDoc == NULL)
   {
-    cerr << "Error: Could not parse file '" << file << "'." << endl;
-    exit(EXIT_FAILURE);
+    I18n(APRC_I18N_DATA, "aprc").error("APRC1002", {"file"}, {file.c_str()}, true);
   }
   processFile(xmlDocGetRootElement(curDoc));
 }
@@ -102,7 +118,7 @@ TRXCompiler::requireAttr(xmlNode* node, const char* attr)
       return to_ustring((const char*) a->children->content);
     }
   }
-  die(node, "Expected attribute '%S'", to_ustring(attr).c_str());
+  die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1103", {"attr"}, {attr}));
   return ""_u; // since die() exits, this will not be returned
   // but we each do our part to keep the typechecker happy...
 }
@@ -127,7 +143,7 @@ TRXCompiler::getPos(xmlNode* node, bool isBlank = false)
     }
     else
     {
-      die(node, "Cannot interpret empty pos attribute.");
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1104"));
     }
   }
   for(unsigned int i = 0; i < v.size(); i++)
@@ -136,10 +152,10 @@ TRXCompiler::getPos(xmlNode* node, bool isBlank = false)
     {
       if(isBlank)
       {
-        warn(node, "Disregarding non-integer position.");
+        warn(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1138"));
         return 0;
       }
-      die(node, "Position must be an integer.");
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1105"));
     }
   }
   int ret = StringUtils::stoi(v);
@@ -156,10 +172,10 @@ TRXCompiler::getPos(xmlNode* node, bool isBlank = false)
   {
     if(isBlank)
     {
-      warn(node, "Disregarding out-of-bounds position.");
+      warn(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1139"));
       return 0;
     }
-    die(node, "Position %d is out of bounds.", ret);
+    die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1106", {"pos"}, {ret}));
   }
   if(macroPosShift.size() > 0)
   {
@@ -173,14 +189,15 @@ TRXCompiler::processCats(xmlNode* node)
 {
   for (auto cat : children(node)) {
     if (!nameIs(cat, "def-cat")) {
-      warn(cat, "Unexpected tag in section-def-cats - ignoring");
+      warn(cat, I18n(APRC_I18N_DATA, "aprc").format("APRC1140", {"node"}, {"section-def-cats"}));
       continue;
     }
     UString pat_name = requireAttr(cat, "n");
     vector<PatternElement*> pat;
     for (auto item : children(cat)) {
       if (!nameIs(item, "cat-item")) {
-        warn(cat, "Unexpected tag <%S> in def-cat - ignoring", name(item).c_str());
+        warn(cat, I18n(APRC_I18N_DATA, "aprc").format("APRC1141", {"node"},
+          {icu::UnicodeString(name(item).data())}));
         continue;
       }
       PatternElement* cur = new PatternElement;
@@ -191,7 +208,8 @@ TRXCompiler::processCats(xmlNode* node)
       pat.push_back(cur);
     }
     if(patterns.find(pat_name) != patterns.end()) {
-      warn(cat, "Redefinition of pattern '%S', using later value", pat_name.c_str());
+      warn(cat, I18n(APRC_I18N_DATA, "aprc").format("APRC1142", {"pattern"},
+        {icu::UnicodeString(pat_name.data())}));
     }
     patterns[pat_name] = pat;
   }
@@ -202,21 +220,22 @@ TRXCompiler::processAttrs(xmlNode* node)
 {
   for (auto cat : children(node)) {
     if (!nameIs(cat, "def-attr")) {
-      warn(cat, "Unexpected tag in section-def-attrs - ignoring");
+      warn(cat, I18n(APRC_I18N_DATA, "aprc").format("APRC1140", {"node"}, {"section-def-attrs"}));
       continue;
     }
     UString name = getattr(cat, "n");
     set<UString> ats;
     for (auto item : children(cat)) {
       if (!nameIs(item, "attr-item")) {
-        warn(item, "Unexpected tag in def-attr - ignoring");
+        warn(item, I18n(APRC_I18N_DATA, "aprc").format("APRC1140", {"node"}, {"def-attr"}));
         continue;
       }
       ats.insert(getattr(item, "tags"));
     }
     if(PB.isAttrDefined(name))
     {
-      warn(cat, "Redefinition of attribute '%S' - using later definition", name.c_str());
+      warn(cat, I18n(APRC_I18N_DATA, "aprc").format("APRC1143", {"attr"},
+        {icu::UnicodeString(name.data())}));
     }
     PB.addAttr(name, ats);
   }
@@ -227,7 +246,7 @@ TRXCompiler::processVars(xmlNode* node)
 {
   for (auto var : children(node)) {
     if (!nameIs(var, "def-var")) {
-      warn(var, "Unexpected tag in section-def-vars - ignoring");
+      warn(var, I18n(APRC_I18N_DATA, "aprc").format("APRC1140", {"node"}, {"section-def-vars"}));
       continue;
     }
     UString name = requireAttr(var, "n");
@@ -241,21 +260,22 @@ TRXCompiler::processLists(xmlNode* node)
 {
   for (auto cat : children(node)) {
     if (!nameIs(cat, "def-list")) {
-      warn(cat, "Unexpected tag in section-def-lists - ignoring");
+      warn(cat, I18n(APRC_I18N_DATA, "aprc").format("APRC1140", {"node"}, {"section-def-lists"}));
       continue;
     }
     UString name = getattr(cat, "n");
     set<UString> ats;
     for (auto item : children(cat)) {
       if (!nameIs(item, "list-item")) {
-        warn(item, "Unexpected tag in def-list - ignoring");
+        warn(item, I18n(APRC_I18N_DATA, "aprc").format("APRC1140", {"node"}, {"def-list"}));
         continue;
       }
       ats.insert(getattr(item, "v"));
     }
     if(lists.find(name) != lists.end())
     {
-      warn(cat, "Redefinition of list '%S' - using later definition", name.c_str());
+      warn(cat, I18n(APRC_I18N_DATA, "aprc").format("APRC1144", {"list"},
+        {icu::UnicodeString(name.data())}));
     }
     lists[name] = ats;
     PB.addList(name, ats);
@@ -267,14 +287,15 @@ TRXCompiler::gatherMacros(xmlNode* node)
 {
   for (auto mac : children(node)) {
     if (!nameIs(mac, "def-macro")) {
-      warn(mac, "Unexpected tag in section-def-macros - ignoring");
+      warn(mac, I18n(APRC_I18N_DATA, "aprc").format("APRC1140", {"node"}, {"section-def-macros"}));
       continue;
     }
     UString name = requireAttr(mac, "n");
     int npar = StringUtils::stoi(requireAttr(mac, "npar"));
     if(macros.find(name) != macros.end())
     {
-      warn(mac, "Redefinition of macro '%S' - using later definition", name.c_str());
+      warn(mac, I18n(APRC_I18N_DATA, "aprc").format("APRC1145", {"macro"},
+        {icu::UnicodeString(name.data())}));
     }
     macros[name] = make_pair(npar, mac);
   }
@@ -286,7 +307,8 @@ TRXCompiler::processRules(xmlNode* node)
   for (auto rule : children(node)) {
     if(xmlStrcmp(rule->name, (const xmlChar*) "rule"))
     {
-      warn(rule, "Ignoring non-<rule> element in <section-rules>.");
+      warn(rule, I18n(APRC_I18N_DATA, "aprc").format("APRC1146", {"element", "node"},
+        {"<rule>", "<section-rules>"}));
       continue;
     }
     if (getattr(rule, "i") == "yes"_u) {
@@ -317,20 +339,22 @@ TRXCompiler::processRules(xmlNode* node)
       {
         if(pat)
         {
-          die(rule, "Rule cannot have multiple <pattern>s.");
+          die(rule, I18n(APRC_I18N_DATA, "aprc").format("APRC1107"));
         }
         pat = true;
         vector<vector<PatternElement*>> pls;
         for (auto pi : children(part)) {
           if (!nameIs(pi, "pattern-item")) {
-            warn(pi, "Ignoring non-<pattern-item> in <pattern>.");
+            warn(pi, I18n(APRC_I18N_DATA, "aprc").format("APRC1146", {"element", "node"},
+              {"<pattern-item>", "<section-rules>"}));
             continue;
           }
           curPatternSize++;
           UString name = requireAttr(pi, "n");
           if(patterns.find(name) == patterns.end())
           {
-            die(pi, "Unknown pattern '%S'.", name.c_str());
+            die(pi, I18n(APRC_I18N_DATA, "aprc").format("APRC1108", {"pattern"},
+              {icu::UnicodeString(name.data())}));
           }
           else
           {
@@ -339,7 +363,7 @@ TRXCompiler::processRules(xmlNode* node)
         }
         if(curPatternSize == 0)
         {
-          die(rule, "Rule cannot have empty pattern.");
+          die(rule, I18n(APRC_I18N_DATA, "aprc").format("APRC1109"));
         }
         if(curPatternSize > longestPattern)
         {
@@ -367,7 +391,7 @@ TRXCompiler::processRules(xmlNode* node)
       {
         if(action != NULL)
         {
-          die(rule, "Rule cannot have multiple <action>s.");
+          die(rule, I18n(APRC_I18N_DATA, "aprc").format("APRC1110"));
         }
         action = part;
       }
@@ -375,7 +399,7 @@ TRXCompiler::processRules(xmlNode* node)
       {
         if(outputAction.size() > 0)
         {
-          die(part, "Rule cannot have multiple <output-action>s.");
+          die(part, I18n(APRC_I18N_DATA, "aprc").format("APRC1111"));
         }
         inOutput = true;
         for (auto state : children(part)) {
@@ -384,16 +408,17 @@ TRXCompiler::processRules(xmlNode* node)
       }
       else
       {
-        warn(part, "Unknown element <%S> in <rule>, ignoring.", name(part).c_str());
+        warn(part, I18n(APRC_I18N_DATA, "aprc").format("APRC1147", {"node"},
+          {icu::UnicodeString(name(part).data())}));
       }
     }
     if(!pat)
     {
-      die(rule, "Rule must have <pattern>.");
+      die(rule, I18n(APRC_I18N_DATA, "aprc").format("APRC1112"));
     }
     if(action == NULL)
     {
-      die(rule, "Rule must have <action>.");
+      die(rule, I18n(APRC_I18N_DATA, "aprc").format("APRC1113"));
     }
     else
     {
@@ -445,19 +470,22 @@ TRXCompiler::processStatement(xmlNode* node)
         val = processValue(n);
       }
       else {
-        die(node, "<%S> cannot have more than two children.", name(node).c_str());
+        die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1114", {"node"},
+          {icu::UnicodeString(name(node).data())}));
       }
     }
     if(val.size() == 0)
     {
-      die(node, "<%S> must have two children.", name(node).c_str());
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"},
+        {icu::UnicodeString(name(node).data())}));
     }
     if(nameIs(var, "var"))
     {
       UString vname = requireAttr(var, "n");
       if(vars.find(vname) == vars.end())
       {
-        die(var, "Undefined variable '%S'.", vname.c_str());
+        die(var, I18n(APRC_I18N_DATA, "aprc").format("APRC1116", {"var"},
+          {icu::UnicodeString(vname.data())}));
       }
       if(nameIs(node, "modify-case"))
       {
@@ -482,12 +510,14 @@ TRXCompiler::processStatement(xmlNode* node)
       UString side = getattr(var, "side");
       if(!(side.empty() || side == "tl"_u))
       {
-        warn(var, "Cannot set side '%S', setting 'tl' instead.", side.c_str());
+        warn(var, I18n(APRC_I18N_DATA, "aprc").format("APRC1148", {"side"},
+          {icu::UnicodeString(side.data())}));
       }
       UString part = requireAttr(var, "part");
       if(!PB.isAttrDefined(part))
       {
-        die(var, "Unknown attribute '%S'", part.c_str());
+        die(var, I18n(APRC_I18N_DATA, "aprc").format("APRC1117", {"attr"},
+          {icu::UnicodeString(part.data())}));
       }
       UString set_str;
       set_str += PB.BCstring(part);
@@ -526,7 +556,7 @@ TRXCompiler::processStatement(xmlNode* node)
     }
     else
     {
-      die(node, "Cannot set value of <%S>.", name(var).c_str());
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1118", {"node"}, {icu::UnicodeString(name(var).data())}));
     }
   }
   else if(nameIs(node, "out"))
@@ -546,24 +576,30 @@ TRXCompiler::processStatement(xmlNode* node)
     UString name = requireAttr(node, "n");
     if(macros.find(name) == macros.end())
     {
-      die(node, "Unknown macro '%S'.", name.c_str());
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1119",
+        {"macro"}, {icu::UnicodeString(name.data())}));
     }
     vector<int> temp;
     for (auto param : children(node)) {
       if (nameIs(param, "with-param")) {
         temp.push_back(getPos(param));
       } else {
-        warn(param, "Ignoring non-<with-param> in <call-macro>");
+        warn(param, I18n(APRC_I18N_DATA, "aprc").format("APRC1146", {"element", "node"},
+            {"<with-param>", "<call-macro>"}));
       }
     }
     unsigned int shouldbe = macros[name].first;
     if(shouldbe < temp.size())
     {
-      die(node, "Too many parameters, macro '%S' expects %d, got %d.", name.c_str(), shouldbe, temp.size());
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1120", {"macro", "expected", "given"},
+        {icu::UnicodeString(name.data()),
+         to_string(shouldbe).c_str(), to_string(temp.size()).c_str()}));
     }
     if(shouldbe > temp.size())
     {
-      die(node, "Not enough parameters, macro '%S' expects %d, got %d.", name.c_str(), shouldbe, temp.size());
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1121", {"macro", "expected", "given"},
+        {icu::UnicodeString(name.data()),
+         to_string(shouldbe).c_str(), to_string(temp.size()).c_str()}));
     }
     macroPosShift.push_back(temp);
     xmlNode* mac = macros[name].second;
@@ -578,7 +614,8 @@ TRXCompiler::processStatement(xmlNode* node)
     UString name = requireAttr(node, "n");
     if(vars.find(name) == vars.end() && localVars.find(name) == localVars.end())
     {
-      die(node, "Unknown variable '%S'.", name.c_str());
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1122", {"var"},
+        {icu::UnicodeString(name.data())}));
     }
     ret += STRING;
     ret += (UChar)name.size();
@@ -599,7 +636,8 @@ TRXCompiler::processStatement(xmlNode* node)
   }
   else
   {
-    die(node, "Unrecognized statement '%S'", name(node).c_str());
+    die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1123", {"statement"},
+      {icu::UnicodeString(name(node).data())}));
   }
   return ret;
 }
@@ -623,7 +661,8 @@ TRXCompiler::processValue(xmlNode* node)
     UString part = requireAttr(node, "part");
     if(!PB.isAttrDefined(part))
     {
-      die(node, "Unknown attribute '%S'", part.c_str());
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1117", {"attr"},
+        {icu::UnicodeString(part.data())}));
     }
     ret += (UChar)part.size();
     ret += part;
@@ -642,7 +681,8 @@ TRXCompiler::processValue(xmlNode* node)
     }
     else
     {
-      warn(node, "Unknown clip side '%S', defaulting to 'tl'.", side.c_str());
+      warn(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1149", {"side"},
+        {icu::UnicodeString(side.data())}));
       ret += TARGETCLIP;
     }
     UString link = getattr(node, "link-to");
@@ -688,7 +728,8 @@ TRXCompiler::processValue(xmlNode* node)
     UString v = requireAttr(node, "n");
     if(vars.find(v) == vars.end() && localVars.find(v) == localVars.end())
     {
-      die(node, "Unknown variable '%S'.", v.c_str());
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1122", {"var"},
+        {icu::UnicodeString(v.data())}));
     }
     ret += (UChar)v.size();
     ret += v;
@@ -700,12 +741,12 @@ TRXCompiler::processValue(xmlNode* node)
       if (ret.empty()) {
         ret.append(processValue(c));
       } else {
-        die(node, "<get-case-from> cannot have multiple children.");
+        die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1124"));
       }
     }
     if(ret.size() == 0)
     {
-      die(node, "<get-case-from> cannot be empty.");
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1125"));
     }
     ret += INT;
     ret += (UChar)getPos(node);
@@ -740,7 +781,8 @@ TRXCompiler::processValue(xmlNode* node)
     }
     else
     {
-      warn(node, "Unknown side '%S', defaulting to target.", side.c_str());
+      warn(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1150", {"side"},
+        {icu::UnicodeString(side.data())}));
       ret += TARGETCLIP;
     }
     ret += GETCASE;
@@ -780,7 +822,7 @@ TRXCompiler::processValue(xmlNode* node)
     ret += CHUNK;
     for (auto lu : children(node)) {
       if (!nameIs(lu, "lu")) {
-        die(node, "<mlu> can only contain <lu>s.");
+        die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1126"));
       }
       if(ret.size() > 1)
       {
@@ -839,7 +881,8 @@ TRXCompiler::processValue(xmlNode* node)
   }
   else
   {
-    die(node, "Unrecognized expression '%S'", name(node).c_str());
+    die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1127", {"exp"},
+      {icu::UnicodeString(name(node).data())}));
   }
   return ret;
 }
@@ -875,7 +918,7 @@ TRXCompiler::processCond(xmlNode* node)
     for (auto op : children(node)) {
       if(ret.size() > 0)
       {
-        die(node, "<not> cannot have multiple children");
+        die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1128"));
       }
       else
       {
@@ -893,7 +936,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(i != 2)
     {
-      die(node, "<equal> must have exactly two children");
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"<equal>"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -913,7 +956,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(i != 2)
     {
-      die(node, "<begins-with> must have exactly two children");
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"<begins-with>"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -934,18 +977,20 @@ TRXCompiler::processCond(xmlNode* node)
       }
       else if(list)
       {
-        die(node, "<begins-with-list> cannot have more than two children.");
+        die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1130", {"node"}, {"<begins-with-list>"}));
       }
       else if(xmlStrcmp(op->name, (const xmlChar*) "list"))
       {
-        die(op, "Expected <list>, found <%S> instead.", to_ustring((const char*)op->name).c_str());
+        die(op, I18n(APRC_I18N_DATA, "aprc").format("APRC1131", {"node"},
+          {icu::UnicodeString(to_ustring((const char*)op->name).data())}));
       }
       else
       {
         UString name = requireAttr(op, "n");
         if(lists.find(name) == lists.end())
         {
-          die(op, "Unknown list '%S'.", name.c_str());
+          die(op, I18n(APRC_I18N_DATA, "aprc").format("APRC1132", {"list"},
+            {icu::UnicodeString(name.data())}));
         }
         ret += STRING;
         ret += (UChar)name.size();
@@ -955,7 +1000,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(!list)
     {
-      die(node, "<begins-with-list> must have two children.");
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"<begins-with-list>"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -975,7 +1020,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(i != 2)
     {
-      die(node, "<ends-with> must have exactly two children");
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"<ends-with>"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -996,18 +1041,20 @@ TRXCompiler::processCond(xmlNode* node)
       }
       else if(list)
       {
-        die(node, "<ends-with-list> cannot have more than two children.");
+        die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1130", {"node"}, {"<ends-with-list>"}));
       }
       else if(xmlStrcmp(op->name, (const xmlChar*) "list"))
       {
-        die(op, "Expected <list>, found <%S> instead.", name(op).c_str());
+        die(op, I18n(APRC_I18N_DATA, "aprc").format("APRC1131", {"node"},
+          {icu::UnicodeString(name(op).data())}));
       }
       else
       {
         UString name = requireAttr(op, "n");
         if(lists.find(name) == lists.end())
         {
-          die(op, "Unknown list '%S'.", name.c_str());
+          die(op, I18n(APRC_I18N_DATA, "aprc").format("APRC1132", {"list"},
+            {icu::UnicodeString(name.data())}));
         }
         ret += STRING;
         ret += (UChar)name.size();
@@ -1017,7 +1064,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(!list)
     {
-      die(node, "<ends-with-list> must have two children.");
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"<ends-with-list>"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -1037,7 +1084,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(i != 2)
     {
-      die(node, "<contains-substring> must have exactly two children");
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"<contains-substring>"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -1058,19 +1105,20 @@ TRXCompiler::processCond(xmlNode* node)
       }
       else if(list)
       {
-        die(node, "<in> cannot have more than two children.");
+        die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1130", {"node"}, {"<in>"}));
       }
       else if(xmlStrcmp(op->name, (const xmlChar*) "list"))
       {
-        die(op, "Expected <list>, found <%S> instead.",
-            name(op).c_str());
+        die(op, I18n(APRC_I18N_DATA, "aprc").format("APRC1131", {"node"},
+          {icu::UnicodeString(name(op).data())}));
       }
       else
       {
         UString name = requireAttr(op, "n");
         if(lists.find(name) == lists.end())
         {
-          die(op, "Unknown list '%S'.", name.c_str());
+          die(op, I18n(APRC_I18N_DATA, "aprc").format("APRC1132", {"list"},
+            {icu::UnicodeString(name.data())}));
         }
         ret += STRING;
         ret += (UChar)name.size();
@@ -1080,7 +1128,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(!list)
     {
-      die(node, "<in> must have two children.");
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"<in>"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -1093,7 +1141,8 @@ TRXCompiler::processCond(xmlNode* node)
   }
   else
   {
-    die(node, "Unrecognized condition '%S'", name(node).c_str());
+    die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1133", {"condition"},
+      {icu::UnicodeString(name(node).data())}));
   }
   return ret;
 }
@@ -1109,7 +1158,7 @@ TRXCompiler::processChoose(xmlNode* node)
     {
       if(otherwise > 0)
       {
-        warn(cl, "Clauses after <otherwise> will not be executed.");
+        warn(cl, I18n(APRC_I18N_DATA, "aprc").format("APRC1151"));
         continue;
       }
       when++;
@@ -1119,7 +1168,7 @@ TRXCompiler::processChoose(xmlNode* node)
         {
           if(test.size() != 0)
           {
-            die(n, "Cannot have multiple <test>s in a <when> clause.");
+            die(n, I18n(APRC_I18N_DATA, "aprc").format("APRC1134"));
           }
           for (auto t : children(n)) {
             if(test.size() == 0)
@@ -1128,19 +1177,19 @@ TRXCompiler::processChoose(xmlNode* node)
             }
             else
             {
-              die(t, "<test> must have exactly one child.");
+              die(t, I18n(APRC_I18N_DATA, "aprc").format("APRC1135"));
             }
           }
           if(test.size() == 0)
           {
-            die(n, "<test> cannot be empty.");
+            die(n, I18n(APRC_I18N_DATA, "aprc").format("APRC1136"));
           }
         }
         else
         {
           if(test.size() == 0)
           {
-            die(n, "<when> clause must begin with <test>.");
+            die(n, I18n(APRC_I18N_DATA, "aprc").format("APRC1137"));
           }
           block += processStatement(n);
         }
@@ -1152,7 +1201,7 @@ TRXCompiler::processChoose(xmlNode* node)
       otherwise++;
       if(otherwise > 1)
       {
-        warn(cl, "Multiple <otherwise> clauses will not be executed.");
+        warn(cl, I18n(APRC_I18N_DATA, "aprc").format("APRC1152"));
         continue;
       }
       UString block;
@@ -1165,12 +1214,12 @@ TRXCompiler::processChoose(xmlNode* node)
       }
       else
       {
-        warn(cl, "Empty <otherwise> clause.");
+        warn(cl, I18n(APRC_I18N_DATA, "aprc").format("APRC1153"));
       }
     }
     else
     {
-      warn(cl, "Ignoring unexpected clause in <choose>.");
+      warn(cl, I18n(APRC_I18N_DATA, "aprc").format("APRC1154"));
     }
   }
   UString ret;
@@ -1206,8 +1255,7 @@ TRXCompiler::write(const char* binfile)
   FILE* bin = fopen(binfile, "wb");
   if(bin == NULL)
   {
-    cerr << "Error: Cannot open " << binfile << " for writing." << endl;
-    exit(EXIT_FAILURE);
+    I18n(APRC_I18N_DATA, "aprc").error("APRC1002", {"file"}, {binfile}, true);
   }
   vector<pair<int, UString>> inRules;
   for(unsigned int i = 0; i < inputRules.size(); i++)

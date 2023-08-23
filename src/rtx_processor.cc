@@ -1,12 +1,10 @@
 #include <rtx_config.h>
 #include <rtx_processor.h>
 #include <bytecode.h>
-//#include <apertium/trx_reader.h>
 #include <lttoolbox/compression.h>
 
 #include <iostream>
 #include <lttoolbox/string_utils.h>
-//#include <apertium/unlocked_cstdio.h>
 #include <i18n.h>
 
 using namespace std;

@@ -1804,6 +1804,7 @@ RTXProcessor::processGLR(UFILE *out)
       // that didn't get a parse, reparse it disregarding context, so
       // we can at least use single-word rules on them.
 
+      vector<list<Chunk*>::iterator> deletes;
       for(auto it = outputQueue.begin(); it != outputQueue.end(); ++it) {
         Chunk* ch = *it;
         if(ch->rule == -1 && !ch->isBlank) { // -1 means didn't get a parse
@@ -1817,12 +1818,12 @@ RTXProcessor::processGLR(UFILE *out)
 
           list<Chunk*> outputQueueReparsed;
           parseGraph[0]->getChunks(outputQueueReparsed, parseGraph[0]->length-1);
-          for(Chunk* ch2 : outputQueueReparsed) { // should be at most one
-            *it = ch2;
-          }
+          deletes.push_back(it);
+          outputQueue.splice(it, outputQueueReparsed);
           parseGraph.clear();
         }
       }
+      for(auto it : deletes) outputQueue.erase(it);
 
       outputAll(out);
       variables = currentBranch->stringVars;

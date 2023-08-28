@@ -1798,6 +1798,38 @@ RTXProcessor::processGLR(UFILE *out)
       currentBranch = parseGraph[0];
       parseGraph[0]->getChunks(outputQueue, parseGraph[0]->length-1);
       parseGraph.clear();
+
+      // We have now parsed input into a tree, and are ready to run
+      // output rules and do the output. But first: For every chunk
+      // that didn't get a parse, reparse it disregarding context, so
+      // we can at least use single-word rules on them.
+      {
+        ParseNode* prevBranch = currentBranch;
+        for(auto it = outputQueue.begin(); it != outputQueue.end();) {
+          Chunk* ch = *it;
+          if(ch->rule == -1 && !ch->isBlank) { // -1 means didn't get a parse
+            if(printingAll) cerr << "Reparsing chunk ^" << ch->source << "/" << ch->target << "$" << endl;
+            ParseNode* temp = parsePool.next();
+            temp->init(mx, ch);
+            temp->id = ++newBranchId;
+            temp->stringVars = variables;
+            temp->wblankVars = wblank_variables;
+            temp->chunkVars = vector<Chunk*>(varCount, NULL);
+            checkForReduce(parseGraph, temp);
+
+            list<Chunk*> outputQueueReparsed;
+            parseGraph[0]->getChunks(outputQueueReparsed, parseGraph[0]->length-1);
+            it = outputQueue.erase(it); // skip current word since reparse includes it
+            outputQueue.splice(it, outputQueueReparsed);
+            parseGraph.clear();
+          }
+          else {
+              ++it;
+          }
+        }
+        currentBranch = prevBranch;
+      }
+
       outputAll(out);
       variables = currentBranch->stringVars;
       wblank_variables = currentBranch->wblankVars;

@@ -12,13 +12,13 @@
 
 void endProgram(char *name)
 {
-  cout << basename(name) << ": decompile a transfer bytecode file" << endl;
-  cout << "USAGE: " << basename(name) << " [ -h ] [input_file [output_file]]" << endl;
-  cout << "Options:" << endl;
+  std::cout << basename(name) << ": decompile a transfer bytecode file" << std::endl;
+  std::cout << "USAGE: " << basename(name) << " [ -h ] [input_file [output_file]]" << std::endl;
+  std::cout << "Options:" << std::endl;
 #if HAVE_GETOPT_LONG
-  cout << "  -h, --help: show this help" << endl;
+  std::cout << "  -h, --help: show this help" << std::endl;
 #else
-  cout << "  -h: show this help" << endl;
+  std::cout << "  -h: show this help" << std::endl;
 #endif
   exit(EXIT_FAILURE);
 }
@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
     in = fopen(argv[optind], "rb");
     if(in == NULL)
     {
-      cerr << "Error: could not open file " << argv[optind] << " for reading." << endl;
+      std::cerr << "Error: could not open file " << argv[optind] << " for reading." << std::endl;
       exit(EXIT_FAILURE);
     }
   }
@@ -272,7 +272,7 @@ int main(int argc, char *argv[])
     out = u_fopen(argv[optind+1], "wb", NULL, NULL);
     if(out == NULL)
     {
-      cerr << "Error: could not open file " << argv[optind+1] << " for writing." << endl;
+      std::cerr << "Error: could not open file " << argv[optind+1] << " for writing." << std::endl;
       exit(EXIT_FAILURE);
     }
   }

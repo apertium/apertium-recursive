@@ -743,7 +743,7 @@ RTXCompiler::parseCond()
     if(destring[i].second->op != 0) die(I18n(APRC_I18N_DATA, "aprc").format("APRC1030"));
     if(destring[i].second->val->src != 0) die(I18n(APRC_I18N_DATA, "aprc").format("APRC1031"));
     UChar op = lookupOperator(destring[i].second->val->part);
-    if(op == 0) die(I18n(APRC_I18N_DATA, "aprc").format("APRC1031", {"operator"},
+    if(op == 0) die(I18n(APRC_I18N_DATA, "aprc").format("APRC1032", {"operator"},
       {icu::UnicodeString(destring[i].second->val->part.data())}));
     Cond* temp = ret;
     ret = new Cond;
@@ -1524,7 +1524,7 @@ RTXCompiler::processRetagRules()
           I18n(APRC_I18N_DATA, "aprc").error("APRC1079", {"src", "dest", "a"},
             {icu::UnicodeString(src.data()), icu::UnicodeString(dest.data()), icu::UnicodeString(a.data())}, false);
           for(auto b : vals[a])
-            temp += icu::UnicodeString(icu::UnicodeString(("\""_u +  b + "\", "_u).data()));
+            temp += icu::UnicodeString(("\""_u +  b + "\", "_u).data());
           cerr << I18n(APRC_I18N_DATA, "aprc").format("defaulting_to", {"vals", "def"},
             {temp, icu::UnicodeString(vals[a][0].data())}) << endl;
         }

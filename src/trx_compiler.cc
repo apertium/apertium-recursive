@@ -935,7 +935,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(i != 2)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"<equal>"}));
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"equal"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -955,7 +955,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(i != 2)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"<begins-with>"}));
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"begins-with"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -999,7 +999,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(!list)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"<begins-with-list>"}));
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"begins-with-list"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -1019,7 +1019,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(i != 2)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"<ends-with>"}));
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"ends-with"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -1063,7 +1063,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(!list)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"<ends-with-list>"}));
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"ends-with-list"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -1083,7 +1083,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(i != 2)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"<contains-substring>"}));
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"contains-substring"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -1127,7 +1127,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(!list)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"<in>"}));
+      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"in"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {

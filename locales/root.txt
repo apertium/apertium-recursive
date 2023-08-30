@@ -38,7 +38,7 @@ root{
 
     APRC1000{"ERROR APRC1000: That tree mode has not yet been implemented."}
     APRC1001{"ERROR APRC1001: FST has features that are unknown to this version of lttoolbox - upgrade!"}
-    APRC1002{"ERROR APRC1002: Unable to access \"{file}\"."}
+    APRC1002{"ERROR APRC1002: Unable to access file \"{file}\"."}
     APRC1003{"ERROR APRC1003: Unable to read transducer."}
     APRC1004{"ERROR APRC1004: No paths begin with that prefix."}
     APRC1005{"WARNING APRC1005: Summary mode not available for XML."}
@@ -52,7 +52,7 @@ root{
     APRC1013{"ERROR APRC1013: Unexpected side name {side}."}
     APRC1014{"ERROR APRC1014: SIDE_SOURCES list is empty."}
     APRC1015{"ERROR APRC1015: empty tag order rule."}
-    APRC1016{"WARNING APRC1016: Tag-rewrite rule."}
+    APRC1016{"WARNING APRC1016: Tag-rewrite rule \"{src_tag}\" > \"{dest_tag}\" is defined multiple times. Mappings in earlier definition may be overwritten."}
     APRC1017{"ERROR APRC1017: Redefinition of attribute category \"{category}\"."}
     APRC1018{"ERROR APRC1018: Use of category \"{category}\" in set arithmetic before definition."}
     APRC1019{"ERROR APRC1019: empty attribute list."}
@@ -64,7 +64,7 @@ root{
     APRC1025{"ERROR APRC1025: literal value cannot be rewritten."}
     APRC1026{"ERROR APRC1026: variable cannot be rewritten."}
     APRC1027{"ERROR APRC1027: Empty conditional."}
-    APRC1028{"ERROR APRC1028: Cannot negate string (I can't parse 'not a = b', use 'not (a = b)' or 'a not = b' instead)."}
+    APRC1028{"ERROR APRC1028: Cannot negate string (I can\'t parse \"not a = b\", use \"not (a = b)\" or \"a not = b\" instead)."}
     APRC1029{"ERROR APRC1029: ANDs, ORs, and conditions don't come out evenly."}
     APRC1030{"ERROR APRC1030: Expected operator, found condition."}
     APRC1031{"ERROR APRC1031: Expected operator, found clip."}
@@ -110,7 +110,6 @@ root{
     APRC1069{"ERROR APRC1069: Rule sets chunk reference multiple times."}
     APRC1070{"ERROR APRC1070: Rule sets global variable $${var} multiple times."}
     APRC1071{"ERROR APRC1071: Rule sets global variable $%{var} multiple times."}
-    APRC1072{"ERROR APRC1072: rule has multiple sources for attribute {attr}."}
     APRC1073{"ERROR APRC1073: Unexpected } in output pattern."}
     APRC1074{"ERROR APRC1074: Output pattern does not have enough chunks."}
     APRC1075{"WARNING APRC1075: Source category for tag-rewrite rule \"{src}\" > \"{dest}\" is undefined."}
@@ -137,7 +136,6 @@ root{
     APRC1095{"ERROR APRC1095: Cannot CONCAT non-strings."}
     APRC1096{"ERROR APRC1096: Cannot append non-string to chunk surface."}
     APRC1097{"ERROR APRC1097: Cannot {action} to non-chunk."}
-    APRC1098{"ERROR APRC1098: Cannot APPENDSURFACESL to non-chunk."}
     APRC1099{"ERROR APRC1099: Cannot DISTAG non-string."}
     APRC1100{"ERROR APRC1100: Empty stack or top item is not chunk.\n"
              "Check for conditionals that might not generate output\n"

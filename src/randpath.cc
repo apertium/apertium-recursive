@@ -173,20 +173,17 @@ int main(int argc, char *argv[])
   FILE* tf = fopen(argv[1], "rb");
   if(tf == NULL)
   {
-    I18n(APRC_I18N_DATA, "aprc").error("APRC1002", {"file"}, {argv[1]}, false);
-    return EXIT_FAILURE;
+    I18n(APRC_I18N_DATA, "aprc").error("APRC1002", {"file"}, {argv[1]}, true);
   }
   if(!load(tf))
   {
-    I18n(APRC_I18N_DATA, "aprc").error("APRC1003", {}, {}, false);
-    return EXIT_FAILURE;
+    I18n(APRC_I18N_DATA, "aprc").error("APRC1003", {}, {}, true);
   }
   prefix = to_ustring(argv[2]);
   generatePaths();
   if(paths.size() == 0)
   {
-    I18n(APRC_I18N_DATA, "aprc").error("APRC1004", {}, {}, false);
-    return EXIT_FAILURE;
+    I18n(APRC_I18N_DATA, "aprc").error("APRC1004", {}, {}, true);
   }
   //seed_seq s (prefix.begin(), prefix.end());
   unsigned s = chrono::system_clock::now().time_since_epoch().count();

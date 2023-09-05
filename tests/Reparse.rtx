@@ -1,0 +1,42 @@
+!!!!!!!!!!!!!!!
+!!  ATTRIBUTE CATEGORIES
+!!!!!!!!!!!!!!!
+
+function = "@→N" "@→P" "@ADVL" ;
+number = sg du pl ;
+case = acc nom gen loc ine ela com ess ill ;
+
+!!!!!!!!!!!!!!!
+!! OUTPUT PATTERNS
+!!!!!!!!!!!!!!!
+
+NP: _.number.case.function ;
+PP: _ ;
+
+Name: _.number.case.function ;
+N: _.number.case.function ;
+n: <n>.number.case;
+
+post: _ ;
+
+np: <np>.number.case ;
+
+
+!!!!!!!!!!!!!!!
+!! REDUCTION RULES
+!!!!!!!!!!!!!!!
+
+N ->    "N:n"  %n { %1 } ;
+
+Name ->   "N:np"     %np { %1 }
+	| "NP:N Name" N %Name {1 _ %2 } !gonagas Harald
+	| "NP:N Name" np %Name {1 _ %2 } !
+	| "NP:N Name" Name %N {1 _ %2 } ! ! Verdens Gang aviisii
+	;
+
+NP -> "NP: N" %N { %1 } ;
+
+
+PP -> "PP N post" N %post { 1 _ %2 }
+    | "lone post"   %post { 1 }
+    ;

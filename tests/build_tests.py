@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 f = open('run_tests.py', 'w')
 f.write('''#!/usr/bin/env python3
+
+#####################################################
+### run_tests.py IS A GENERATED FILE, DO NOT EDIT ###
+#####################################################
+
 import subprocess, unittest
 
 class CompilerTest:

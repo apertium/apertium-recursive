@@ -1805,7 +1805,7 @@ RTXProcessor::processGLR(UFILE *out)
       // we can at least use single-word rules on them.
 
       vector<list<Chunk*>::iterator> deletes;
-      for(auto it = outputQueue.begin(); it != outputQueue.end(); ++it) {
+      for(auto it = outputQueue.begin(); it != outputQueue.end();) {
         Chunk* ch = *it;
         if(ch->rule == -1 && !ch->isBlank) { // -1 means didn't get a parse
           ParseNode* temp = parsePool.next();
@@ -1818,9 +1818,12 @@ RTXProcessor::processGLR(UFILE *out)
 
           list<Chunk*> outputQueueReparsed;
           parseGraph[0]->getChunks(outputQueueReparsed, parseGraph[0]->length-1);
-          deletes.push_back(it);
+          it = outputQueue.erase(it); // advance to the next word
           outputQueue.splice(it, outputQueueReparsed);
           parseGraph.clear();
+        }
+        else {
+          ++it;
         }
       }
       for(auto it : deletes) outputQueue.erase(it);

@@ -149,7 +149,7 @@ root{
     ARC81070{"ERROR ARC81070: Rule cannot have multiple <pattern>s."}
     ARC81080{"ERROR ARC81080: Unknown pattern \"{pattern}\"."}
     ARC81090{"ERROR ARC81090: Rule cannot have empty pattern."}
-    ARC8110{"ERROR ARC8110: Rule cannot have multiple <action>s."}
+    ARC81100{"ERROR ARC81100: Rule cannot have multiple <action>s."}
     ARC81110{"ERROR ARC81110: Rule cannot have multiple <output-action>s."}
     ARC81120{"ERROR ARC81120: Rule must have <pattern>."}
     ARC81130{"ERROR ARC81130: Rule must have <action>."}

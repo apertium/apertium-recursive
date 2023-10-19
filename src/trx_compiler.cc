@@ -390,7 +390,7 @@ TRXCompiler::processRules(xmlNode* node)
       {
         if(action != NULL)
         {
-          die(rule, I18n(ARC_I18N_DATA, "arc").format("ARC8110"));
+          die(rule, I18n(ARC_I18N_DATA, "arc").format("ARC81100"));
         }
         action = part;
       }

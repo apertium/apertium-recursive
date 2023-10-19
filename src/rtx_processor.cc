@@ -5,7 +5,7 @@
 
 #include <iostream>
 #include <lttoolbox/string_utils.h>
-#include <i18n.h>
+#include <lttoolbox/i18n.h>
 
 using namespace std;
 
@@ -24,7 +24,7 @@ RTXProcessor::read(string const &filename)
   FILE *in = fopen(filename.c_str(), "rb");
   if(in == NULL)
   {
-    I18n(APRC_I18N_DATA, "aprc").error("APRC1002", {"file"}, {filename.c_str()}, true);
+    I18n(ARC_I18N_DATA, "arc").error("ARC80020", {"file"}, {filename.c_str()}, true);
   }
 
   longestPattern = 2*Compression::multibyte_read(in) - 1;
@@ -165,7 +165,7 @@ RTXProcessor::popBool()
   }
   else
   {
-    I18n(APRC_I18N_DATA, "aprc").error("APRC1093", {"type", "mode"}, {"bool", theStack[stackIdx].mode}, true);
+    I18n(ARC_I18N_DATA, "arc").error("ARC80930", {"type", "mode"}, {"bool", theStack[stackIdx].mode}, true);
   }
 }
 
@@ -178,7 +178,7 @@ RTXProcessor::popInt()
   }
   else
   {
-    I18n(APRC_I18N_DATA, "aprc").error("APRC1093", {"type", "mode"}, {"int", theStack[stackIdx].mode}, true);
+    I18n(ARC_I18N_DATA, "arc").error("ARC80930", {"type", "mode"}, {"int", theStack[stackIdx].mode}, true);
   }
 }
 
@@ -195,7 +195,7 @@ RTXProcessor::popString()
   }
   else
   {
-    I18n(APRC_I18N_DATA, "aprc").error("APRC1093", {"type", "mode"}, {"UString", theStack[stackIdx].mode}, true);
+    I18n(ARC_I18N_DATA, "arc").error("ARC80930", {"type", "mode"}, {"UString", theStack[stackIdx].mode}, true);
   }
 }
 
@@ -212,7 +212,7 @@ RTXProcessor::popString(UString& dest)
   }
   else
   {
-    I18n(APRC_I18N_DATA, "aprc").error("APRC1093", {"type", "mode"}, {"UString", theStack[stackIdx].mode}, true);
+    I18n(ARC_I18N_DATA, "arc").error("ARC80930", {"type", "mode"}, {"UString", theStack[stackIdx].mode}, true);
   }
 }
 
@@ -225,8 +225,8 @@ RTXProcessor::popChunk()
   }
   else
   {
-    cerr << I18n(APRC_I18N_DATA, "aprc").format("APRC1093_chunk_note") << endl;
-    I18n(APRC_I18N_DATA, "aprc").error("APRC1093", {"type", "mode"}, {"Chunk", theStack[stackIdx].mode}, true);
+    cerr << I18n(ARC_I18N_DATA, "arc").format("ARC80930_chunk_note") << endl;
+    I18n(ARC_I18N_DATA, "arc").error("ARC80930", {"type", "mode"}, {"Chunk", theStack[stackIdx].mode}, true);
   }
 }
 
@@ -253,7 +253,7 @@ RTXProcessor::stackCopy(int src, int dest)
       theWblankStack[dest] = theWblankStack[src];
       break;
     default:
-      I18n(APRC_I18N_DATA, "aprc").error("APRC1094", {"mode"}, {theStack[src].mode}, false);
+      I18n(ARC_I18N_DATA, "arc").error("ARC80940", {"mode"}, {theStack[src].mode}, false);
       break;
   }
 }
@@ -745,7 +745,7 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2 || theStack[stackIdx-1].mode != 2)
         {
-          I18n(APRC_I18N_DATA, "aprc").error("APRC1095", {}, {}, true);
+          I18n(ARC_I18N_DATA, "arc").error("ARC80950", {}, {}, true);
         }
         stackIdx--;
         theStack[stackIdx].s.append(theStack[stackIdx+1].s);
@@ -795,12 +795,12 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
-          I18n(APRC_I18N_DATA, "aprc").error("APRC1096", {}, {}, true);
+          I18n(ARC_I18N_DATA, "arc").error("ARC80960", {}, {}, true);
         }
         stackIdx--;
         if(theStack[stackIdx].mode != 3)
         {
-          I18n(APRC_I18N_DATA, "aprc").error("APRC1097", {"action"}, {"APPENDSURFACE"}, true);
+          I18n(ARC_I18N_DATA, "arc").error("ARC80970", {"action"}, {"APPENDSURFACE"}, true);
         }
         if(theStack[stackIdx+1].mode == 2)
         {
@@ -821,12 +821,12 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
-          I18n(APRC_I18N_DATA, "aprc").error("APRC1096", {}, {}, true);
+          I18n(ARC_I18N_DATA, "arc").error("ARC80960", {}, {}, true);
         }
         stackIdx--;
         if(theStack[stackIdx].mode != 3)
         {
-          I18n(APRC_I18N_DATA, "aprc").error("APRC1097", {"action"}, {"APPENDSURFACESL"}, true);
+          I18n(ARC_I18N_DATA, "arc").error("ARC80970", {"action"}, {"APPENDSURFACESL"}, true);
         }
         if(theStack[stackIdx+1].mode == 2)
         {
@@ -847,12 +847,12 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
-          I18n(APRC_I18N_DATA, "aprc").error("APRC1096", {}, {}, true);
+          I18n(ARC_I18N_DATA, "arc").error("ARC80960", {}, {}, true);
         }
         stackIdx--;
         if(theStack[stackIdx].mode != 3)
         {
-          I18n(APRC_I18N_DATA, "aprc").error("APRC1097", {"action"}, {"APPENDSURFACESL"}, true);
+          I18n(ARC_I18N_DATA, "arc").error("ARC80970", {"action"}, {"APPENDSURFACESL"}, true);
         }
         if(theStack[stackIdx+1].mode == 2)
         {
@@ -918,7 +918,7 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2)
         {
-          I18n(APRC_I18N_DATA, "aprc").error("APRC1099", {}, {}, true);
+          I18n(ARC_I18N_DATA, "arc").error("ARC80990", {}, {}, true);
         }
         UString& s = theStack[stackIdx].s;
         if(s.size() > 0 && s[0] == '<' && s[s.size()-1] == '>')
@@ -943,7 +943,7 @@ RTXProcessor::applyRule(const UString& rule)
         {
           if(stackIdx == 0 || theStack[stackIdx].mode != 3)
           {
-            I18n(APRC_I18N_DATA, "aprc").error("APRC1100", {}, {}, true);
+            I18n(ARC_I18N_DATA, "arc").error("ARC81000", {}, {}, true);
           }
           theStack[stackIdx].c->rule = rl;
         }
@@ -958,7 +958,7 @@ RTXProcessor::applyRule(const UString& rule)
         pushStack(StringUtils::itoa((currentInput.size() + 1) / 2));
         break;
       default:
-        I18n(APRC_I18N_DATA, "aprc").error("APRC1101", {"rule"}, {icu::UnicodeString(rule[i])}, true);
+        I18n(ARC_I18N_DATA, "arc").error("ARC81010", {"rule"}, {icu::UnicodeString(rule[i])}, true);
     }
   }
   return true;
@@ -1038,7 +1038,7 @@ RTXProcessor::readToken()
           }
           else
           {
-            I18n(APRC_I18N_DATA, "aprc").error("APRC1102", {}, {}, true);
+            I18n(ARC_I18N_DATA, "arc").error("ARC81020", {}, {}, true);
           }
         }
         else

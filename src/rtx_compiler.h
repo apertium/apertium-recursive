@@ -11,7 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include <i18n.h>
+#include <lttoolbox/i18n.h>
 
 using namespace std;
 

@@ -4,11 +4,11 @@
 #include <getopt.h>
 #include <libgen.h>
 #include <iostream>
-#include <i18n.h>
+#include <lttoolbox/i18n.h>
 
 void endProgram(char *name)
 {
-  I18n i18n {APRC_I18N_DATA, "aprc"};
+  I18n i18n {ARC_I18N_DATA, "arc"};
   cout << i18n.format("rtx_proc_desc", {"program"}, {basename(name)});
 #if HAVE_GETOPT_LONG
   cout << "  -a, --anaphora:   " << i18n.format("anaphora_desc") << endl;
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
     case 'm':
       if(!p.setOutputMode(optarg))
       {
-        I18n(APRC_I18N_DATA, "aprc").error("APRC1092", {"optarg"}, {optarg}, true);
+        I18n(ARC_I18N_DATA, "arc").error("ARC80920", {"optarg"}, {optarg}, true);
       }
       break;
 
@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
     input = fopen(argv[optind+1], "rb");
     if(input == NULL)
     {
-      I18n(APRC_I18N_DATA, "aprc").error("APRC1002", {"file"}, {argv[optind+1]}, true);
+      I18n(ARC_I18N_DATA, "arc").error("ARC80020", {"file"}, {argv[optind+1]}, true);
     }
   }
   if(optind <= (argc - 3))
@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
     output = u_fopen(argv[optind+2], "w", NULL, NULL);
     if(input == NULL)
     {
-      I18n(APRC_I18N_DATA, "aprc").error("APRC1002", {"file"}, {argv[optind+2]}, true);
+      I18n(ARC_I18N_DATA, "arc").error("ARC80020", {"file"}, {argv[optind+2]}, true);
     }
   }
 

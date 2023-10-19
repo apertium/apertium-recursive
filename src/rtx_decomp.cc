@@ -9,15 +9,15 @@
 #include <cstring>
 #include <cstdio>
 #include <unicode/ustdio.h>
-#include <i18n.h>
+#include <lttoolbox/i18n.h>
 
 void endProgram(char *name)
 {
-  std::cout << I18n(APRC_I18N_DATA, "aprc").format("rtx_decomp_desc", {"program"}, {basename(name)});
+  std::cout << I18n(ARC_I18N_DATA, "arc").format("rtx_decomp_desc", {"program"}, {basename(name)});
 #if HAVE_GETOPT_LONG
-  std::cout << "  -h, --help: " << I18n(APRC_I18N_DATA, "aprc").format("help_desc") << std::endl;
+  std::cout << "  -h, --help: " << I18n(ARC_I18N_DATA, "arc").format("help_desc") << std::endl;
 #else
-  std::cout << "  -h: " << I18n(APRC_I18N_DATA, "aprc").format("help_desc") << std::endl;
+  std::cout << "  -h: " << I18n(ARC_I18N_DATA, "arc").format("help_desc") << std::endl;
 #endif
   exit(EXIT_FAILURE);
 }
@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
     in = fopen(argv[optind], "rb");
     if(in == NULL)
     {
-      I18n(APRC_I18N_DATA, "aprc").error("APRC1002", {"file"}, {argv[optind]}, true);
+      I18n(ARC_I18N_DATA, "arc").error("ARC80020", {"file"}, {argv[optind]}, true);
     }
   }
   if(optind <= (argc - 2))
@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
     out = u_fopen(argv[optind+1], "wb", NULL, NULL);
     if(out == NULL)
     {
-      I18n(APRC_I18N_DATA, "aprc").error("APRC1002", {"file"}, {argv[optind + 1]}, true);
+      I18n(ARC_I18N_DATA, "arc").error("ARC80020", {"file"}, {argv[optind + 1]}, true);
     }
   }
 

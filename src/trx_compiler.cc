@@ -9,7 +9,7 @@
 #include <iostream>
 #include <lttoolbox/string_utils.h>
 #include <lttoolbox/xml_walk_util.h>
-#include <i18n.h>
+#include <lttoolbox/i18n.h>
 
 using namespace std;
 
@@ -51,7 +51,7 @@ TRXCompiler::die(xmlNode* node, const char* fmt, ...)
 void
 TRXCompiler::die(xmlNode* node, icu::UnicodeString message)
 {
-  cerr << I18n(APRC_I18N_DATA, "aprc").format("in_file_on_line", {"file", "line"},
+  cerr << I18n(ARC_I18N_DATA, "arc").format("in_file_on_line", {"file", "line"},
     {(char*)curDoc->URL, node->line}) << endl;
   cerr << message << endl;
   exit(EXIT_FAILURE);
@@ -73,7 +73,7 @@ TRXCompiler::warn(xmlNode* node, const char* fmt, ...)
 void
 TRXCompiler::warn(xmlNode* node, icu::UnicodeString message)
 {
-  cerr << I18n(APRC_I18N_DATA, "aprc").format("in_file_on_line",
+  cerr << I18n(ARC_I18N_DATA, "arc").format("in_file_on_line",
     {"file", "line"}, {(char*)curDoc->URL, node->line}) << endl;
   cerr << message << endl;
 }
@@ -84,7 +84,7 @@ TRXCompiler::compile(string file)
   curDoc = xmlReadFile(file.c_str(), NULL, 0);
   if(curDoc == NULL)
   {
-    I18n(APRC_I18N_DATA, "aprc").error("APRC1002", {"file"}, {file.c_str()}, true);
+    I18n(ARC_I18N_DATA, "arc").error("ARC80020", {"file"}, {file.c_str()}, true);
   }
   processFile(xmlDocGetRootElement(curDoc));
 }
@@ -117,7 +117,7 @@ TRXCompiler::requireAttr(xmlNode* node, const char* attr)
       return to_ustring((const char*) a->children->content);
     }
   }
-  die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1103", {"attr"}, {attr}));
+  die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81030", {"attr"}, {attr}));
   return ""_u; // since die() exits, this will not be returned
   // but we each do our part to keep the typechecker happy...
 }
@@ -142,7 +142,7 @@ TRXCompiler::getPos(xmlNode* node, bool isBlank = false)
     }
     else
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1104"));
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81040"));
     }
   }
   for(unsigned int i = 0; i < v.size(); i++)
@@ -151,10 +151,10 @@ TRXCompiler::getPos(xmlNode* node, bool isBlank = false)
     {
       if(isBlank)
       {
-        warn(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1138"));
+        warn(node, I18n(ARC_I18N_DATA, "arc").format("ARC61380"));
         return 0;
       }
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1105"));
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81050"));
     }
   }
   int ret = StringUtils::stoi(v);
@@ -171,10 +171,10 @@ TRXCompiler::getPos(xmlNode* node, bool isBlank = false)
   {
     if(isBlank)
     {
-      warn(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1139"));
+      warn(node, I18n(ARC_I18N_DATA, "arc").format("ARC61390"));
       return 0;
     }
-    die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1106", {"pos"}, {ret}));
+    die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81060", {"pos"}, {ret}));
   }
   if(macroPosShift.size() > 0)
   {
@@ -188,14 +188,14 @@ TRXCompiler::processCats(xmlNode* node)
 {
   for (auto cat : children(node)) {
     if (!nameIs(cat, "def-cat")) {
-      warn(cat, I18n(APRC_I18N_DATA, "aprc").format("APRC1140", {"node"}, {"section-def-cats"}));
+      warn(cat, I18n(ARC_I18N_DATA, "arc").format("ARC61400", {"node"}, {"section-def-cats"}));
       continue;
     }
     UString pat_name = requireAttr(cat, "n");
     vector<PatternElement*> pat;
     for (auto item : children(cat)) {
       if (!nameIs(item, "cat-item")) {
-        warn(cat, I18n(APRC_I18N_DATA, "aprc").format("APRC1141", {"node"},
+        warn(cat, I18n(ARC_I18N_DATA, "arc").format("ARC61410", {"node"},
           {icu::UnicodeString(name(item).data())}));
         continue;
       }
@@ -207,7 +207,7 @@ TRXCompiler::processCats(xmlNode* node)
       pat.push_back(cur);
     }
     if(patterns.find(pat_name) != patterns.end()) {
-      warn(cat, I18n(APRC_I18N_DATA, "aprc").format("APRC1142", {"pattern"},
+      warn(cat, I18n(ARC_I18N_DATA, "arc").format("ARC61420", {"pattern"},
         {icu::UnicodeString(pat_name.data())}));
     }
     patterns[pat_name] = pat;
@@ -219,21 +219,21 @@ TRXCompiler::processAttrs(xmlNode* node)
 {
   for (auto cat : children(node)) {
     if (!nameIs(cat, "def-attr")) {
-      warn(cat, I18n(APRC_I18N_DATA, "aprc").format("APRC1140", {"node"}, {"section-def-attrs"}));
+      warn(cat, I18n(ARC_I18N_DATA, "arc").format("ARC61400", {"node"}, {"section-def-attrs"}));
       continue;
     }
     UString name = getattr(cat, "n");
     set<UString> ats;
     for (auto item : children(cat)) {
       if (!nameIs(item, "attr-item")) {
-        warn(item, I18n(APRC_I18N_DATA, "aprc").format("APRC1140", {"node"}, {"def-attr"}));
+        warn(item, I18n(ARC_I18N_DATA, "arc").format("ARC61400", {"node"}, {"def-attr"}));
         continue;
       }
       ats.insert(getattr(item, "tags"));
     }
     if(PB.isAttrDefined(name))
     {
-      warn(cat, I18n(APRC_I18N_DATA, "aprc").format("APRC1143", {"attr"},
+      warn(cat, I18n(ARC_I18N_DATA, "arc").format("ARC61430", {"attr"},
         {icu::UnicodeString(name.data())}));
     }
     PB.addAttr(name, ats);
@@ -245,7 +245,7 @@ TRXCompiler::processVars(xmlNode* node)
 {
   for (auto var : children(node)) {
     if (!nameIs(var, "def-var")) {
-      warn(var, I18n(APRC_I18N_DATA, "aprc").format("APRC1140", {"node"}, {"section-def-vars"}));
+      warn(var, I18n(ARC_I18N_DATA, "arc").format("ARC61400", {"node"}, {"section-def-vars"}));
       continue;
     }
     UString name = requireAttr(var, "n");
@@ -259,21 +259,21 @@ TRXCompiler::processLists(xmlNode* node)
 {
   for (auto cat : children(node)) {
     if (!nameIs(cat, "def-list")) {
-      warn(cat, I18n(APRC_I18N_DATA, "aprc").format("APRC1140", {"node"}, {"section-def-lists"}));
+      warn(cat, I18n(ARC_I18N_DATA, "arc").format("ARC61400", {"node"}, {"section-def-lists"}));
       continue;
     }
     UString name = getattr(cat, "n");
     set<UString> ats;
     for (auto item : children(cat)) {
       if (!nameIs(item, "list-item")) {
-        warn(item, I18n(APRC_I18N_DATA, "aprc").format("APRC1140", {"node"}, {"def-list"}));
+        warn(item, I18n(ARC_I18N_DATA, "arc").format("ARC61400", {"node"}, {"def-list"}));
         continue;
       }
       ats.insert(getattr(item, "v"));
     }
     if(lists.find(name) != lists.end())
     {
-      warn(cat, I18n(APRC_I18N_DATA, "aprc").format("APRC1144", {"list"},
+      warn(cat, I18n(ARC_I18N_DATA, "arc").format("ARC61440", {"list"},
         {icu::UnicodeString(name.data())}));
     }
     lists[name] = ats;
@@ -286,14 +286,14 @@ TRXCompiler::gatherMacros(xmlNode* node)
 {
   for (auto mac : children(node)) {
     if (!nameIs(mac, "def-macro")) {
-      warn(mac, I18n(APRC_I18N_DATA, "aprc").format("APRC1140", {"node"}, {"section-def-macros"}));
+      warn(mac, I18n(ARC_I18N_DATA, "arc").format("ARC61400", {"node"}, {"section-def-macros"}));
       continue;
     }
     UString name = requireAttr(mac, "n");
     int npar = StringUtils::stoi(requireAttr(mac, "npar"));
     if(macros.find(name) != macros.end())
     {
-      warn(mac, I18n(APRC_I18N_DATA, "aprc").format("APRC1145", {"macro"},
+      warn(mac, I18n(ARC_I18N_DATA, "arc").format("ARC61450", {"macro"},
         {icu::UnicodeString(name.data())}));
     }
     macros[name] = make_pair(npar, mac);
@@ -306,7 +306,7 @@ TRXCompiler::processRules(xmlNode* node)
   for (auto rule : children(node)) {
     if(xmlStrcmp(rule->name, (const xmlChar*) "rule"))
     {
-      warn(rule, I18n(APRC_I18N_DATA, "aprc").format("APRC1146", {"element", "node"},
+      warn(rule, I18n(ARC_I18N_DATA, "arc").format("ARC61460", {"element", "node"},
         {"<rule>", "<section-rules>"}));
       continue;
     }
@@ -338,13 +338,13 @@ TRXCompiler::processRules(xmlNode* node)
       {
         if(pat)
         {
-          die(rule, I18n(APRC_I18N_DATA, "aprc").format("APRC1107"));
+          die(rule, I18n(ARC_I18N_DATA, "arc").format("ARC81070"));
         }
         pat = true;
         vector<vector<PatternElement*>> pls;
         for (auto pi : children(part)) {
           if (!nameIs(pi, "pattern-item")) {
-            warn(pi, I18n(APRC_I18N_DATA, "aprc").format("APRC1146", {"element", "node"},
+            warn(pi, I18n(ARC_I18N_DATA, "arc").format("ARC61460", {"element", "node"},
               {"<pattern-item>", "<section-rules>"}));
             continue;
           }
@@ -352,7 +352,7 @@ TRXCompiler::processRules(xmlNode* node)
           UString name = requireAttr(pi, "n");
           if(patterns.find(name) == patterns.end())
           {
-            die(pi, I18n(APRC_I18N_DATA, "aprc").format("APRC1108", {"pattern"},
+            die(pi, I18n(ARC_I18N_DATA, "arc").format("ARC81080", {"pattern"},
               {icu::UnicodeString(name.data())}));
           }
           else
@@ -362,7 +362,7 @@ TRXCompiler::processRules(xmlNode* node)
         }
         if(curPatternSize == 0)
         {
-          die(rule, I18n(APRC_I18N_DATA, "aprc").format("APRC1109"));
+          die(rule, I18n(ARC_I18N_DATA, "arc").format("ARC81090"));
         }
         if(curPatternSize > longestPattern)
         {
@@ -390,7 +390,7 @@ TRXCompiler::processRules(xmlNode* node)
       {
         if(action != NULL)
         {
-          die(rule, I18n(APRC_I18N_DATA, "aprc").format("APRC1110"));
+          die(rule, I18n(ARC_I18N_DATA, "arc").format("ARC8110"));
         }
         action = part;
       }
@@ -398,7 +398,7 @@ TRXCompiler::processRules(xmlNode* node)
       {
         if(outputAction.size() > 0)
         {
-          die(part, I18n(APRC_I18N_DATA, "aprc").format("APRC1111"));
+          die(part, I18n(ARC_I18N_DATA, "arc").format("ARC81110"));
         }
         inOutput = true;
         for (auto state : children(part)) {
@@ -407,17 +407,17 @@ TRXCompiler::processRules(xmlNode* node)
       }
       else
       {
-        warn(part, I18n(APRC_I18N_DATA, "aprc").format("APRC1147", {"node"},
+        warn(part, I18n(ARC_I18N_DATA, "arc").format("ARC61470", {"node"},
           {icu::UnicodeString(name(part).data())}));
       }
     }
     if(!pat)
     {
-      die(rule, I18n(APRC_I18N_DATA, "aprc").format("APRC1112"));
+      die(rule, I18n(ARC_I18N_DATA, "arc").format("ARC81120"));
     }
     if(action == NULL)
     {
-      die(rule, I18n(APRC_I18N_DATA, "aprc").format("APRC1113"));
+      die(rule, I18n(ARC_I18N_DATA, "arc").format("ARC81130"));
     }
     else
     {
@@ -469,13 +469,13 @@ TRXCompiler::processStatement(xmlNode* node)
         val = processValue(n);
       }
       else {
-        die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1114", {"node"},
+        die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81140", {"node"},
           {icu::UnicodeString(name(node).data())}));
       }
     }
     if(val.size() == 0)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"},
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81150", {"node"},
         {icu::UnicodeString(name(node).data())}));
     }
     if(nameIs(var, "var"))
@@ -483,7 +483,7 @@ TRXCompiler::processStatement(xmlNode* node)
       UString vname = requireAttr(var, "n");
       if(vars.find(vname) == vars.end())
       {
-        die(var, I18n(APRC_I18N_DATA, "aprc").format("APRC1116", {"var"},
+        die(var, I18n(ARC_I18N_DATA, "arc").format("ARC81160", {"var"},
           {icu::UnicodeString(vname.data())}));
       }
       if(nameIs(node, "modify-case"))
@@ -509,13 +509,13 @@ TRXCompiler::processStatement(xmlNode* node)
       UString side = getattr(var, "side");
       if(!(side.empty() || side == "tl"_u))
       {
-        warn(var, I18n(APRC_I18N_DATA, "aprc").format("APRC1148", {"side"},
+        warn(var, I18n(ARC_I18N_DATA, "arc").format("ARC61480", {"side"},
           {icu::UnicodeString(side.data())}));
       }
       UString part = requireAttr(var, "part");
       if(!PB.isAttrDefined(part))
       {
-        die(var, I18n(APRC_I18N_DATA, "aprc").format("APRC1117", {"attr"},
+        die(var, I18n(ARC_I18N_DATA, "arc").format("ARC81170", {"attr"},
           {icu::UnicodeString(part.data())}));
       }
       UString set_str;
@@ -555,7 +555,7 @@ TRXCompiler::processStatement(xmlNode* node)
     }
     else
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1118", {"node"}, {icu::UnicodeString(name(var).data())}));
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81180", {"node"}, {icu::UnicodeString(name(var).data())}));
     }
   }
   else if(nameIs(node, "out"))
@@ -575,7 +575,7 @@ TRXCompiler::processStatement(xmlNode* node)
     UString name = requireAttr(node, "n");
     if(macros.find(name) == macros.end())
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1119",
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81190",
         {"macro"}, {icu::UnicodeString(name.data())}));
     }
     vector<int> temp;
@@ -583,20 +583,20 @@ TRXCompiler::processStatement(xmlNode* node)
       if (nameIs(param, "with-param")) {
         temp.push_back(getPos(param));
       } else {
-        warn(param, I18n(APRC_I18N_DATA, "aprc").format("APRC1146", {"element", "node"},
+        warn(param, I18n(ARC_I18N_DATA, "arc").format("ARC61460", {"element", "node"},
             {"<with-param>", "<call-macro>"}));
       }
     }
     unsigned int shouldbe = macros[name].first;
     if(shouldbe < temp.size())
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1120", {"macro", "expected", "given"},
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81200", {"macro", "expected", "given"},
         {icu::UnicodeString(name.data()),
          to_string(shouldbe).c_str(), to_string(temp.size()).c_str()}));
     }
     if(shouldbe > temp.size())
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1121", {"macro", "expected", "given"},
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81210", {"macro", "expected", "given"},
         {icu::UnicodeString(name.data()),
          to_string(shouldbe).c_str(), to_string(temp.size()).c_str()}));
     }
@@ -613,7 +613,7 @@ TRXCompiler::processStatement(xmlNode* node)
     UString name = requireAttr(node, "n");
     if(vars.find(name) == vars.end() && localVars.find(name) == localVars.end())
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1122", {"var"},
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81220", {"var"},
         {icu::UnicodeString(name.data())}));
     }
     ret += STRING;
@@ -635,7 +635,7 @@ TRXCompiler::processStatement(xmlNode* node)
   }
   else
   {
-    die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1123", {"statement"},
+    die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81230", {"statement"},
       {icu::UnicodeString(name(node).data())}));
   }
   return ret;
@@ -660,7 +660,7 @@ TRXCompiler::processValue(xmlNode* node)
     UString part = requireAttr(node, "part");
     if(!PB.isAttrDefined(part))
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1117", {"attr"},
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81170", {"attr"},
         {icu::UnicodeString(part.data())}));
     }
     ret += (UChar)part.size();
@@ -680,7 +680,7 @@ TRXCompiler::processValue(xmlNode* node)
     }
     else
     {
-      warn(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1149", {"side"},
+      warn(node, I18n(ARC_I18N_DATA, "arc").format("ARC61490", {"side"},
         {icu::UnicodeString(side.data())}));
       ret += TARGETCLIP;
     }
@@ -727,7 +727,7 @@ TRXCompiler::processValue(xmlNode* node)
     UString v = requireAttr(node, "n");
     if(vars.find(v) == vars.end() && localVars.find(v) == localVars.end())
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1122", {"var"},
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81220", {"var"},
         {icu::UnicodeString(v.data())}));
     }
     ret += (UChar)v.size();
@@ -740,12 +740,12 @@ TRXCompiler::processValue(xmlNode* node)
       if (ret.empty()) {
         ret.append(processValue(c));
       } else {
-        die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1124"));
+        die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81240"));
       }
     }
     if(ret.size() == 0)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1125"));
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81250"));
     }
     ret += INT;
     ret += (UChar)getPos(node);
@@ -780,7 +780,7 @@ TRXCompiler::processValue(xmlNode* node)
     }
     else
     {
-      warn(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1150", {"side"},
+      warn(node, I18n(ARC_I18N_DATA, "arc").format("ARC61500", {"side"},
         {icu::UnicodeString(side.data())}));
       ret += TARGETCLIP;
     }
@@ -821,7 +821,7 @@ TRXCompiler::processValue(xmlNode* node)
     ret += CHUNK;
     for (auto lu : children(node)) {
       if (!nameIs(lu, "lu")) {
-        die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1126"));
+        die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81260"));
       }
       if(ret.size() > 1)
       {
@@ -880,7 +880,7 @@ TRXCompiler::processValue(xmlNode* node)
   }
   else
   {
-    die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1127", {"exp"},
+    die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81270", {"exp"},
       {icu::UnicodeString(name(node).data())}));
   }
   return ret;
@@ -917,7 +917,7 @@ TRXCompiler::processCond(xmlNode* node)
     for (auto op : children(node)) {
       if(ret.size() > 0)
       {
-        die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1128"));
+        die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81280"));
       }
       else
       {
@@ -935,7 +935,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(i != 2)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"equal"}));
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81150", {"node"}, {"equal"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -955,7 +955,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(i != 2)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"begins-with"}));
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81150", {"node"}, {"begins-with"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -976,11 +976,11 @@ TRXCompiler::processCond(xmlNode* node)
       }
       else if(list)
       {
-        die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1130", {"node"}, {"<begins-with-list>"}));
+        die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81300", {"node"}, {"<begins-with-list>"}));
       }
       else if(xmlStrcmp(op->name, (const xmlChar*) "list"))
       {
-        die(op, I18n(APRC_I18N_DATA, "aprc").format("APRC1131", {"node"},
+        die(op, I18n(ARC_I18N_DATA, "arc").format("ARC81310", {"node"},
           {icu::UnicodeString(to_ustring((const char*)op->name).data())}));
       }
       else
@@ -988,7 +988,7 @@ TRXCompiler::processCond(xmlNode* node)
         UString name = requireAttr(op, "n");
         if(lists.find(name) == lists.end())
         {
-          die(op, I18n(APRC_I18N_DATA, "aprc").format("APRC1132", {"list"},
+          die(op, I18n(ARC_I18N_DATA, "arc").format("ARC81320", {"list"},
             {icu::UnicodeString(name.data())}));
         }
         ret += STRING;
@@ -999,7 +999,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(!list)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"begins-with-list"}));
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81150", {"node"}, {"begins-with-list"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -1019,7 +1019,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(i != 2)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"ends-with"}));
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81150", {"node"}, {"ends-with"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -1040,11 +1040,11 @@ TRXCompiler::processCond(xmlNode* node)
       }
       else if(list)
       {
-        die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1130", {"node"}, {"<ends-with-list>"}));
+        die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81300", {"node"}, {"<ends-with-list>"}));
       }
       else if(xmlStrcmp(op->name, (const xmlChar*) "list"))
       {
-        die(op, I18n(APRC_I18N_DATA, "aprc").format("APRC1131", {"node"},
+        die(op, I18n(ARC_I18N_DATA, "arc").format("ARC81310", {"node"},
           {icu::UnicodeString(name(op).data())}));
       }
       else
@@ -1052,7 +1052,7 @@ TRXCompiler::processCond(xmlNode* node)
         UString name = requireAttr(op, "n");
         if(lists.find(name) == lists.end())
         {
-          die(op, I18n(APRC_I18N_DATA, "aprc").format("APRC1132", {"list"},
+          die(op, I18n(ARC_I18N_DATA, "arc").format("ARC81320", {"list"},
             {icu::UnicodeString(name.data())}));
         }
         ret += STRING;
@@ -1063,7 +1063,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(!list)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"ends-with-list"}));
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81150", {"node"}, {"ends-with-list"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -1083,7 +1083,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(i != 2)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"contains-substring"}));
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81150", {"node"}, {"contains-substring"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -1104,11 +1104,11 @@ TRXCompiler::processCond(xmlNode* node)
       }
       else if(list)
       {
-        die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1130", {"node"}, {"<in>"}));
+        die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81300", {"node"}, {"<in>"}));
       }
       else if(xmlStrcmp(op->name, (const xmlChar*) "list"))
       {
-        die(op, I18n(APRC_I18N_DATA, "aprc").format("APRC1131", {"node"},
+        die(op, I18n(ARC_I18N_DATA, "arc").format("ARC81310", {"node"},
           {icu::UnicodeString(name(op).data())}));
       }
       else
@@ -1116,7 +1116,7 @@ TRXCompiler::processCond(xmlNode* node)
         UString name = requireAttr(op, "n");
         if(lists.find(name) == lists.end())
         {
-          die(op, I18n(APRC_I18N_DATA, "aprc").format("APRC1132", {"list"},
+          die(op, I18n(ARC_I18N_DATA, "arc").format("ARC81320", {"list"},
             {icu::UnicodeString(name.data())}));
         }
         ret += STRING;
@@ -1127,7 +1127,7 @@ TRXCompiler::processCond(xmlNode* node)
     }
     if(!list)
     {
-      die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1115", {"node"}, {"in"}));
+      die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81150", {"node"}, {"in"}));
     }
     if(getattr(node, "caseless") == "yes"_u)
     {
@@ -1140,7 +1140,7 @@ TRXCompiler::processCond(xmlNode* node)
   }
   else
   {
-    die(node, I18n(APRC_I18N_DATA, "aprc").format("APRC1133", {"condition"},
+    die(node, I18n(ARC_I18N_DATA, "arc").format("ARC81330", {"condition"},
       {icu::UnicodeString(name(node).data())}));
   }
   return ret;
@@ -1157,7 +1157,7 @@ TRXCompiler::processChoose(xmlNode* node)
     {
       if(otherwise > 0)
       {
-        warn(cl, I18n(APRC_I18N_DATA, "aprc").format("APRC1151"));
+        warn(cl, I18n(ARC_I18N_DATA, "arc").format("ARC61510"));
         continue;
       }
       when++;
@@ -1167,7 +1167,7 @@ TRXCompiler::processChoose(xmlNode* node)
         {
           if(test.size() != 0)
           {
-            die(n, I18n(APRC_I18N_DATA, "aprc").format("APRC1134"));
+            die(n, I18n(ARC_I18N_DATA, "arc").format("ARC81340"));
           }
           for (auto t : children(n)) {
             if(test.size() == 0)
@@ -1176,19 +1176,19 @@ TRXCompiler::processChoose(xmlNode* node)
             }
             else
             {
-              die(t, I18n(APRC_I18N_DATA, "aprc").format("APRC1135"));
+              die(t, I18n(ARC_I18N_DATA, "arc").format("ARC81350"));
             }
           }
           if(test.size() == 0)
           {
-            die(n, I18n(APRC_I18N_DATA, "aprc").format("APRC1136"));
+            die(n, I18n(ARC_I18N_DATA, "arc").format("ARC81360"));
           }
         }
         else
         {
           if(test.size() == 0)
           {
-            die(n, I18n(APRC_I18N_DATA, "aprc").format("APRC1137"));
+            die(n, I18n(ARC_I18N_DATA, "arc").format("ARC81370"));
           }
           block += processStatement(n);
         }
@@ -1200,7 +1200,7 @@ TRXCompiler::processChoose(xmlNode* node)
       otherwise++;
       if(otherwise > 1)
       {
-        warn(cl, I18n(APRC_I18N_DATA, "aprc").format("APRC1152"));
+        warn(cl, I18n(ARC_I18N_DATA, "arc").format("ARC61520"));
         continue;
       }
       UString block;
@@ -1213,12 +1213,12 @@ TRXCompiler::processChoose(xmlNode* node)
       }
       else
       {
-        warn(cl, I18n(APRC_I18N_DATA, "aprc").format("APRC1153"));
+        warn(cl, I18n(ARC_I18N_DATA, "arc").format("ARC61530"));
       }
     }
     else
     {
-      warn(cl, I18n(APRC_I18N_DATA, "aprc").format("APRC1154"));
+      warn(cl, I18n(ARC_I18N_DATA, "arc").format("ARC61540"));
     }
   }
   UString ret;
@@ -1254,7 +1254,7 @@ TRXCompiler::write(const char* binfile)
   FILE* bin = fopen(binfile, "wb");
   if(bin == NULL)
   {
-    I18n(APRC_I18N_DATA, "aprc").error("APRC1002", {"file"}, {binfile}, true);
+    I18n(ARC_I18N_DATA, "arc").error("ARC80020", {"file"}, {binfile}, true);
   }
   vector<pair<int, UString>> inRules;
   for(unsigned int i = 0; i < inputRules.size(); i++)

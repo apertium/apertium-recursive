@@ -7,13 +7,13 @@
 #include <getopt.h>
 #include <libxml/xmlreader.h>
 #include <trx_compiler.h>
-#include <i18n.h>
+#include <lttoolbox/i18n.h>
 
 using namespace std;
 
 void endProgram(char *name)
 {
-  I18n i18n {APRC_I18N_DATA, "aprc"};
+  I18n i18n {ARC_I18N_DATA, "arc"};
   cout << i18n.format("rtx_comp_desc", {"program"}, {basename(name)});
 #if HAVE_GETOPT_LONG
   cout << "  -e, --exclude:      " << i18n.format("exclude_desc") << endl;
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
   FILE* check = fopen(argv[optind], "r");
   if(check == NULL)
   {
-    I18n(APRC_I18N_DATA, "aprc").error("APRC1002", {"file"}, {argv[optind]}, true);
+    I18n(ARC_I18N_DATA, "arc").error("ARC80020", {"file"}, {argv[optind]}, true);
   }
   int c;
   while((c = fgetc(check)) != '<')
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
     TRXCompiler comp;
     if(summary)
     {
-      I18n(APRC_I18N_DATA, "aprc").error("APRC1005", {}, {}, false);
+      I18n(ARC_I18N_DATA, "arc").error("ARC60050", {}, {}, false);
     }
     for(auto lex : lexFiles) comp.loadLex(lex);
     for(auto exc : exclude) comp.excludeRule(exc);

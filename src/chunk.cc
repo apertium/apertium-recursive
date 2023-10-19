@@ -1,7 +1,7 @@
 #include <rtx_config.h>
 #include <chunk.h>
 #include <lttoolbox/string_utils.h>
-#include <i18n.h>
+#include <lttoolbox/i18n.h>
 
 #include <iostream>
 
@@ -352,7 +352,7 @@ Chunk::writeTree(TreeMode mode, UFILE* out)
     }
       break;
     default:
-      I18n(APRC_I18N_DATA, "aprc").error("APRC1000", {}, {}, false);;
+      I18n(ARC_I18N_DATA, "arc").error("ARC80000", {}, {}, false);;
   }
 }
 

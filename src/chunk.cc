@@ -352,7 +352,7 @@ Chunk::writeTree(TreeMode mode, UFILE* out)
     }
       break;
     default:
-      I18n(ARC_I18N_DATA, "arc").error("ARC80000", {}, {}, false);;
+      I18n(ARC_I18N_DATA, "arc").error("ARC80000", false);;
   }
 }
 

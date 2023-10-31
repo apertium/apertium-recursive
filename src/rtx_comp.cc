@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
     TRXCompiler comp;
     if(summary)
     {
-      I18n(ARC_I18N_DATA, "arc").error("ARC60050", {}, {}, false);
+      I18n(ARC_I18N_DATA, "arc").error("ARC60050", false);
     }
     for(auto lex : lexFiles) comp.loadLex(lex);
     for(auto exc : exclude) comp.excludeRule(exc);

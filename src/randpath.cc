@@ -28,7 +28,7 @@ bool load(FILE* input)
       if (count == 4 && strncmp(header, HEADER_LTTOOLBOX, 4) == 0) {
           auto features = read_le<uint64_t>(input);
           if (features >= LTF_UNKNOWN) {
-              I18n(ARC_I18N_DATA, "arc").error("ARC80010", {}, {}, true);
+              I18n(ARC_I18N_DATA, "arc").error("ARC80010", true);
           }
       }
       else {
@@ -177,13 +177,13 @@ int main(int argc, char *argv[])
   }
   if(!load(tf))
   {
-    I18n(ARC_I18N_DATA, "arc").error("ARC80030", {}, {}, true);
+    I18n(ARC_I18N_DATA, "arc").error("ARC80030", true);
   }
   prefix = to_ustring(argv[2]);
   generatePaths();
   if(paths.size() == 0)
   {
-    I18n(ARC_I18N_DATA, "arc").error("ARC80040", {}, {}, true);
+    I18n(ARC_I18N_DATA, "arc").error("ARC80040", true);
   }
   //seed_seq s (prefix.begin(), prefix.end());
   unsigned s = chrono::system_clock::now().time_since_epoch().count();

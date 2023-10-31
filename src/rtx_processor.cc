@@ -745,7 +745,7 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2 || theStack[stackIdx-1].mode != 2)
         {
-          I18n(ARC_I18N_DATA, "arc").error("ARC80950", {}, {}, true);
+          I18n(ARC_I18N_DATA, "arc").error("ARC80950", true);
         }
         stackIdx--;
         theStack[stackIdx].s.append(theStack[stackIdx+1].s);
@@ -795,7 +795,7 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
-          I18n(ARC_I18N_DATA, "arc").error("ARC80960", {}, {}, true);
+          I18n(ARC_I18N_DATA, "arc").error("ARC80960", true);
         }
         stackIdx--;
         if(theStack[stackIdx].mode != 3)
@@ -821,7 +821,7 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
-          I18n(ARC_I18N_DATA, "arc").error("ARC80960", {}, {}, true);
+          I18n(ARC_I18N_DATA, "arc").error("ARC80960", true);
         }
         stackIdx--;
         if(theStack[stackIdx].mode != 3)
@@ -847,7 +847,7 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
-          I18n(ARC_I18N_DATA, "arc").error("ARC80960", {}, {}, true);
+          I18n(ARC_I18N_DATA, "arc").error("ARC80960", true);
         }
         stackIdx--;
         if(theStack[stackIdx].mode != 3)
@@ -918,7 +918,7 @@ RTXProcessor::applyRule(const UString& rule)
       {
         if(theStack[stackIdx].mode != 2)
         {
-          I18n(ARC_I18N_DATA, "arc").error("ARC80990", {}, {}, true);
+          I18n(ARC_I18N_DATA, "arc").error("ARC80990", true);
         }
         UString& s = theStack[stackIdx].s;
         if(s.size() > 0 && s[0] == '<' && s[s.size()-1] == '>')
@@ -943,7 +943,7 @@ RTXProcessor::applyRule(const UString& rule)
         {
           if(stackIdx == 0 || theStack[stackIdx].mode != 3)
           {
-            I18n(ARC_I18N_DATA, "arc").error("ARC81000", {}, {}, true);
+            I18n(ARC_I18N_DATA, "arc").error("ARC81000", true);
           }
           theStack[stackIdx].c->rule = rl;
         }
@@ -1038,7 +1038,7 @@ RTXProcessor::readToken()
           }
           else
           {
-            I18n(ARC_I18N_DATA, "arc").error("ARC81020", {}, {}, true);
+            I18n(ARC_I18N_DATA, "arc").error("ARC81020", true);
           }
         }
         else

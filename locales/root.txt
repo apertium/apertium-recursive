@@ -1,0 +1,196 @@
+root{
+    randpath_desc{"Usage: {program} transducer prefix\n"}
+    rtx_comp_desc{"{program}: compile .rtx files\n"
+                  "USAGE: {program} [-e name] [-f] [-l file] [-s] [-S] [-h] rule_file bytecode_file\n"
+                  "Options:\n"}
+    exclude_desc{"exclude a rule by name"}
+    lexical_desc{"load a file of lexicalized weights"}
+    summarize_desc{"print rules to stderr as \"output -> pattern\""}
+    stats_desc{"print statistics about rule file to stdout"}
+    help_desc{"show this help"}
+
+    rtx_decomp_desc{"{program}: decompile a transfer bytecode file\n"
+                    "USAGE: {program} [ -h ] [input_file [output_file]]\n"
+                    "Options:\n"}
+    rtx_proc_desc{"{program}: perform structural transfer\n"
+                  "USAGE: {program} [-a] [-t] [-z] [ -T | -b ] [ -m mode ] [ -e | -f | -r | -s ] bytecode_file [input_file [output_file]]\n"
+                  "Options:\n"}
+    anaphora_desc{"expect coreference LUs from apertium-anaphora"}
+    both_desc{"print text (use with -T)"}
+    everything_desc{"print a complete trace of execution"}
+    filter_desc{"trace filterParseGraph()"}
+    filter2_desc{"filter branches more often"}
+    mode_desc{"set the mode of tree output, options are \"flat\", \"nest\", \"latex\", \"dot\", \"box\""}
+    rules_desc{"print the rules that are being applied"}
+    steps_desc{"print the instructions executed by the stack machine"}
+    trx_desc{"mimic the behavior of apertium-transfer and apertium-interchunk"}
+    tree_desc{"print parse trees rather than apply output rules"}
+    null_flush_desc{"flush output on \\0"}
+
+    in_file_on_line{"In file \"{file}\" on line {line}:"}
+    syntax_error{"Syntax error: {error}"}
+    usage{"USAGE: {usage}"}
+
+    macro_invoked_by{"macro \"{macro}\", invoked by "}
+    error_in_rule{"Error in {macros} rule beginning on line {line} of {file}: {error}"}
+
+    defaulting_to{"{vals}, defaulting to \"{def}\""}
+
+    ARC80000{"ERROR ARC80000: That tree mode has not yet been implemented."}
+    ARC80010{"ERROR ARC80010: FST has features that are unknown to this version of lttoolbox - upgrade!"}
+    ARC80020{"ERROR ARC80020: Unable to access file \"{file}\"."}
+    ARC80030{"ERROR ARC80030: Unable to read transducer."}
+    ARC80040{"ERROR ARC80040: No paths begin with that prefix."}
+    ARC60050{"WARNING ARC60050: Summary mode not available for XML."}
+    ARC80060{"ERROR ARC80060: Unexpected end of file."}
+    ARC80070{"ERROR ARC80070: unexpected space."}
+    ARC80080{"ERROR ARC80080: unexpected comment."}
+    ARC80090{"ERROR ARC80090: expected \"{check1}\" or \"{check2}\", found \"{token}\"."}
+    ARC80100{"ERROR ARC80100: expected \"{check}\", found \"{token}\"."}
+    ARC80110{"ERROR ARC80110: expected identifier, found \"{token}\"."}
+    ARC80120{"ERROR ARC80120: unable to parse weight: \"{token}\"."}
+    ARC80130{"ERROR ARC80130: Unexpected side name {side}."}
+    ARC80140{"ERROR ARC80140: SIDE_SOURCES list is empty."}
+    ARC80150{"ERROR ARC80150: empty tag order rule."}
+    ARC60160{"WARNING ARC60160: Tag-rewrite rule \"{src_tag}\" > \"{dest_tag}\" is defined multiple times. Mappings in earlier definition may be overwritten."}
+    ARC80170{"ERROR ARC80170: Redefinition of attribute category \"{category}\"."}
+    ARC80180{"ERROR ARC80180: Use of category \"{category}\" in set arithmetic before definition."}
+    ARC80190{"ERROR ARC80190: empty attribute list."}
+    ARC80200{"ERROR ARC80200: Chunk tags can only be accessed from output sections of reduction rules."}
+    ARC80210{"ERROR ARC80210: Macros can only access their single argument."}
+    ARC80220{"ERROR ARC80220: Clip source is out of bounds (position {position} requested, but rule has only {elements} elements in its pattern)."}
+    ARC80230{"ERROR ARC80230: literal value cannot have a side."}
+    ARC80240{"ERROR ARC80240: variable cannot have a side."}
+    ARC80250{"ERROR ARC80250: literal value cannot be rewritten."}
+    ARC80260{"ERROR ARC80260: variable cannot be rewritten."}
+    ARC80270{"ERROR ARC80270: Empty conditional."}
+    ARC80280{"ERROR ARC80280: Cannot negate string (I can\'t parse \"not a = b\", use \"not (a = b)\" or \"a not = b\" instead)."}
+    ARC80290{"ERROR ARC80290: ANDs, ORs, and conditions don't come out evenly."}
+    ARC80300{"ERROR ARC80300: Expected operator, found condition."}
+    ARC80310{"ERROR ARC80310: Expected operator, found clip."}
+    ARC80320{"ERROR ARC80320: Unknown operator \"{operator}\"."}
+    ARC80330{"ERROR ARC80330: Cannot set the analysis clip source multiple times. (You have multiple % in your rule pattern)."}
+    ARC80340{"ERROR ARC80340: expected closing bracket after lemma category."}
+    ARC80350{"ERROR ARC80350: Rule is missing output (use quotes if you were trying to use | as a lemma)."}
+    ARC80360{"ERROR ARC80360: first tag in pattern element must be literal."}
+    ARC80370{"ERROR ARC80370: rule has multiple sources for attribute {attr}."}
+    ARC80380{"ERROR ARC80380: Cannot {verb} from within if statement."}
+    ARC80390{"ERROR ARC80390: Cannot {verb} first element."}
+    ARC80400{"ERROR ARC80400: Cannot {verb} to something in an if statement."}
+    ARC80410{"ERROR ARC80410: Cannot {verb} inside and outside of if statement and cannot {verb} first element."}
+    ARC80420{"ERROR ARC80420: Cannot {verb} to a blank."}
+    ARC80430{"ERROR ARC80430: % cannot be used on blanks."}
+    ARC80440{"ERROR ARC80440: Cannot output indexed blank because pattern is one element long and thus does not include blanks."}
+    ARC80450{"ERROR ARC80450: Position index of blank out of bounds, expected an integer from 1 to {num}."}
+    ARC60460{"WARNING ARC60460: Use of indexed blank on line {line} is deprecated."}
+    ARC80470{"ERROR ARC80470: There is no position 0."}
+    ARC80480{"ERROR ARC80480: There are only {elements} elements in the pattern."}
+    ARC80490{"ERROR ARC80490: Outputs in a macro must specify a pattern."}
+    ARC80500{"ERROR ARC80500: No macro name specified."}
+    ARC80510{"ERROR ARC80510: Interpolating a global variable does not make sense."}
+    ARC80520{"ERROR ARC80520: Using % with a global variable does not make sense."}
+    ARC80530{"ERROR ARC80530: % not supported on output literals with @. Use %lemma(pos)."}
+    ARC80540{"ERROR ARC80540: If statement must begin with \"if\"."}
+    ARC80550{"ERROR ARC80550: Always clause must be only clause."}
+    ARC80560{"ERROR ARC80560: Unknown statement: \"{statement}\"."}
+    ARC80570{"ERROR ARC80570: Nested chunks are currently not allowed."}
+    ARC80580{"ERROR ARC80580: Macros cannot generate entire chunks."}
+    ARC80590{"ERROR ARC80590: Global variables cannot be set to chunks."}
+    ARC80600{"ERROR ARC80600: Global variables must be set to single nodes."}
+    ARC80610{"ERROR ARC80610: Conditional non-chunk output current not possible."}
+    ARC80620{"ERROR ARC80620: If statement cannot be empty."}
+    ARC60630{"WARNING ARC60630: if statement without else in macro on line {line}.\n"
+             "  This may fail to produce output and cause crashes at runtime."}
+    ARC80640{"ERROR ARC80640: Output grouping with [] only valid inside chunks."}
+    ARC80650{"ERROR ARC80650: Chunk names must be identifiers. (I think I'm parsing a reduction rule.)\n"
+             "If this error doesn't make sense to you, a common reason is that on the line before this you have ; instead of |"}
+    ARC80660{"ERROR ARC80660: empty pattern."}
+    ARC80670{"ERROR ARC80670: Chunk index for setting source or reference is out of range."}
+    ARC80680{"ERROR ARC80680: Rule sets chunk source multiple times."}
+    ARC80690{"ERROR ARC80690: Rule sets chunk reference multiple times."}
+    ARC80700{"ERROR ARC80700: Rule sets global variable $${var} multiple times."}
+    ARC80710{"ERROR ARC80710: Rule sets global variable $%{var} multiple times."}
+    ARC80730{"ERROR ARC80730: Unexpected } in output pattern."}
+    ARC80740{"ERROR ARC80740: Output pattern does not have enough chunks."}
+    ARC60750{"WARNING ARC60750: Source category for tag-rewrite rule \"{src}\" > \"{dest}\" is undefined."}
+    ARC60760{"WARNING ARC60760: Destination category for tag-rewrite rule \"{src}\" > \"{dest}\" is undefined."}
+    ARC60770{"WARNING ARC60770: Tag-rewrite rule \"{src}\" > \"{dest}\" contains mapping from undefined category \"{cat}\"."}
+    ARC60780{"WARNING ARC60780: Tag-rewrite rule \"{src}\" > \"{dest}\" does not convert \"{a}\"."}
+    ARC60790{"WARNING ARC60790: Tag-rewrite rule \"{src}\" > \"{dest}\" converts \"{a}\" to multiple values:"}
+    ARC80800{"ERROR ARC80800: unknown attribute category \"{cat}\"."}
+    ARC80810{"ERROR ARC80810: Attempt to clip undefined attribute \"{attr}\"."}
+    ARC80820{"ERROR ARC80820: There is no tag-rewrite rule from \"{src}\" to \"{dest}\"."}
+    ARC80830{"ERROR ARC80830: Macro not given value for attribute \"{attr}\"."}
+    ARC80840{"ERROR ARC80840: could not find tag order for element {element}."}
+    ARC80850{"ERROR ARC80850: Could not find output pattern \"{pattern}\"."}
+    ARC80860{"ERROR ARC80860: Cannot find source for tag \"{pattern}\"."}
+    ARC80870{"ERROR ARC80870: Cannot evaluate AND with string as operand (try adding parentheses)."}
+    ARC80880{"ERROR ARC80880: Cannot evaluate OR with string as operand (try adding parentheses)."}
+    ARC80890{"ERROR ARC80890: Attempt to negate string value."}
+    ARC80900{"ERROR ARC80900: String operator cannot take condition as operand."}
+    ARC80910{"ERROR ARC80910: \"{element}\" is not an element of list \"{attr}\", so this check will always fail."}
+    ARC80920{"ERROR ARC80920: \"{optarg}\" is not a recognized tree mode. Valid options are \"flat\", \"nest\", \"latex\", \"dot\", and \"box\"."}
+    ARC80930{"ERROR ARC80930: tried to pop {type} but mode is {mode}."}
+    ARC80930_chunk_note{"The most common reason for getting below error is a macro that is missing an else clause."}
+    ARC80940{"ERROR ARC80940: Unknown StackElement mode {mode}."}
+    ARC80950{"ERROR ARC80950: Cannot CONCAT non-strings."}
+    ARC80960{"ERROR ARC80960: Cannot append non-string to chunk surface."}
+    ARC80970{"ERROR ARC80970: Cannot {action} to non-chunk."}
+    ARC80990{"ERROR ARC80990: Cannot DISTAG non-string."}
+    ARC81000{"ERROR ARC81000: Empty stack or top item is not chunk.\n"
+             "Check for conditionals that might not generate output\n"
+             "and ensure that lists of attributes are complete."}
+    ARC81010{"ERROR ARC81010: unknown instruction: {rule}"}
+    ARC81020{"ERROR ARC81020: Parse Error: Wordbound blank should be immediately followed by a Lexical Unit -> [[..]]^..$"}
+    ARC81030{"ERROR ARC81030: Expected attribute \"{attr}\"."}
+    ARC81040{"ERROR ARC81040: Cannot interpret empty pos attribute."}
+    ARC81050{"ERROR ARC81050: Position must be an integer."}
+    ARC81060{"ERROR ARC81060: Position {pos} is out of bounds."}
+    ARC81070{"ERROR ARC81070: Rule cannot have multiple <pattern>s."}
+    ARC81080{"ERROR ARC81080: Unknown pattern \"{pattern}\"."}
+    ARC81090{"ERROR ARC81090: Rule cannot have empty pattern."}
+    ARC81100{"ERROR ARC81100: Rule cannot have multiple <action>s."}
+    ARC81110{"ERROR ARC81110: Rule cannot have multiple <output-action>s."}
+    ARC81120{"ERROR ARC81120: Rule must have <pattern>."}
+    ARC81130{"ERROR ARC81130: Rule must have <action>."}
+    ARC81140{"ERROR ARC81140: <{node}> cannot have more than two children."}
+    ARC81150{"ERROR ARC81150: <{node}> must have exactly two children."}
+    ARC81160{"ERROR ARC81160: Undefined variable \"{var}\"."}
+    ARC81170{"ERROR ARC81170: Unknown attribute \"{attr}\"."}
+    ARC81180{"ERROR ARC81180: Cannot set value of <{node}>."}
+    ARC81190{"ERROR ARC81190: Unknown macro \"{macro}\"."}
+    ARC81200{"ERROR ARC81200: Too many parameters, macro \"{macro}\" expects {expected}, got {given}."}
+    ARC81210{"ERROR ARC81210: Not enough parameters, macro \"{macro}\" expects {expected}, got {given}."}
+    ARC81220{"ERROR ARC81220: Unknown variable \"{var}\"."}
+    ARC81230{"ERROR ARC81230: Unrecognized statement \"{statement}\"."}
+    ARC81240{"ERROR ARC81240: <get-case-from> cannot have multiple children."}
+    ARC81250{"ERROR ARC81250: <get-case-from> cannot be empty."}
+    ARC81260{"ERROR ARC81260: <mlu> can only contain <lu>s."}
+    ARC81270{"ERROR ARC81270: Unrecognized expression \"{exp}\"."}
+    ARC81280{"ERROR ARC81280: <not> cannot have multiple children."}
+    ARC81300{"ERROR ARC81300: {node} cannot have more than two children."}
+    ARC81310{"ERROR ARC81310: Expected <list>, found <{node}> instead."}
+    ARC81320{"ERROR ARC81320: Unknown list \"{list}\"."}
+    ARC81330{"ERROR ARC81330: Unrecognized condition \"{condition}\"."}
+    ARC81340{"ERROR ARC81340: Cannot have multiple <test>s in a <when> clause."}
+    ARC81350{"ERROR ARC81350: <test> must have exactly one child."}
+    ARC81360{"ERROR ARC81360: <test> cannot be empty."}
+    ARC81370{"ERROR ARC81370: <when> clause must begin with <test>."}
+    ARC61380{"WARNING ARC61380: Disregarding non-integer position."}
+    ARC61390{"WARNING ARC61390: Disregarding out-of-bounds position."}
+    ARC61400{"WARNING ARC61400: Unexpected tag in {node} - ignoring"}
+    ARC61410{"WARNING ARC61410: Unexpected tag <{node}> in def-cat - ignoring"}
+    ARC61420{"WARNING ARC61420: Redefinition of pattern \"{pattern}\", using later value"}
+    ARC61430{"WARNING ARC61430: Redefinition of attribute \"{attr}\" - using later definition"}
+    ARC61440{"WARNING ARC61440: Redefinition of list \"{list}\" - using later definition"}
+    ARC61450{"WARNING ARC61450: Redefinition of macro \"{macro}\" - using later definition"}
+    ARC61460{"WARNING ARC61460: Ignoring elements except {element} in {node}."}
+    ARC61470{"WARNING ARC61470: Unknown element <{node}> in <rule>, ignoring."}
+    ARC61480{"WARNING ARC61480: Cannot set side \"{side}\", setting \"tl\" instead."}
+    ARC61490{"WARNING ARC61490: Unknown clip side \"{side}\", defaulting to \"tl\"."}
+    ARC61500{"WARNING ARC61500: Unknown side \"{side}\", defaulting to target."}
+    ARC61510{"WARNING ARC61510: Clauses after <otherwise> will not be executed."}
+    ARC61520{"WARNING ARC61520: Multiple <otherwise> clauses will not be executed."}
+    ARC61530{"WARNING ARC61530: Empty <otherwise> clause."}
+    ARC61540{"WARNING ARC61540: Ignoring unexpected clause in <choose>."}
+}

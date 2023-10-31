@@ -9,16 +9,15 @@
 #include <cstring>
 #include <cstdio>
 #include <unicode/ustdio.h>
+#include <lttoolbox/i18n.h>
 
 void endProgram(char *name)
 {
-  std::cout << basename(name) << ": decompile a transfer bytecode file" << std::endl;
-  std::cout << "USAGE: " << basename(name) << " [ -h ] [input_file [output_file]]" << std::endl;
-  std::cout << "Options:" << std::endl;
+  std::cout << I18n(ARC_I18N_DATA, "arc").format("rtx_decomp_desc", {"program"}, {basename(name)});
 #if HAVE_GETOPT_LONG
-  std::cout << "  -h, --help: show this help" << std::endl;
+  std::cout << "  -h, --help: " << I18n(ARC_I18N_DATA, "arc").format("help_desc") << std::endl;
 #else
-  std::cout << "  -h: show this help" << std::endl;
+  std::cout << "  -h: " << I18n(ARC_I18N_DATA, "arc").format("help_desc") << std::endl;
 #endif
   exit(EXIT_FAILURE);
 }
@@ -263,8 +262,7 @@ int main(int argc, char *argv[])
     in = fopen(argv[optind], "rb");
     if(in == NULL)
     {
-      std::cerr << "Error: could not open file " << argv[optind] << " for reading." << std::endl;
-      exit(EXIT_FAILURE);
+      I18n(ARC_I18N_DATA, "arc").error("ARC80020", {"file"}, {argv[optind]}, true);
     }
   }
   if(optind <= (argc - 2))
@@ -272,8 +270,7 @@ int main(int argc, char *argv[])
     out = u_fopen(argv[optind+1], "wb", NULL, NULL);
     if(out == NULL)
     {
-      std::cerr << "Error: could not open file " << argv[optind+1] << " for writing." << std::endl;
-      exit(EXIT_FAILURE);
+      I18n(ARC_I18N_DATA, "arc").error("ARC80020", {"file"}, {argv[optind + 1]}, true);
     }
   }
 

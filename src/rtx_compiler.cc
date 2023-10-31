@@ -2,6 +2,7 @@
 #include <rtx_compiler.h>
 #include <lttoolbox/string_utils.h>
 #include <algorithm>
+#include <lttoolbox/i18n.h>
 
 using namespace std;
 
@@ -35,6 +36,40 @@ RTXCompiler::die(UString message)
     cerr << "rule beginning on line " << currentRule->line << " of ";
   }
   cerr << sourceFile << ": " << message << endl;
+  if(errorsAreSyntax && !source.eof())
+  {
+    UString arr = UString(recentlyRead.size()-2, ' ');
+    recentlyRead += unreadbuf;
+    while(!source.eof() && peekchar() != '\n')
+    {
+      recentlyRead += source.get();
+    }
+    cerr << recentlyRead << endl;
+    cerr << arr << "^^^" << endl;
+  }
+  exit(EXIT_FAILURE);
+}
+
+void
+RTXCompiler::die(icu::UnicodeString message)
+{
+  I18n i18n {ARC_I18N_DATA, "arc"};
+  if(errorsAreSyntax)
+  {
+    cerr << i18n.format("in_file_on_line", {"file", "line"}, {sourceFile.c_str(), currentLine}) << endl;
+    cerr << i18n.format("syntax_error", {"error"}, {message}) << endl;
+  }
+  else
+  {
+    icu::UnicodeString macros;
+    while(macroNameStack.size() > 0)
+    {
+      macros += i18n.format("macro_invoked_by", {"macro"}, {icu::UnicodeString(macroNameStack.back().data())});
+      macroNameStack.pop_back();
+    }
+    cerr << i18n.format("error_in_rule", {"macros", "line", "file", "error"},
+      {macros, currentRule->line, sourceFile.c_str(), message})<< endl;
+  }
   if(errorsAreSyntax && !source.eof())
   {
     UString arr = UString(recentlyRead.size()-2, ' ');
@@ -126,7 +161,7 @@ RTXCompiler::nextTokenNoSpace()
 {
   if(source.eof())
   {
-    die("Unexpected end of file"_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80060"));
   }
   UChar32 c = getchar();
   UChar32 next = peekchar();
@@ -146,11 +181,11 @@ RTXCompiler::nextTokenNoSpace()
   }
   else if(u_isspace(c))
   {
-    die("unexpected space"_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80070"));
   }
   else if(c == '!')
   {
-    die("unexpected comment"_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80080"));
   }
   else if(c == '"')
   {
@@ -159,7 +194,7 @@ RTXCompiler::nextTokenNoSpace()
     {
       if(next == '\\') next = getchar();
       ret += next;
-      if(source.eof()) die("Unexpected end of file."_u);
+      if(source.eof()) die(I18n(ARC_I18N_DATA, "arc").format("ARC80060"));
       next = getchar();
     }
   }
@@ -208,15 +243,22 @@ RTXCompiler::nextToken(UString check1 = ""_u, UString check2 = ""_u)
   }
   else if(!check1.empty() && !check2.empty())
   {
-    die("expected '"_u + check1 + "' or '"_u + check2 + "', found '"_u + tok + "'"_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80090", {"check1", "check2", "token"},
+      {icu::UnicodeString(check1.data()),
+       icu::UnicodeString(check2.data()),
+       icu::UnicodeString(tok.data())}));
   }
   else if(!check1.empty())
   {
-    die("expected '"_u + check1 + "', found '"_u + tok + "'"_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80100", {"check", "token"},
+      {icu::UnicodeString(check1.data()),
+       icu::UnicodeString(tok.data())}));
   }
   else
   {
-    die("expected '"_u + check2 + "', found '"_u + tok + "'"_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80100", {"check", "token"},
+       {icu::UnicodeString(check2.data()),
+        icu::UnicodeString(tok.data())}));
   }
   return tok;
 }
@@ -237,7 +279,8 @@ RTXCompiler::parseIdent(bool prespace = false)
   }
   if(ret == "->"_u || (ret.size() == 1 && SPECIAL_CHARS.find(ret[0]) != string::npos))
   {
-    die("expected identifier, found '"_u + ret + "'"_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80110", {"token"},
+       {icu::UnicodeString(ret.data())}));
   }
   return ret;
 }
@@ -268,7 +311,8 @@ RTXCompiler::parseWeight()
   }
   catch(const invalid_argument& ia)
   {
-    die("unable to parse weight: "_u + ret);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80120", {"token"},
+       {icu::UnicodeString(ret.data())}));
   }
   return r;
 }
@@ -300,12 +344,13 @@ RTXCompiler::parseRule()
         } else if (side == "ref"_u) {
           clip_order.push_back(REFERENCECLIP);
         } else {
-          die("Unexpected side name "_u+side);
+          die(I18n(ARC_I18N_DATA, "arc").format("ARC80130", {"side"},
+            {icu::UnicodeString(side.data())}));
         }
         eatSpaces();
       }
       if (clip_order.empty()) {
-        die("SIDE_SOURCES list is empty"_u);
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80140"));
       }
       reverse(clip_order.begin(), clip_order.end());
     } else {
@@ -361,7 +406,7 @@ RTXCompiler::parseOutputRule(UString pattern)
     }
     if(output.size() == 0)
     {
-      die("empty tag order rule"_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80150"));
     }
   }
   outputRules[pattern] = output;
@@ -397,7 +442,9 @@ RTXCompiler::parseRetagRule(UString srcTag)
     if(other[0].first == srcTag && other[0].second == destTag)
     {
       found = true;
-      cerr << "Warning: Tag-rewrite rule '" << srcTag << "' > '" << destTag << "' is defined multiple times. Mappings in earlier definition may be overwritten." << endl;
+      I18n(ARC_I18N_DATA, "arc").error("ARC60160", {"src_tag", "dest_tag"}, 
+        {icu::UnicodeString(srcTag.data()),
+         icu::UnicodeString(destTag.data())}, false);
       other.insert(other.begin()+1, rule.begin()+1, rule.end());
       break;
     }
@@ -419,7 +466,8 @@ RTXCompiler::parseAttrRule(UString categoryName)
   if(collections.find(categoryName) != collections.end()
      || PB.isAttrDefined(categoryName))
   {
-    die("Redefinition of attribute category '"_u + categoryName + "'."_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80170", {"category"},
+      {icu::UnicodeString(categoryName.data())}));
   }
   eatSpaces();
   if(isNextToken('('))
@@ -443,7 +491,8 @@ RTXCompiler::parseAttrRule(UString categoryName)
       UString other = parseIdent(true);
       if(collections.find(other) == collections.end())
       {
-        die("Use of category '"_u + other + "' in set arithmetic before definition."_u);
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80180", {"category"},
+          {icu::UnicodeString(other.data())}));
       }
       vector<UString> otherstuff = collections[other];
       for(unsigned int i = 0; i < otherstuff.size(); i++)
@@ -470,7 +519,7 @@ RTXCompiler::parseAttrRule(UString categoryName)
   }
   if(members.size() == 0)
   {
-    die("empty attribute list"_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80190"));
   }
   collections.insert(pair<UString, vector<UString>>(categoryName, members));
   noOverwrite.insert(pair<UString, vector<UString>>(categoryName, noOver));
@@ -523,7 +572,7 @@ RTXCompiler::parseClip(int src = -2)
       ret->src = ParentClip;
       if(currentLocType != LocTypeOutput)
       {
-        die("Chunk tags can only be accessed from output sections of reduction rules."_u);
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80200"));
       }
     }
   }
@@ -552,12 +601,14 @@ RTXCompiler::parseClip(int src = -2)
   {
     if(ret->src == ParentClip || ret->src > 1)
     {
-      die("Macros can only access their single argument."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80210"));
     }
   }
   else if(bounds && src == -2 && ret->src > (int)currentRule->pattern.size())
   {
-    die("Clip source is out of bounds (position "_u + StringUtils::itoa(ret->src) + " requested, but rule has only "_u + StringUtils::itoa(currentRule->pattern.size()) + " elements in its pattern)."_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80220", {"position", "elements"},
+      {ret->src,
+       to_string(currentRule->pattern.size()).c_str()}));
   }
   if(ret->src != StringVarClip)
   {
@@ -567,11 +618,11 @@ RTXCompiler::parseClip(int src = -2)
   {
     if(ret->src == ConstantClip)
     {
-      die("literal value cannot have a side"_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80230"));
     }
     else if(ret->src == StringVarClip)
     {
-      die("variable cannot have a side"_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80240"));
     }
     ret->side = parseIdent();
   }
@@ -583,11 +634,11 @@ RTXCompiler::parseClip(int src = -2)
   {
     if(ret->src == ConstantClip)
     {
-      die("literal value cannot be rewritten"_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80250"));
     }
     else if(ret->src == ParentClip || ret->src == StringVarClip)
     {
-      die("variable cannot be rewritten"_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80260"));
     }
     ret->rewrite.push_back(parseIdent());
   }
@@ -632,7 +683,7 @@ RTXCompiler::parseCond()
     eatSpaces();
   }
   nextToken(")"_u);
-  if(parts.size() == 0) die("Empty conditional."_u);
+  if(parts.size() == 0) die(I18n(ARC_I18N_DATA, "arc").format("ARC80270"));
   vector<pair<bool, Cond*>> denot;
   bool negated = false;
   for(unsigned int i = 0; i < parts.size(); i++)
@@ -663,7 +714,7 @@ RTXCompiler::parseCond()
         {
           if(destring.back().first || denot[i+1].first)
           {
-            die("Cannot negate string (I can't parse 'not a = b', use 'not (a = b)' or 'a not = b' instead)."_u);
+            die(I18n(ARC_I18N_DATA, "arc").format("ARC80280"));
           }
           denot[i].second->left = destring.back().second;
           denot[i].second->right = denot[i+1].second;
@@ -686,13 +737,14 @@ RTXCompiler::parseCond()
     ret->right = destring[0].second;
   }
   else ret = destring[0].second;
-  if(destring.size() % 2 == 0) die("ANDs, ORs, and conditions don't come out evenly."_u);
+  if(destring.size() % 2 == 0) die(I18n(ARC_I18N_DATA, "arc").format("ARC80290"));
   for(unsigned int i = 1; i < destring.size(); i += 2)
   {
-    if(destring[i].second->op != 0) die("Expected operator, found condition."_u);
-    if(destring[i].second->val->src != 0) die("Expected operator, found clip."_u);
+    if(destring[i].second->op != 0) die(I18n(ARC_I18N_DATA, "arc").format("ARC80300"));
+    if(destring[i].second->val->src != 0) die(I18n(ARC_I18N_DATA, "arc").format("ARC80310"));
     UChar op = lookupOperator(destring[i].second->val->part);
-    if(op == 0) die("Unknown operator '"_u + destring[i].second->val->part + "'."_u);
+    if(op == 0) die(I18n(ARC_I18N_DATA, "arc").format("ARC80320", {"operator"},
+      {icu::UnicodeString(destring[i].second->val->part.data())}));
     Cond* temp = ret;
     ret = new Cond;
     ret->left = temp;
@@ -722,7 +774,7 @@ RTXCompiler::parsePatternElement(Rule* rule)
   if(isNextToken('%'))
   {
     if(rule->grab_all != -1) {
-      die("Cannot set the analysis clip source multiple times. (You have multiple % in your rule pattern.)"_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80330"));
     }
     rule->grab_all = rule->pattern.size()+1;
   }
@@ -734,11 +786,11 @@ RTXCompiler::parsePatternElement(Rule* rule)
   else if(t1 == "["_u)
   {
     t1 = "$"_u + parseIdent();
-    if(!isNextToken(']')) die("expected closing bracket after lemma category"_u);
+    if(!isNextToken(']')) die(I18n(ARC_I18N_DATA, "arc").format("ARC80340"));
   }
   else if(t1 == "|"_u)
   {
-    die("Rule is missing output (use quotes if you were trying to use | as a lemma)"_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80350"));
   }
   if(isNextToken('@'))
   {
@@ -747,7 +799,7 @@ RTXCompiler::parsePatternElement(Rule* rule)
   }
   else if(t1[0] == '$')
   {
-    die("first tag in pattern element must be literal"_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80360"));
   }
   else
   {
@@ -766,7 +818,7 @@ RTXCompiler::parsePatternElement(Rule* rule)
       Clip* cl = parseClip(rule->pattern.size()+1);
       if(rule->vars.find(cl->part) != rule->vars.end())
       {
-        die("rule has multiple sources for attribute "_u + cl->part);
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80370", {"attr"}, {icu::UnicodeString(cl->part.data())}));
       }
       rule->vars[cl->part] = cl;
     }
@@ -811,23 +863,23 @@ RTXCompiler::parseOutputElement()
     UString verb = (ret->conjoined ? "conjoin"_u : "interpolate"_u);
     if(currentChunk == NULL)
     {
-      die("Cannot "_u + verb + " from within if statement."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80380", {"verb"}, {icu::UnicodeString(verb.data())}));
     }
     if(currentChunk->children.size() == 0)
     {
-      die("Cannot "_u + verb + " first element."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80390", {"verb"}, {icu::UnicodeString(verb.data())}));
     }
     if(currentChunk->children.back()->conds.size() > 0)
     {
-      die("Cannot "_u + verb + " to something in an if statement."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80400", {"verb"}, {icu::UnicodeString(verb.data())}));
     }
     if(currentChunk->children.back()->chunks.size() == 0)
     {
-      die("Cannot "_u + verb + " inside and outside of if statement and cannot "_u + verb + " first element."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80410", {"verb"}, {icu::UnicodeString(verb.data())}));
     }
     if(currentChunk->children.back()->chunks[0]->mode == "_"_u)
     {
-      die("Cannot "_u + verb + " to a blank."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80420", {"verb"}, {icu::UnicodeString(verb.data())}));
     }
     eatSpaces();
     if(ret->interpolated) currentChunk->children.back()->chunks[0]->nextConjoined = true;
@@ -839,7 +891,7 @@ RTXCompiler::parseOutputElement()
   {
     if(ret->getall)
     {
-      die("% cannot be used on blanks"_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80430"));
     }
     ret->mode = "_"_u;
     getchar();
@@ -848,13 +900,14 @@ RTXCompiler::parseOutputElement()
       ret->pos = parseInt();
       if(currentRule->pattern.size() == 1)
       {
-        die("Cannot output indexed blank because pattern is one element long and thus does not include blanks."_u);
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80440"));
       }
       if(ret->pos < 1 || ret->pos >= currentRule->pattern.size())
       {
-        die("Position index of blank out of bounds, expected an integer from 1 to "_u + StringUtils::itoa(currentRule->pattern.size()-1) + "."_u);
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80450", {"num"},
+          {to_string(currentRule->pattern.size()-1).c_str()}));
       }
-      cerr << "Warning: Use of indexed blank on line " << currentLine << " is deprecated." << endl;
+      I18n(ARC_I18N_DATA, "arc").error("ARC60460", {"line"}, {currentLine}, false);
     }
     else
     {
@@ -867,11 +920,12 @@ RTXCompiler::parseOutputElement()
     ret->pos = parseInt();
     if(ret->pos == 0)
     {
-      die("There is no position 0."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80470"));
     }
     else if(currentLocType != LocTypeMacro && !isInterp && ret->pos > currentRule->pattern.size())
     {
-      die("There are only "_u + StringUtils::itoa(currentRule->pattern.size()) + " elements in the pattern."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80480", {"elements"},
+        {to_string(currentRule->pattern.size()).c_str()}));
     }
     if(peekchar() == '(')
     {
@@ -881,14 +935,14 @@ RTXCompiler::parseOutputElement()
     }
     else if(currentLocType == LocTypeMacro)
     {
-      die("Outputs in a macro must specify a pattern."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80490"));
     }
   }
   else if(isNextToken('*'))
   {
     if(peekchar() != '(')
     {
-      die("No macro name specified."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80500"));
     }
     nextToken("("_u);
     ret->pattern = parseIdent(true);
@@ -898,8 +952,8 @@ RTXCompiler::parseOutputElement()
   }
   else if(isNextToken('$'))
   {
-    if(isInterp) die("Interpolating a global variable does not make sense."_u);
-    if(ret->getall) die("Using % with a global variable does not make sense."_u);
+    if(isInterp) die(I18n(ARC_I18N_DATA, "arc").format("ARC80510"));
+    if(ret->getall) die(I18n(ARC_I18N_DATA, "arc").format("ARC80520"));
     nextToken("$"_u);
     ret->mode = "$$"_u;
     ret->pattern = parseIdent(true);
@@ -913,7 +967,7 @@ RTXCompiler::parseOutputElement()
     {
       if(ret->getall)
       {
-        die("% not supported on output literals with @. Use %lemma(pos)."_u);
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80530"));
       }
       ret->mode = "@"_u;
       while(true)
@@ -1032,11 +1086,11 @@ RTXCompiler::parseOutputCond()
     mode = StringUtils::substitute(mode, "_"_u, ""_u);
     if(ret->conds.size() == 0 && mode != "if"_u && mode != "always"_u)
     {
-      die("If statement must begin with 'if'."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80540"));
     }
     if(ret->conds.size() > 0 && mode == "always"_u)
     {
-      die("Always clause must be only clause."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80550"));
     }
     if(mode == "if"_u || mode == "elif"_u || mode == "elseif"_u)
     {
@@ -1048,7 +1102,7 @@ RTXCompiler::parseOutputCond()
     }
     else if(mode != "else"_u && mode != "otherwise"_u && mode != "always"_u)
     {
-      die("Unknown statement: '"_u + mode + "'."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80560", {"statement"}, {icu::UnicodeString(mode.data())}));
     }
     eatSpaces();
     if(peekchar() == '(')
@@ -1067,15 +1121,15 @@ RTXCompiler::parseOutputCond()
     {
       if(currentLoc == LocChunk)
       {
-        die("Nested chunks are currently not allowed."_u);
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80570"));
       }
       else if(currentLocType == LocTypeMacro)
       {
-        die("Macros cannot generate entire chunks."_u);
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80580"));
       }
       else if(currentLoc == LocVarSet)
       {
-        die("Global variables cannot be set to chunks."_u);
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80590"));
       }
       ret->nest.push_back(NULL);
       ret->clips.push_back(NULL);
@@ -1085,7 +1139,7 @@ RTXCompiler::parseOutputCond()
     {
       if(currentLoc == LocVarSet)
       {
-        die("Global variables must be set to single nodes."_u);
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80600"));
       }
       ret->nest.push_back(NULL);
       ret->clips.push_back(NULL);
@@ -1095,7 +1149,7 @@ RTXCompiler::parseOutputCond()
     {
       if(currentLoc != LocChunk && currentLoc != LocVarSet)
       {
-        die("Conditional non-chunk output current not possible."_u);
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80610"));
       }
       ret->chunks.push_back(parseOutputElement());
       ret->nest.push_back(NULL);
@@ -1112,14 +1166,13 @@ RTXCompiler::parseOutputCond()
   currentClip = clipwas;
   if(ret->chunks.size() == 0)
   {
-    die("If statement cannot be empty."_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80620"));
   }
   if(ret->conds.size() == ret->nest.size())
   {
     if(currentLoc == LocChunk && currentLocType == LocTypeMacro)
     {
-      cerr << "Warning: if statement without else in macro on line " << currentLine << "." << endl;
-      cerr << "  This may fail to produce output and cause crashes at runtime." << endl;
+      I18n(ARC_I18N_DATA, "arc").error("ARC60630", {"line"}, {currentLine}, false);
     }
     //die("If statement has no else clause and thus could produce no output."_u);
     ret->nest.push_back(NULL);
@@ -1161,7 +1214,7 @@ RTXCompiler::parseOutputChunk()
   {
     if(currentLoc != LocChunk)
     {
-      die("Output grouping with [] only valid inside chunks."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80640"));
     }
     ch->mode = "[]"_u;
     end = ']';
@@ -1203,7 +1256,7 @@ RTXCompiler::parseReduceRule(UString output, UString next)
     {
       if(SPECIAL_CHARS.find(cur) != UString::npos)
       {
-        die("Chunk names must be identifiers. (I think I'm parsing a reduction rule.)\nIf this error doesn't make sense to you, a common reason is that on the line before this you have ; instead of |"_u);
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80650"));
       }
       outNodes.push_back(cur);
       cur = nextToken();
@@ -1260,7 +1313,7 @@ RTXCompiler::parseReduceRule(UString output, UString next)
     }
     if(rule->pattern.size() == 0)
     {
-      die("empty pattern"_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80660"));
     }
     eatSpaces();
     if(isNextToken('?'))
@@ -1282,7 +1335,7 @@ RTXCompiler::parseReduceRule(UString output, UString next)
           }
           if(idx == 0 || idx > outNodes.size())
           {
-            die("Chunk index for setting source or reference is out of range."_u);
+            die(I18n(ARC_I18N_DATA, "arc").format("ARC80670"));
           }
           nextToken("/"_u);
           bool sl = (nextToken("sl"_u, "ref"_u) == "sl"_u);
@@ -1295,7 +1348,7 @@ RTXCompiler::parseReduceRule(UString output, UString next)
           {
             if(rule->output_sl[idx-1] != NULL)
             {
-              die("Rule sets chunk source multiple times."_u);
+              die(I18n(ARC_I18N_DATA, "arc").format("ARC80680"));
             }
             rule->output_sl[idx-1] = cond;
           }
@@ -1303,7 +1356,7 @@ RTXCompiler::parseReduceRule(UString output, UString next)
           {
             if(rule->output_ref[idx-1] != NULL)
             {
-              die("Rule sets chunk reference multiple times."_u);
+              die(I18n(ARC_I18N_DATA, "arc").format("ARC80690"));
             }
             rule->output_ref[idx-1] = cond;
           }
@@ -1313,7 +1366,7 @@ RTXCompiler::parseReduceRule(UString output, UString next)
           UString var = parseIdent();
           if(rule->globals.find(var) != rule->globals.end())
           {
-            die("Rule sets global variable $$"_u + var + " multiple times."_u);
+            die(I18n(ARC_I18N_DATA, "arc").format("ARC80700", {"var"}, {icu::UnicodeString(var.data())}));
           }
           nextToken("="_u);
           currentLoc = LocVarSet;
@@ -1331,7 +1384,7 @@ RTXCompiler::parseReduceRule(UString output, UString next)
           UString var = parseIdent();
           if(rule->stringGlobals.find(var) != rule->stringGlobals.end())
           {
-            die("Rule sets global variable $%"_u + var + " multiple times."_u);
+            die(I18n(ARC_I18N_DATA, "arc").format("ARC80710", {"var"}, {icu::UnicodeString(var.data())}));
           }
           nextToken("="_u);
           rule->stringGlobals[var] = parseClip();
@@ -1341,7 +1394,7 @@ RTXCompiler::parseReduceRule(UString output, UString next)
           UString var = parseIdent();
           if(rule->vars.find(var) != rule->vars.end())
           {
-            die("rule has multiple sources for attribute "_u + var);
+            die(I18n(ARC_I18N_DATA, "arc").format("ARC80370", {"attr"}, {icu::UnicodeString(var.data())}));
           }
           nextToken("="_u);
           rule->vars[var] = parseClip();
@@ -1362,7 +1415,7 @@ RTXCompiler::parseReduceRule(UString output, UString next)
     while(chunk_count < rule->result.size())
     {
       eatSpaces();
-      if(source.eof()) die("Unexpected end of file."_u);
+      if(source.eof()) die(I18n(ARC_I18N_DATA, "arc").format("ARC80060"));
       switch(peekchar())
       {
         case '(':
@@ -1379,11 +1432,11 @@ RTXCompiler::parseReduceRule(UString output, UString next)
         case '}':
           if(rule->result.size() == 1)
           {
-            die("Unexpected } in output pattern."_u);
+            die(I18n(ARC_I18N_DATA, "arc").format("ARC80730"));
           }
           else if(chunk_count < rule->result.size())
           {
-            die("Output pattern does not have enough chunks."_u);
+            die(I18n(ARC_I18N_DATA, "arc").format("ARC80740"));
           }
           break;
         default:
@@ -1415,12 +1468,14 @@ RTXCompiler::processRetagRules()
     UString dest = rule[0].second;
     if(!PB.isAttrDefined(src) && collections.find(src) == collections.end())
     {
-      cerr << "Warning: Source category for tag-rewrite rule '" << src << "' > '" << dest << "' is undefined." << endl;
+      I18n(ARC_I18N_DATA, "arc").error("ARC60750", {"src", "dest"},
+        {icu::UnicodeString(src.data()), icu::UnicodeString(dest.data())}, false);
       continue;
     }
     if(!PB.isAttrDefined(dest) && collections.find(dest) == collections.end())
     {
-      cerr << "Warning: Destination category for tag-rewrite rule '" << src << "' > '" << dest << "' is undefined." << endl;
+      I18n(ARC_I18N_DATA, "arc").error("ARC60760", {"src", "dest"},
+        {icu::UnicodeString(src.data()), icu::UnicodeString(dest.data())}, false);
       continue;
     }
     if(collections.find(src) == collections.end() || collections.find(dest) == collections.end()) continue;
@@ -1431,7 +1486,8 @@ RTXCompiler::processRetagRules()
         UString cat = rule[i].first.substr(2);
         if(collections.find(cat) == collections.end())
         {
-          cerr << "Warning: Tag-rewrite rule '" << src << "' > '" << dest << "' contains mapping from undefined category '" << cat << "'." << endl;
+          I18n(ARC_I18N_DATA, "arc").error("ARC60770", {"src", "dest", "cat"},
+            {icu::UnicodeString(src.data()), icu::UnicodeString(dest.data()), icu::UnicodeString(cat.data())}, false);
           continue;
         }
         for(auto v : collections[cat]) vals[v].push_back(rule[i].second);
@@ -1458,14 +1514,19 @@ RTXCompiler::processRetagRules()
           }
           if(!found)
           {
-            cerr << "Warning: Tag-rewrite rule '" << src << "' > '" << dest << "' does not convert '" << a << "'." << endl;
+            I18n(ARC_I18N_DATA, "arc").error("ARC60780", {"src", "dest", "a"},
+              {icu::UnicodeString(src.data()), icu::UnicodeString(dest.data()), icu::UnicodeString(a.data())}, false);
           }
         }
         else if(vals[a].size() > 1)
         {
-          cerr << "Warning: Tag-rewrite rule '" << src << "' > '" << dest << "' converts '" << a << "' to multiple values: ";
-          for(auto b : vals[a]) cerr << "'" << b << "', ";
-          cerr << "defaulting to '" << vals[a][0] << "'." << endl;
+          icu::UnicodeString temp;
+          I18n(ARC_I18N_DATA, "arc").error("ARC60790", {"src", "dest", "a"},
+            {icu::UnicodeString(src.data()), icu::UnicodeString(dest.data()), icu::UnicodeString(a.data())}, false);
+          for(auto b : vals[a])
+            temp += icu::UnicodeString(("\""_u +  b + "\", "_u).data());
+          cerr << I18n(ARC_I18N_DATA, "arc").format("defaulting_to", {"vals", "def"},
+            {temp, icu::UnicodeString(vals[a][0].data())}) << endl;
         }
       }
     }
@@ -1493,7 +1554,7 @@ RTXCompiler::makePattern(int ruleid)
         tg = tg.substr(1, tg.size()-2);
         if(collections.find(tg) == collections.end())
         {
-          die("unknown attribute category '"_u + tg + "'"_u);
+          die(I18n(ARC_I18N_DATA, "arc").format("ARC80800", {"cat"}, {icu::UnicodeString(tg.data())}));
         }
         vector<vector<UString>> tmp;
         for(auto tls : tags)
@@ -1600,7 +1661,7 @@ RTXCompiler::compileClip(Clip* c, UString _dest = ""_u)
   if(c->src != 0 && !(c->part == "lemcase"_u ||
       collections.find(c->part) != collections.end() || PB.isAttrDefined(c->part)))
   {
-    die("Attempt to clip undefined attribute '"_u + c->part + "'."_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80810", {"attr"}, {icu::UnicodeString(c->part.data())}));
   }
   int src = (c->src == -1) ? 0 : c->src;
   bool useReplace = (currentLocType == LocTypeOutput);
@@ -1735,7 +1796,8 @@ RTXCompiler::compileClip(Clip* c, UString _dest = ""_u)
         ret += DISTAG;
         return ret;
       }
-      die("There is no tag-rewrite rule from '"_u + src_cat + "' to '"_u + dest + "'."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80820", {"src", "dest"},
+        {icu::UnicodeString(src_cat.data()), icu::UnicodeString(dest.data())}));
     }
     UString check;
     for(unsigned int i = 1; i < rule.size(); i++)
@@ -1815,7 +1877,7 @@ RTXCompiler::processMacroClip(Clip* mac, OutputChunk* arg)
       }
       else
       {
-        die("Macro not given value for attribute '"_u + mac->part + "'."_u);
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80830", {"attr"}, {icu::UnicodeString(mac->part.data())}));
       }
     }
     else ret->src = arg->pos;
@@ -1956,7 +2018,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
     {
       if(currentRule->pattern[r->pos-1].size() < 2)
       {
-        die("could not find tag order for element "_u + StringUtils::itoa(r->pos));
+        die(I18n(ARC_I18N_DATA, "arc").format("ARC80840", {"element"}, {to_string(r->pos).c_str()}));
       }
       pos = currentRule->pattern[r->pos-1][1];
     }
@@ -1971,7 +2033,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
         ret += OUTPUT;
         return ret;
       }
-      die("Could not find output pattern '"_u + patname + "'."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80850", {"pattern"}, {icu::UnicodeString(patname.data())}));
     }
     vector<UString> pattern = outputRules[patname];
 
@@ -2141,7 +2203,7 @@ RTXCompiler::processOutputChunk(OutputChunk* r)
             }
             else if(r->pos == 0)
             {
-              die("Cannot find source for tag '"_u + pattern[i] + "'."_u);
+              die(I18n(ARC_I18N_DATA, "arc").format("ARC80860", {"pattern"}, {icu::UnicodeString(pattern[i].data())}));
             }
             else
             {
@@ -2253,26 +2315,26 @@ RTXCompiler::processCond(Cond* cond)
   {
     if(cond->left->op == 0 || cond->right->op == 0)
     {
-      die("Cannot evaluate AND with string as operand (try adding parentheses)."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80870"));
     }
   }
   else if(cond->op == OR)
   {
     if(cond->left->op == 0 || cond->right->op == 0)
     {
-      die("Cannot evaluate OR with string as operand (try adding parentheses)."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80880"));
     }
   }
   else if(cond->op == NOT)
   {
     if(cond->right->op == 0)
     {
-      die("Attempt to negate string value."_u);
+      die(I18n(ARC_I18N_DATA, "arc").format("ARC80890"));
     }
   }
   else if(cond->op != 0 && (cond->left->op != 0 || cond->right->op != 0))
   {
-    die("String operator cannot take condition as operand."_u);
+    die(I18n(ARC_I18N_DATA, "arc").format("ARC80900"));
   }
   else if(cond->op == EQUAL)
   {
@@ -2305,7 +2367,8 @@ RTXCompiler::processCond(Cond* cond)
           break;
         }
       }
-      if(!found) die("'"_u + lit + "' is not an element of list '"_u + attr + "', so this check will always fail."_u);
+      if(!found) die(I18n(ARC_I18N_DATA, "arc").format("ARC80910", {"element", "attr"},
+        {icu::UnicodeString(lit.data()), icu::UnicodeString(attr.data())}));
     }
   }
   if(cond->op == 0)
@@ -2537,8 +2600,7 @@ RTXCompiler::write(const string &fname)
   FILE *out = fopen(fname.c_str(), "wb");
   if(out == NULL)
   {
-    cerr << "Error: cannot open '" << fname << "' for writing" << endl;
-    exit(EXIT_FAILURE);
+    I18n(ARC_I18N_DATA, "arc").error("ARC80020", {"file"}, {fname.c_str()}, true);
   }
 
   vector<pair<int, UString>> inRules;

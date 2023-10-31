@@ -4,38 +4,38 @@
 #include <getopt.h>
 #include <libgen.h>
 #include <iostream>
+#include <lttoolbox/i18n.h>
 
 void endProgram(char *name)
 {
-  cout << basename(name) << ": perform structural transfer" << endl;
-  cout << "USAGE: " << basename(name) << " [-a] [-t] [-z] [ -T | -b ] [ -m mode ] [ -e | -f | -r | -s ] bytecode_file [input_file [output_file]]" << endl;
-  cout << "Options:" << endl;
+  I18n i18n {ARC_I18N_DATA, "arc"};
+  cout << i18n.format("rtx_proc_desc", {"program"}, {basename(name)});
 #if HAVE_GETOPT_LONG
-  cout << "  -a, --anaphora:   expect coreference LUs from apertium-anaphora" << endl;
-  cout << "  -b, --both:       print text (use with -T)" << endl;
-  cout << "  -e, --everything: print a complete trace of execution" << endl;
-  cout << "  -f, --filter:     trace filterParseGraph()" << endl;
-  cout << "  -F, --filter:     filter branches more often" << endl;
-  cout << "  -m, --mode:       set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
-  cout << "  -r, --rules:      print the rules that are being applied" << endl;
-  cout << "  -s, --steps:      print the instructions executed by the stack machine" << endl;
-  cout << "  -t, --trx:        mimic the behavior of apertium-transfer and apertium-interchunk" << endl;
-  cout << "  -T, --tree:       print parse trees rather than apply output rules" << endl;
-  cout << "  -z, --null-flush: flush output on \\0" << endl;
-  cout << "  -h, --help:       show this help" << endl;
+  cout << "  -a, --anaphora:   " << i18n.format("anaphora_desc") << endl;
+  cout << "  -b, --both:       " << i18n.format("both_desc") << endl;
+  cout << "  -e, --everything: " << i18n.format("everything_desc") << endl;
+  cout << "  -f, --filter:     " << i18n.format("filter_desc") << endl;
+  cout << "  -F, --filter:     " << i18n.format("filter2_desc") << endl;
+  cout << "  -m, --mode:       " << i18n.format("mode_desc") << endl;
+  cout << "  -r, --rules:      " << i18n.format("rules_desc") << endl;
+  cout << "  -s, --steps:      " << i18n.format("steps_desc") << endl;
+  cout << "  -t, --trx:        " << i18n.format("trx_desc") << endl;
+  cout << "  -T, --tree:       " << i18n.format("tree_desc") << endl;
+  cout << "  -z, --null-flush: " << i18n.format("null_flush_desc") << endl;
+  cout << "  -h, --help:       " << i18n.format("help_desc") << endl;
 #else
-  cout << "  -a:   expect coreference LUs from apertium-anaphora" << endl;
-  cout << "  -b:   print text (use with -T)" << endl;
-  cout << "  -e:   print a complete trace of execution" << endl;
-  cout << "  -f:   trace filterParseGraph()" << endl;
-  cout << "  -F:   filter branches more often" << endl;
-  cout << "  -m:   set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
-  cout << "  -r:   print the rules that are being applied" << endl;
-  cout << "  -s:   print the instructions executed by the stack machine" << endl;
-  cout << "  -t:   mimic the behavior of apertium-transfer and apertium-interchunk" << endl;
-  cout << "  -T:   print parse trees rather than apply output rules" << endl;
-  cout << "  -z:   flush output on \\0" << endl;
-  cout << "  -h:   show this help" << endl;
+  cout << "  -a:   " << i18n.format("anaphora_desc") << endl;
+  cout << "  -b:   " << i18n.format("both_desc") << endl;
+  cout << "  -e:   " << i18n.format("everything_desc") << endl;
+  cout << "  -f:   " << i18n.format("filter_desc") << endl;
+  cout << "  -F:   " << i18n.format("filter2_desc") << endl;
+  cout << "  -m:   " << i18n.format("mode_desc") << endl;
+  cout << "  -r:   " << i18n.format("rules_desc") << endl;
+  cout << "  -s:   " << i18n.format("steps_desc") << endl;
+  cout << "  -t:   " << i18n.format("trx_desc") << endl;
+  cout << "  -T:   " << i18n.format("tree_desc") << endl;
+  cout << "  -z:   " << i18n.format("null_flush_desc") << endl;
+  cout << "  -h:   " << i18n.format("help_desc") << endl;
 #endif
   exit(EXIT_FAILURE);
 }
@@ -104,8 +104,7 @@ int main(int argc, char *argv[])
     case 'm':
       if(!p.setOutputMode(optarg))
       {
-        cout << "\"" << optarg << "\" is not a recognized tree mode. Valid options are \"flat\", \"nest\", \"latex\", \"dot\", and \"box\"." << endl;
-        exit(EXIT_FAILURE);
+        I18n(ARC_I18N_DATA, "arc").error("ARC80920", {"optarg"}, {optarg}, true);
       }
       break;
 
@@ -156,8 +155,7 @@ int main(int argc, char *argv[])
     input = fopen(argv[optind+1], "rb");
     if(input == NULL)
     {
-      cerr << "Unable to open " << argv[optind+1] << " for reading." << endl;
-      exit(EXIT_FAILURE);
+      I18n(ARC_I18N_DATA, "arc").error("ARC80020", {"file"}, {argv[optind+1]}, true);
     }
   }
   if(optind <= (argc - 3))
@@ -165,8 +163,7 @@ int main(int argc, char *argv[])
     output = u_fopen(argv[optind+2], "w", NULL, NULL);
     if(input == NULL)
     {
-      cerr << "Unable to open " << argv[optind+2] << " for writing." << endl;
-      exit(EXIT_FAILURE);
+      I18n(ARC_I18N_DATA, "arc").error("ARC80020", {"file"}, {argv[optind+2]}, true);
     }
   }
 

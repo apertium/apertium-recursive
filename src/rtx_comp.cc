@@ -7,26 +7,26 @@
 #include <getopt.h>
 #include <libxml/xmlreader.h>
 #include <trx_compiler.h>
+#include <lttoolbox/i18n.h>
 
 using namespace std;
 
 void endProgram(char *name)
 {
-  cout << basename(name) << ": compile .rtx files" << endl;
-  cout << "USAGE: " << basename(name) << " [-e name] [-f] [-l file] [-s] [-S] [-h] rule_file bytecode_file" << endl;
-  cout << "Options:" << endl;
+  I18n i18n {ARC_I18N_DATA, "arc"};
+  cout << i18n.format("rtx_comp_desc", {"program"}, {basename(name)});
 #if HAVE_GETOPT_LONG
-  cout << "  -e, --exclude:      exclude a rule by name" << endl;
-  cout << "  -l, --lexical:      load a file of lexicalized weights" << endl;
-  cout << "  -s, --summarize:    print rules to stderr as 'output -> pattern'" << endl;
-  cout << "  -S, --stats:        print statistics about rule file to stdout" << endl;
-  cout << "  -h, --help:         show this help" << endl;
+  cout << "  -e, --exclude:      " << i18n.format("exclude_desc") << endl;
+  cout << "  -l, --lexical:      " << i18n.format("lexical_desc") << endl;
+  cout << "  -s, --summarize:    " << i18n.format("summarize_desc") << endl;
+  cout << "  -S, --stats:        " << i18n.format("stats_desc") << endl;
+  cout << "  -h, --help:         " << i18n.format("help_desc") << endl;
 #else
-  cout << "  -e:   exclude a rule by name" << endl;
-  cout << "  -l:   load a file of lexicalized weights" << endl;
-  cout << "  -s:   print rules to stderr as 'output -> pattern'" << endl;
-  cout << "  -S:   print statistics about rule file to stdout" << endl;
-  cout << "  -h:   show this help" << endl;
+  cout << "  -e:   " << i18n.format("exclude_desc") << endl;
+  cout << "  -l:   " << i18n.format("lexical_desc") << endl;
+  cout << "  -s:   " << i18n.format("summarize_desc") << endl;
+  cout << "  -S:   " << i18n.format("stats_desc") << endl;
+  cout << "  -h:   " << i18n.format("help_desc") << endl;
 #endif
   exit(EXIT_FAILURE);
 }
@@ -95,8 +95,7 @@ int main(int argc, char *argv[])
   FILE* check = fopen(argv[optind], "r");
   if(check == NULL)
   {
-    cout << "Unable to open " << argv[optind] << " for reading." << endl;
-    exit(EXIT_FAILURE);
+    I18n(ARC_I18N_DATA, "arc").error("ARC80020", {"file"}, {argv[optind]}, true);
   }
   int c;
   while((c = fgetc(check)) != '<')
@@ -113,7 +112,7 @@ int main(int argc, char *argv[])
     TRXCompiler comp;
     if(summary)
     {
-      cout << "Summary mode not available for XML." << endl;
+      I18n(ARC_I18N_DATA, "arc").error("ARC60050", false);
     }
     for(auto lex : lexFiles) comp.loadLex(lex);
     for(auto exc : exclude) comp.excludeRule(exc);

@@ -68,5 +68,5 @@ AC_CONFIG_FILES([
                  Makefile
                  src/Makefile
                  apertium-recursive.pc
-                 ])
+                 locales/Makefile])
 AC_OUTPUT

@@ -20,6 +20,7 @@
 #include <iostream>
 #include <apertium/string_utils.h>
 #include <libgen.h>
+#include <lttoolbox/i18n.h>
 
 using namespace Apertium;
 using namespace std;
@@ -30,7 +31,8 @@ int main(int argc, char *argv[])
 
   if(argc != 5)
   {
-    wcerr << "USAGE: " << basename(argv[0]) << " t1x t2x t3x transfer_file" << endl;
+    wcerr << I18n(ARC_I18N_DATA, "arc").format("usage", {"usage"}, {""})
+          << basename(argv[0]) << " t1x t2x t3x transfer_file" << endl;
     exit(EXIT_FAILURE);
   }
 

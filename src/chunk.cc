@@ -1,6 +1,7 @@
 #include <rtx_config.h>
 #include <chunk.h>
 #include <lttoolbox/string_utils.h>
+#include <lttoolbox/i18n.h>
 
 #include <iostream>
 
@@ -351,7 +352,7 @@ Chunk::writeTree(TreeMode mode, UFILE* out)
     }
       break;
     default:
-      cerr << "That tree mode has not yet been implemented." << endl;
+      I18n(ARC_I18N_DATA, "arc").error("ARC80000", false);;
   }
 }
 

@@ -24,3 +24,10 @@ tests/run_tests.py
 rtx_config.h
 *~
 src/__pycache__/*
+
+/.vscode/
+/locales/Makefile
+/locales/Makefile.in
+*.res
+*.dat
+/configure~

@@ -1,4 +1,6 @@
 AM_LDFLAGS=$(LIBS)
+AM_CPPFLAGS = -DARC_I18N_DATA='"$(ARC_I18N_DATA)"' -DALT_I18N_DATA='"$(ALT_I18N_DATA)"'
+
 
 bin_PROGRAMS = rtx-comp rtx-proc rtx-decomp random-path
 

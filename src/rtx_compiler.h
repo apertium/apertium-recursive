@@ -610,6 +610,11 @@ private:
   OutputChoice* processMacroChoice(OutputChoice* mac, OutputChunk* arg);
 
   /**
+   * Compile either JUMP or LONGJUMP of over.length()
+   */
+  UString compileJump(const UString& over);
+
+  /**
    * Compile a non-chunk output element
    * @param ch - the element
    * @return bytecode

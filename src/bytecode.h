@@ -24,6 +24,7 @@ static const UChar PUSHNULL  = '0';
 static const UChar JUMP        = 'j';
 static const UChar JUMPONTRUE  = 'J';
 static const UChar JUMPONFALSE = '?';
+static const UChar LONGJUMP    = 'k';
 
 // Logical Operators
 

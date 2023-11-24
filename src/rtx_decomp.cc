@@ -68,13 +68,20 @@ void writeRule(UString rule, UFILE* out)
         u_fprintf(out, "PUSHTRUE\n");
         break;
       case JUMP:
-        u_fprintf(out, "JUMP %d\n", (int)rule[++i]);
+        u_fprintf(out, "JUMP %d\n", (uint16_t)rule[++i]);
         break;
       case JUMPONTRUE:
-        u_fprintf(out, "JUMPONTRUE %d\n", (int)rule[++i]);
+        u_fprintf(out, "JUMPONTRUE %d\n", (uint16_t)rule[++i]);
         break;
       case JUMPONFALSE:
-        u_fprintf(out, "JUMPONFALSE %d\n", (int)rule[++i]);
+        u_fprintf(out, "JUMPONFALSE %d\n", (uint16_t)rule[++i]);
+        break;
+      case LONGJUMP:
+      {
+        uint32_t n1 = rule[++i];
+        uint32_t n2 = rule[++i];
+        u_fprintf(out, "LONGJUMP %d\n", ((n1 << 16) + n2));
+      }
         break;
       case AND:
         u_fprintf(out, "AND\n");

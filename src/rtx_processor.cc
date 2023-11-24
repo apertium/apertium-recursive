@@ -275,26 +275,26 @@ RTXProcessor::applyRule(const UString& rule)
   stackIdx = 0;
   vector<bool> editted = vector<bool>(currentInput.size(), false);
   const UChar* rule_data = rule.data();
-  for(unsigned int i = 0, rule_size = rule.size(); i < rule_size; i++)
+  for(uint64_t i = 0, rule_size = rule.size(); i < rule_size; i++)
   {
     switch(rule_data[i])
     {
       case DROP:
-        if(printingSteps) { cerr << "drop" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] drop" << endl; }
         stackIdx--;
         break;
       case DUP:
-        if(printingSteps) { cerr << "dup" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] dup" << endl; }
         stackCopy(stackIdx, stackIdx+1);
         stackIdx++;
         break;
       case OVER:
-        if(printingSteps) { cerr << "over" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] over" << endl; }
         stackCopy(stackIdx-1, stackIdx+1);
         stackIdx++;
         break;
       case SWAP:
-        if(printingSteps) { cerr << "swap" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] swap" << endl; }
       {
         stackCopy(stackIdx, stackIdx+1);
         stackCopy(stackIdx-1, stackIdx);
@@ -303,7 +303,7 @@ RTXProcessor::applyRule(const UString& rule)
         break;
       case STRING:
       {
-        if(printingSteps) { cerr << "string" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] string" << endl; }
         int ct = rule_data[++i];
         stackIdx++;
         theStack[stackIdx].mode = 2;
@@ -314,28 +314,28 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case INT:
-        if(printingSteps) { cerr << "int " << (int)rule[i+1] << endl; }
+        if(printingSteps) { cerr << "[" << i << "] int " << (int)rule[i+1] << endl; }
         pushStack((int)rule_data[++i]);
         break;
       case PUSHFALSE:
-        if(printingSteps) { cerr << "pushfalse" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] pushfalse" << endl; }
         pushStack(false);
         break;
       case PUSHTRUE:
-        if(printingSteps) { cerr << "pushtrue" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] pushtrue" << endl; }
         pushStack(true);
         break;
       case PUSHNULL:
-        if(printingSteps) { cerr << "pushnull" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] pushnull" << endl; }
         pushStack((Chunk*)NULL);
         break;
       case JUMP:
-        if(printingSteps) { cerr << "jump" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] jump" << endl; }
         ++i;
         i += rule_data[i];
         break;
       case JUMPONTRUE:
-        if(printingSteps) { cerr << "jumpontrue" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] jumpontrue" << endl; }
         if(!popBool())
         {
           i++;
@@ -349,7 +349,7 @@ RTXProcessor::applyRule(const UString& rule)
         }
         break;
       case JUMPONFALSE:
-        if(printingSteps) { cerr << "jumponfalse" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] jumponfalse" << endl; }
         if(popBool())
         {
           i++;
@@ -362,8 +362,16 @@ RTXProcessor::applyRule(const UString& rule)
           if(printingSteps) { cerr << " -> false, jumping" << endl; }
         }
         break;
+      case LONGJUMP:
+        if(printingSteps) { cerr << "[" << i << "] longjump" << endl; }
+      {
+        uint32_t n1 = rule_data[++i];
+        uint32_t n2 = rule_data[++i];
+        i += (n1 << 16) + n2;
+      }
+        break;
       case AND:
-        if(printingSteps) { cerr << "and" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] and" << endl; }
       {
         bool a = popBool();
         bool b = popBool();
@@ -371,7 +379,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case OR:
-        if(printingSteps) { cerr << "or" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] or" << endl; }
       {
         bool a = popBool();
         bool b = popBool();
@@ -379,12 +387,12 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case NOT:
-        if(printingSteps) { cerr << "not" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] not" << endl; }
         theStack[stackIdx].b = !theStack[stackIdx].b;
         break;
       case EQUAL:
       case EQUALCL:
-        if(printingSteps) { cerr << "equal" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] equal" << endl; }
       {
         UString a;
         popString(a);
@@ -401,7 +409,7 @@ RTXProcessor::applyRule(const UString& rule)
         break;
       case ISPREFIX:
       case ISPREFIXCL:
-        if(printingSteps) { cerr << "isprefix" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] isprefix" << endl; }
       {
         UString substr = popString();
         UString str = popString();
@@ -417,7 +425,7 @@ RTXProcessor::applyRule(const UString& rule)
         break;
       case ISSUFFIX:
       case ISSUFFIXCL:
-        if(printingSteps) { cerr << "issuffix" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] issuffix" << endl; }
       {
         UString substr = popString();
         UString str = popString();
@@ -433,7 +441,7 @@ RTXProcessor::applyRule(const UString& rule)
         break;
       case HASPREFIX:
       case HASPREFIXCL:
-        if(printingSteps) { cerr << "hasprefix" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] hasprefix" << endl; }
       {
         UString list = popString();
         UString needle = popString();
@@ -465,7 +473,7 @@ RTXProcessor::applyRule(const UString& rule)
         break;
       case HASSUFFIX:
       case HASSUFFIXCL:
-        if(printingSteps) { cerr << "hassuffix" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] hassuffix" << endl; }
       {
         UString list = popString();
         UString needle = popString();
@@ -497,7 +505,7 @@ RTXProcessor::applyRule(const UString& rule)
         break;
       case ISSUBSTRING:
       case ISSUBSTRINGCL:
-        if(printingSteps) { cerr << "issubstring" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] issubstring" << endl; }
       {
         UString needle = popString();
         UString haystack = popString();
@@ -511,7 +519,7 @@ RTXProcessor::applyRule(const UString& rule)
         break;
       case IN:
       case INCL:
-        if(printingSteps) { cerr << "in" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] in" << endl; }
       {
         UString list = popString();
         UString str = popString();
@@ -529,7 +537,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case SETVAR:
-        if(printingSteps) { cerr << "setvar" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] setvar" << endl; }
       {
         UString var = popString();
         UString val = popString();
@@ -540,7 +548,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case OUTPUT:
-        if(printingSteps) { cerr << "output" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] output" << endl; }
       {
         Chunk* ch = popChunk();
         if(ch == NULL) break; // FETCHCHUNK
@@ -602,12 +610,12 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case OUTPUTALL:
-        if(printingSteps) { cerr << "outputall" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] outputall" << endl; }
         currentOutput = currentInput;
         return true;
         break;
       case PUSHINPUT:
-        if(printingSteps) { cerr << "pushinput" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] pushinput" << endl; }
       {
         int loc = popInt();
         int pos = 2*(loc-1);
@@ -637,7 +645,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case SOURCECLIP:
-        if(printingSteps) { cerr << "sourceclip" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] sourceclip" << endl; }
       {
         UString part;
         popString(part);
@@ -658,7 +666,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case TARGETCLIP:
-        if(printingSteps) { cerr << "targetclip" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] targetclip" << endl; }
       {
         UString part;
         popString(part);
@@ -679,7 +687,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case REFERENCECLIP:
-        if(printingSteps) { cerr << "referenceclip" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] referenceclip" << endl; }
       {
         UString part;
         popString(part);
@@ -690,7 +698,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case SETCLIP:
-        if(printingSteps) { cerr << "setclip" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] setclip" << endl; }
       {
         int pos = 2*(popInt()-1);
         UString part = popString();
@@ -711,7 +719,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case FETCHVAR:
-        if(printingSteps) { cerr << "fetchvar" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] fetchvar" << endl; }
         {
           UString name = popString();
           UString val = currentBranch->stringVars[name];
@@ -721,23 +729,23 @@ RTXProcessor::applyRule(const UString& rule)
         }
         break;
       case FETCHCHUNK:
-        if(printingSteps) { cerr << "fetchchunk" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] fetchchunk" << endl; }
         pushStack(currentBranch->chunkVars[popInt()]);
         break;
       case SETCHUNK:
-        if(printingSteps) { cerr << "setchunk" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] setchunk" << endl; }
         {
           int pos = popInt();
           currentBranch->chunkVars[pos] = popChunk();
         }
         break;
       case GETCASE:
-        if(printingSteps) { cerr << "getcase" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] getcase" << endl; }
         pushStack(StringUtils::getcase(popString()));
         if(printingSteps) { cerr << " -> " << theStack[stackIdx].s << endl; }
         break;
       case SETCASE:
-        if(printingSteps) { cerr << "setcase" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] setcase" << endl; }
       {
         UString src = popString();
         UString dest = popString();
@@ -746,7 +754,7 @@ RTXProcessor::applyRule(const UString& rule)
         if(printingSteps) { cerr << " -> " << theStack[stackIdx].s << endl; }
         break;
       case CONCAT:
-        if(printingSteps) { cerr << "concat" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] concat" << endl; }
       {
         if(theStack[stackIdx].mode != 2 || theStack[stackIdx-1].mode != 2)
         {
@@ -758,7 +766,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case CHUNK:
-        if(printingSteps) { cerr << "chunk" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] chunk" << endl; }
       {
         Chunk* ch = chunkPool.next();
         ch->isBlank = false;
@@ -766,7 +774,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case APPENDCHILD:
-        if(printingSteps) { cerr << "appendchild" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] appendchild" << endl; }
       {
         Chunk* kid = popChunk();
         if(isLinear && kid->target[0] == '^')
@@ -797,7 +805,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case APPENDSURFACE:
-        if(printingSteps) { cerr << "appendsurface" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] appendsurface" << endl; }
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
@@ -825,7 +833,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case APPENDSURFACESL:
-        if(printingSteps) { cerr << "appendsurfacesl" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] appendsurfacesl" << endl; }
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
@@ -853,7 +861,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case APPENDSURFACEREF:
-        if(printingSteps) { cerr << "appendsurfaceref" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] appendsurfaceref" << endl; }
       {
         if(theStack[stackIdx].mode != 2 && theStack[stackIdx].mode != 3)
         {
@@ -878,7 +886,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case APPENDALLCHILDREN:
-        if(printingSteps) { cerr << "appendallchildren" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] appendallchildren" << endl; }
       {
         Chunk* ch = popChunk();
         for(unsigned int k = 0; k < ch->contents.size(); k++)
@@ -888,14 +896,14 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case APPENDALLINPUT:
-        if(printingSteps) { cerr << "appendallinput" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] appendallinput" << endl; }
       {
         vector<Chunk*>& vec = theStack[stackIdx].c->contents;
         vec.insert(vec.end(), currentInput.begin(), currentInput.end());
       }
         break;
       case BLANK:
-        if(printingSteps) { cerr << "blank" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] blank" << endl; }
       {
         int loc = 2*(popInt()-1) + 1;
         if(loc == -1)
@@ -912,7 +920,7 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case CONJOIN:
-        if(printingSteps) { cerr << "conjoin" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] conjoin" << endl; }
       {
         Chunk* join = chunkPool.next();
         join->isBlank = true;
@@ -922,11 +930,11 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case REJECTRULE:
-        if(printingSteps) { cerr << "rejectrule" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] rejectrule" << endl; }
         return false;
         break;
       case DISTAG:
-        if(printingSteps) { cerr << "distag" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] distag" << endl; }
       {
         if(theStack[stackIdx].mode != 2)
         {
@@ -941,14 +949,14 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case GETRULE:
-        if(printingSteps) { cerr << "getrule" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] getrule" << endl; }
       {
         int pos = 2*(popInt()-1);
         pushStack(currentInput[pos]->rule);
       }
         break;
       case SETRULE:
-        if(printingSteps) { cerr << "setrule" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] setrule" << endl; }
       {
         int pos = 2*(popInt()-1);
         int rl = popInt();
@@ -970,11 +978,11 @@ RTXProcessor::applyRule(const UString& rule)
       }
         break;
       case LUCOUNT:
-        if(printingSteps) { cerr << "lucount" << endl; }
+        if(printingSteps) { cerr << "[" << i << "] lucount" << endl; }
         pushStack(StringUtils::itoa((currentInput.size() + 1) / 2));
         break;
       default:
-        cerr << "unknown instruction: " << rule[i] << endl;
+        cerr << "unknown instruction: [" << i << "] " << (int)rule[i] << endl;
         exit(1);
     }
   }

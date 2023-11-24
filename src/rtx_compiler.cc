@@ -1760,8 +1760,7 @@ RTXCompiler::compileClip(Clip* c, UString _dest = ""_u)
       cur += compileTag(rule[i].second);
       if(i != 1)
       {
-        cur += JUMP;
-        cur += (UChar)check.size();
+        cur += compileJump(check);
       }
       check = cur + check;
     }
@@ -1907,6 +1906,22 @@ RTXCompiler::processMacroChoice(OutputChoice* mac, OutputChunk* arg)
   for(unsigned int i = 0; i < mac->clips.size(); i++)
   {
     ret->clips.push_back(processMacroClip(mac->clips[i], arg));
+  }
+  return ret;
+}
+
+UString
+RTXCompiler::compileJump(const UString& over)
+{
+  uint32_t n = over.size();
+  UString ret;
+  if (n < (2 << 16)) {
+    ret += JUMP;
+    ret += (UChar)n;
+  } else {
+    ret += LONGJUMP;
+    ret += (UChar)(n >> 16);
+    ret += (UChar)(n & 0xFFFF);
   }
   return ret;
 }
@@ -2369,8 +2384,7 @@ RTXCompiler::processOutputChoice(OutputChoice* choice)
     {
       act = processOutputChunk(choice->chunks[n-i]);
     }
-    act += JUMP;
-    act += (UChar)ret.size();
+    act += compileJump(ret);
     UString cond = processCond(choice->conds[n-i]);
     cond += JUMPONFALSE;
     cond += (UChar)act.size();

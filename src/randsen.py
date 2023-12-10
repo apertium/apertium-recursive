@@ -1,9 +1,5 @@
-import random
-import sys
-import os
-import subprocess
-import collections
-import xml.etree.ElementTree as ET
+#!/usr/bin/env python3
+import random, sys, os, subprocess, collections, tempfile, xml.etree.ElementTree as ET
 
 class Rule:
     allRules = collections.defaultdict(list)

@@ -1,174 +1,58 @@
 #include <rtx_config.h>
 #include <rtx_processor.h>
+#include <lttoolbox/cli.h>
+#include <lttoolbox/file_utils.h>
 #include <lttoolbox/lt_locale.h>
-#include <getopt.h>
-#include <libgen.h>
 #include <iostream>
-
-void endProgram(char *name)
-{
-  cout << basename(name) << ": perform structural transfer" << endl;
-  cout << "USAGE: " << basename(name) << " [-a] [-t] [-z] [ -T | -b ] [ -m mode ] [ -e | -f | -r | -s ] bytecode_file [input_file [output_file]]" << endl;
-  cout << "Options:" << endl;
-#if HAVE_GETOPT_LONG
-  cout << "  -a, --anaphora:   expect coreference LUs from apertium-anaphora" << endl;
-  cout << "  -b, --both:       print text (use with -T)" << endl;
-  cout << "  -e, --everything: print a complete trace of execution" << endl;
-  cout << "  -f, --filter:     trace filterParseGraph()" << endl;
-  cout << "  -F, --filter:     filter branches more often" << endl;
-  cout << "  -m, --mode:       set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
-  cout << "  -r, --rules:      print the rules that are being applied" << endl;
-  cout << "  -s, --steps:      print the instructions executed by the stack machine" << endl;
-  cout << "  -t, --trx:        mimic the behavior of apertium-transfer and apertium-interchunk" << endl;
-  cout << "  -T, --tree:       print parse trees rather than apply output rules" << endl;
-  cout << "  -z, --null-flush: flush output on \\0" << endl;
-  cout << "  -h, --help:       show this help" << endl;
-#else
-  cout << "  -a:   expect coreference LUs from apertium-anaphora" << endl;
-  cout << "  -b:   print text (use with -T)" << endl;
-  cout << "  -e:   print a complete trace of execution" << endl;
-  cout << "  -f:   trace filterParseGraph()" << endl;
-  cout << "  -F:   filter branches more often" << endl;
-  cout << "  -m:   set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'" << endl;
-  cout << "  -r:   print the rules that are being applied" << endl;
-  cout << "  -s:   print the instructions executed by the stack machine" << endl;
-  cout << "  -t:   mimic the behavior of apertium-transfer and apertium-interchunk" << endl;
-  cout << "  -T:   print parse trees rather than apply output rules" << endl;
-  cout << "  -z:   flush output on \\0" << endl;
-  cout << "  -h:   show this help" << endl;
-#endif
-  exit(EXIT_FAILURE);
-}
 
 int main(int argc, char *argv[])
 {
+  LtLocale::tryToSetLocale();
+  CLI cli("perform structural transfer", PACKAGE_VERSION);
+  cli.add_bool_arg('a', "anaphora", "expect coreference LUs from apertium-anaphora");
+  cli.add_bool_arg('b', "both", "print text (use with -T)");
+  cli.add_bool_arg('e', "everything", "print a complete trace of execution");
+  cli.add_bool_arg('f', "filter-trace", "trace filterParseGraph()");
+  cli.add_bool_arg('F', "filter", "filter branches more often");
+  cli.add_str_arg('m', "mode", "set the mode of tree output, options are 'flat', 'nest', 'latex', 'dot', 'box'", "MODE");
+  cli.add_bool_arg('r', "rules", "print the rules that are being applied");
+  cli.add_bool_arg('s', "steps", "print the instructions executed by the stack machine");
+  cli.add_bool_arg('t', "trx", "mimic the behavior of apertium-transfer and apertium-interchunk");
+  cli.add_bool_arg('T', "tree", "print parse trees rather than apply output rules");
+  cli.add_bool_arg('z', "null-flush", "flush output on \\0");
+  cli.add_bool_arg('h', "help", "print this message and exit");
+  cli.add_file_arg("bytecode_file", false);
+  cli.add_file_arg("input_file", true);
+  cli.add_file_arg("output_file", true);
+  cli.parse_args(argc, argv);
+  
   RTXProcessor p;
-
-#if HAVE_GETOPT_LONG
-  static struct option long_options[]=
-    {
-      {"anaphora",          0, 0, 'a'},
-      {"both",              0, 0, 'b'},
-      {"everything",        0, 0, 'e'},
-      {"filter",            0, 0, 'f'},
-      {"filter",            0, 0, 'F'},
-      {"mode",              1, 0, 'm'},
-      {"rules",             0, 0, 'r'},
-      {"steps",             0, 0, 's'},
-      {"trx",               0, 0, 't'},
-      {"tree",              0, 0, 'T'},
-      {"null-flush",        0, 0, 'z'},
-      {"help",              0, 0, 'h'}
-    };
-#endif
-
-  bool haveB = false;
-  bool haveT = false;
-
-  while(true)
-  {
-#if HAVE_GETOPT_LONG
-    int option_index;
-    int c = getopt_long(argc, argv, "abefFm:rstTzh", long_options, &option_index);
-#else
-    int c = getopt(argc, argv, "abefFm:rstTzh");
-#endif
-
-    if(c == -1)
-    {
-      break;
-    }
-
-    switch(c)
-    {
-    case 'a':
-      p.withoutCoref(false);
-      break;
-
-    case 'b':
-      haveB = true;
-      break;
-
-    case 'e':
-      p.completeTrace(true);
-      break;
-
-    case 'f':
-      p.printFilter(true);
-      break;
-
-    case 'F':
-      p.noFiltering(false);
-      break;
-
-    case 'm':
-      if(!p.setOutputMode(optarg))
-      {
-        cout << "\"" << optarg << "\" is not a recognized tree mode. Valid options are \"flat\", \"nest\", \"latex\", \"dot\", and \"box\"." << endl;
-        exit(EXIT_FAILURE);
-      }
-      break;
-
-    case 'r':
-      p.printRules(true);
-      break;
-
-    case 's':
-      p.printSteps(true);
-      break;
-
-    case 't':
-      p.mimicChunker(true);
-      break;
-
-    case 'T':
-      haveT = true;
-      break;
-
-    case 'z':
-      p.setNullFlush(true);
-      break;
-
-    case 'h':
-    default:
-      endProgram(argv[0]);
-      break;
-    }
-  }
-
+  p.withoutCoref(!cli.get_bools()["anaphora"]);
+  p.completeTrace(cli.get_bools()["everything"]);
+  p.printFilter(cli.get_bools()["filter-trace"]);
+  p.noFiltering(!cli.get_bools()["filter"]);
+  p.printRules(cli.get_bools()["rules"]);
+  p.printSteps(cli.get_bools()["steps"]);
+  p.mimicChunker(cli.get_bools()["trx"]);
+  p.setNullFlush(cli.get_bools()["null-flush"]);
+  
+  bool haveB = cli.get_bools()["both"];
+  bool haveT = cli.get_bools()["tree"];
   p.printTrees(haveT);
   p.printText(haveB || (!haveT && !haveB));
 
-  LtLocale::tryToSetLocale();
-
-  if(optind > (argc - 1) || optind < (argc - 3))
-  {
-    endProgram(argv[0]);
-  }
-
-  p.read(argv[optind]);
-
-  FILE *input = stdin;
-  UFILE* output = u_finit(stdout, NULL, NULL);
-
-  if(optind <= (argc - 2))
-  {
-    input = fopen(argv[optind+1], "rb");
-    if(input == NULL)
-    {
-      cerr << "Unable to open " << argv[optind+1] << " for reading." << endl;
+  auto args = cli.get_strs();
+  if (args.find("mode") != args.end()) {
+    auto m = args["mode"][0];
+    if (!p.setOutputMode(m)) {
+      cout << "\"" << m << "\" is not a recognized tree mode. Valid options are \"flat\", \"nest\", \"latex\", \"dot\", and \"box\"." << endl;
       exit(EXIT_FAILURE);
     }
   }
-  if(optind <= (argc - 3))
-  {
-    output = u_fopen(argv[optind+2], "w", NULL, NULL);
-    if(input == NULL)
-    {
-      cerr << "Unable to open " << argv[optind+2] << " for writing." << endl;
-      exit(EXIT_FAILURE);
-    }
-  }
+
+  p.read(cli.get_files()[0]);
+  FILE* input = openInBinFile(cli.get_files()[1]);
+  UFILE* output = openOutTextFile(cli.get_files()[2]);
 
   p.process(input, output);
 

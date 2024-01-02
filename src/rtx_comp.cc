@@ -1,106 +1,51 @@
 #include <rtx_config.h>
 #include <rtx_compiler.h>
+#include <lttoolbox/cli.h>
+#include <lttoolbox/file_utils.h>
 #include <lttoolbox/lt_locale.h>
 #include <cstdlib>
 #include <iostream>
-#include <libgen.h>
-#include <getopt.h>
 #include <libxml/xmlreader.h>
 #include <trx_compiler.h>
 
 using namespace std;
 
-void endProgram(char *name)
-{
-  cout << basename(name) << ": compile .rtx files" << endl;
-  cout << "USAGE: " << basename(name) << " [-e name] [-f] [-l file] [-s] [-S] [-h] rule_file bytecode_file" << endl;
-  cout << "Options:" << endl;
-#if HAVE_GETOPT_LONG
-  cout << "  -e, --exclude:      exclude a rule by name" << endl;
-  cout << "  -l, --lexical:      load a file of lexicalized weights" << endl;
-  cout << "  -s, --summarize:    print rules to stderr as 'output -> pattern'" << endl;
-  cout << "  -S, --stats:        print statistics about rule file to stdout" << endl;
-  cout << "  -h, --help:         show this help" << endl;
-#else
-  cout << "  -e:   exclude a rule by name" << endl;
-  cout << "  -l:   load a file of lexicalized weights" << endl;
-  cout << "  -s:   print rules to stderr as 'output -> pattern'" << endl;
-  cout << "  -S:   print statistics about rule file to stdout" << endl;
-  cout << "  -h:   show this help" << endl;
-#endif
-  exit(EXIT_FAILURE);
-}
-
 int main(int argc, char *argv[])
 {
   LtLocale::tryToSetLocale();
+  CLI cli("compile .rtx files", PACKAGE_VERSION);
+  cli.add_str_arg('e', "exclude", "exclude a rule by name", "NAME");
+  cli.add_str_arg('l', "lexical", "load a file of lexicalized weights", "FILE");
+  cli.add_bool_arg('s', "summarize", "print rules to stderr as 'output -> pattern'");
+  cli.add_bool_arg('S', "stats", "print statistics about rule file to stdout");
+  cli.add_bool_arg('h', "help", "print this message and exit");
+  cli.add_file_arg("rule_file", false);
+  cli.add_file_arg("bytecode_file", false);
+  cli.parse_args(argc, argv);
 
-#if HAVE_GETOPT_LONG
-  static struct option long_options[]=
-    {
-      {"exclude",           1, 0, 'e'},
-      {"lexical",           1, 0, 'l'},
-      {"summarize",         0, 0, 's'},
-      {"stats",             0, 0, 'S'},
-      {"help",              0, 0, 'h'}
-    };
-#endif
-
-  bool stats = false;
-  bool summary = false;
+  bool stats = cli.get_bools()["stats"];
+  bool summary = cli.get_bools()["summarize"];
   vector<UString> exclude;
   vector<string> lexFiles;
 
-  while(true)
-  {
-#if HAVE_GETOPT_LONG
-    int option_index;
-    int c = getopt_long(argc, argv, "e:fl:sSh", long_options, &option_index);
-#else
-    int c = getopt(argc, argv, "e:fl:sSh");
-#endif
-
-    if(c == -1)
-    {
-      break;
+  auto args = cli.get_strs();
+  if (args.find("exclude") != args.end()) {
+    for (auto& e : args["exclude"]) {
+      exclude.push_back(to_ustring(e.c_str()));
     }
-
-    switch(c)
-    {
-    case 'e':
-      exclude.push_back(to_ustring(optarg));
-      break;
-
-    case 'l':
-      lexFiles.push_back(optarg);
-      break;
-
-    case 's':
-      summary = true;
-      break;
-
-    case 'S':
-      stats = true;
-      break;
-
-    case 'h':
-    default:
-      endProgram(argv[0]);
-      break;
+  }
+  if (args.find("lexical") != args.end()) {
+    for (auto& l : args["lexical"]) {
+      lexFiles.push_back(l);
     }
   }
 
-  if(argc - optind != 2) endProgram(argv[0]);
+  std::string rules = cli.get_files()[0];
+  std::string bin = cli.get_files()[1];
 
-  FILE* check = fopen(argv[optind], "r");
-  if(check == NULL)
-  {
-    cout << "Unable to open " << argv[optind] << " for reading." << endl;
-    exit(EXIT_FAILURE);
-  }
+  FILE* check = openInBinFile(rules);
   int c;
-  while((c = fgetc(check)) != '<')
-  {
+  while((c = fgetc(check)) != '<') {
     if(c == EOF) break;
     else if(isspace(c)) continue;
     else break;
@@ -108,34 +53,25 @@ int main(int argc, char *argv[])
   bool xml = (c == '<');
   fclose(check);
 
-  if(xml)
-  {
+  if(xml) {
     TRXCompiler comp;
-    if(summary)
-    {
+    if(summary) {
       cout << "Summary mode not available for XML." << endl;
     }
     for(auto lex : lexFiles) comp.loadLex(lex);
     for(auto exc : exclude) comp.excludeRule(exc);
-    comp.compile(argv[optind]);
-    comp.write(argv[optind+1]);
-    if(stats)
-    {
-      comp.printStats();
-    }
+    comp.compile(rules);
+    comp.write(bin.c_str());
+    if(stats) comp.printStats();
   }
-  else
-  {
+  else {
     RTXCompiler comp;
     comp.setSummarizing(summary);
     for(auto lex : lexFiles) comp.loadLex(lex);
     for(auto exc : exclude) comp.excludeRule(exc);
-    comp.read(argv[optind]);
-    comp.write(argv[optind+1]);
-    if(stats)
-    {
-      comp.printStats();
-    }
+    comp.read(rules);
+    comp.write(bin.c_str());
+    if(stats) comp.printStats();
   }
 
   return EXIT_SUCCESS;

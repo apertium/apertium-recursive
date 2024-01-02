@@ -1,27 +1,14 @@
 #include <rtx_config.h>
 #include <bytecode.h>
+#include <lttoolbox/cli.h>
+#include <lttoolbox/file_utils.h>
 #include <lttoolbox/lt_locale.h>
 #include <lttoolbox/compression.h>
-#include <getopt.h>
-#include <libgen.h>
 #include <iostream>
 #include <fstream>
 #include <cstring>
 #include <cstdio>
 #include <unicode/ustdio.h>
-
-void endProgram(char *name)
-{
-  std::cout << basename(name) << ": decompile a transfer bytecode file" << std::endl;
-  std::cout << "USAGE: " << basename(name) << " [ -h ] [input_file [output_file]]" << std::endl;
-  std::cout << "Options:" << std::endl;
-#if HAVE_GETOPT_LONG
-  std::cout << "  -h, --help: show this help" << std::endl;
-#else
-  std::cout << "  -h: show this help" << std::endl;
-#endif
-  exit(EXIT_FAILURE);
-}
 
 void writeRule(UString rule, UFILE* out)
 {
@@ -225,64 +212,15 @@ void writeRule(UString rule, UFILE* out)
 
 int main(int argc, char *argv[])
 {
-#if HAVE_GETOPT_LONG
-  static struct option long_options[]=
-    {
-      {"help",              0, 0, 'h'}
-    };
-#endif
-
-  while(true)
-  {
-#if HAVE_GETOPT_LONG
-    int option_index;
-    int c = getopt_long(argc, argv, "h", long_options, &option_index);
-#else
-    int c = getopt(argc, argv, "h");
-#endif
-
-    if(c == -1)
-    {
-      break;
-    }
-
-    switch(c)
-    {
-    case 'h':
-    default:
-      endProgram(argv[0]);
-      break;
-    }
-  }
-
   LtLocale::tryToSetLocale();
+  CLI cli("decompile a transfer bytecode file", PACKAGE_VERSION);
+  cli.add_bool_arg('h', "help", "print this message and exit");
+  cli.add_file_arg("input_file", true);
+  cli.add_file_arg("output_file", true);
+  cli.parse_args(argc, argv);
 
-  if(optind < (argc - 2))
-  {
-    endProgram(argv[0]);
-  }
-
-  FILE* in = stdin;
-  UFILE* out = u_finit(stdout, NULL, NULL);
-
-  if(optind <= (argc - 1))
-  {
-    in = fopen(argv[optind], "rb");
-    if(in == NULL)
-    {
-      std::cerr << "Error: could not open file " << argv[optind] << " for reading." << std::endl;
-      exit(EXIT_FAILURE);
-    }
-  }
-  if(optind <= (argc - 2))
-  {
-    out = u_fopen(argv[optind+1], "wb", NULL, NULL);
-    if(out == NULL)
-    {
-      std::cerr << "Error: could not open file " << argv[optind+1] << " for writing." << std::endl;
-      exit(EXIT_FAILURE);
-    }
-  }
+  FILE* in = openInBinFile(cli.get_files()[0]);
+  UFILE* out = openOutTextFile(cli.get_files()[1]);
 
   int longestPattern = Compression::multibyte_read(in);
   int count = Compression::multibyte_read(in);

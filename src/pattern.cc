@@ -468,7 +468,8 @@ PatternBuilder::write(FILE* output, int longest, vector<pair<int, UString>> inpu
       if(s.compare(0, rule_sym_pre.size(), rule_sym_pre) != 0) {
         continue;
       }
-      const int rule_num = StringUtils::stoi(s.substr(rule_sym_pre.size()));
+      size_t pos = rule_sym_pre.size();
+      const int rule_num = StringUtils::stoi(s.substr(pos, s.size()-pos-1));
       transducer.setFinal(src);
       finals_rules.insert(make_pair(src, make_pair(rule_num, wgt)));
     }

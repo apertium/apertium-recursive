@@ -51,7 +51,7 @@ AC_CHECK_FUNCS([setlocale strdup getopt_long])
 AC_CHECK_DECLS([fread_unlocked, fwrite_unlocked, fgetc_unlocked, fputc_unlocked, fputs_unlocked, getopt_long])
 
 CPPFLAGS="$CPPFLAGS $CFLAGS $LTTOOLBOX_CFLAGS $APERTIUM_CFLAGS $LIBXML_CFLAGS $ICU_CFLAGS"
-LIBS="$LIBS $LTTOOLBOX_LIBS $APERTIUM_LIBS $LIBXML_LIBS $ICU_LIBS"
+LIBS="$LIBS $APERTIUM_LIBS $LTTOOLBOX_LIBS $LIBXML_LIBS $ICU_LIBS"
 
 # Checks for highest supported C++ standard
 AC_LANG(C++)

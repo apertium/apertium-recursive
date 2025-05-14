@@ -1755,13 +1755,12 @@ RTXCompiler::compileClip(Clip* c, UString _dest = ""_u)
         cur += EQUAL;
       }
       cur += JUMPONFALSE;
-      cur += (UChar)(rule[i].second.size() + (i == 1 ? 5 : 7));
-      cur += DROP;
-      cur += compileTag(rule[i].second);
-      if(i != 1)
-      {
-        cur += compileJump(check);
-      }
+      UString temp;
+      temp += DROP;
+      temp += compileTag(rule[i].second);
+      if (i != 1) temp += compileJump(check);
+      cur += (UChar)temp.size();
+      cur += temp;
       check = cur + check;
     }
     ret += check;

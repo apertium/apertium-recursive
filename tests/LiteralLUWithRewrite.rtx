@@ -1,0 +1,10 @@
+v: _.gender.number;
+VP: _;
+
+gender = m f mf;
+number = sg pl sp;
+obj = o_1sg o_1pl o_2sg o_2pl o_3sg o_3pl ;
+
+obj > number: o_1sg sg, o_1pl pl, o_2sg "", o_2pl "", o_3sg sg, o_3pl pl ;
+
+VP -> v { 1 _ acc@prn.[1.obj>number] } ;
